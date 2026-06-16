@@ -175,7 +175,7 @@ export default async function SiteFooterPortal({ tokens, portal, updatedAt, item
           {/* Colunas dinâmicas vindas da API */}
           {usarApiMenus
             ? items.map((coluna) => (
-                <nav key={coluna.id} aria-label={`Mapa do site — ${coluna.label}`}>
+                <nav key={coluna.id} aria-label={`Mapa do site — ${coluna.label}`} className="text-center">
                   <h2 className="mb-3 text-sm font-bold uppercase tracking-wide opacity-60">
                     {coluna.label}
                   </h2>
@@ -195,7 +195,7 @@ export default async function SiteFooterPortal({ tokens, portal, updatedAt, item
                 </nav>
               ))
             : FALLBACK_COLUMNS.map((coluna) => (
-                <nav key={coluna.titulo} aria-label={`Mapa do site — ${coluna.titulo}`}>
+                <nav key={coluna.titulo} aria-label={`Mapa do site — ${coluna.titulo}`} className="text-center">
                   <h2 className="mb-3 text-sm font-bold uppercase tracking-wide opacity-60">
                     {coluna.titulo}
                   </h2>
