@@ -1,0 +1,13 @@
+import { login, getJson } from './lib/api.mjs';
+const slug = process.argv[2] || 'institucional/prefeita';
+await login();
+const lista = await getJson(`/api/admin/pages?q=${encodeURIComponent(slug)}&pageSize=50`);
+const items = Array.isArray(lista) ? lista : (lista.items || []);
+const p = items.find((x) => x.slug === slug);
+const det = await getJson(`/api/admin/pages/${p.id}`);
+const b = (det.blocks || []).find((x) => x.tipo === 'texto') || det.blocks?.[0];
+const s = JSON.stringify(b?.conteudo || {});
+console.log('blocos:', (det.blocks || []).length, '| publicado:', det.publicado);
+console.log('corpo tem /midia/?', /\/midia\//.test(s));
+console.log('corpo tem dominio antigo?', /baraodemelgaco\.mt\.gov\.br/.test(s));
+console.log('snippet:', s.slice(0, 320));

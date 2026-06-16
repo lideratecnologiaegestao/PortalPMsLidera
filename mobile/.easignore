@@ -1,0 +1,11 @@
+# Arquivos que NÃO sobem para o build EAS (a EAS reinstala deps no servidor).
+node_modules/
+.expo/
+dist/
+web-build/
+*.apk
+*.aab
+.git/
+npm-debug.*
+*.log
+.DS_Store

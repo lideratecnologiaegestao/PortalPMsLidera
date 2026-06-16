@@ -1,0 +1,9 @@
+{
+  "slug": "novomunicipio",
+  "name": "Município de Novo Município",
+  "shortName": "Novo Município",
+  "scheme": "novomunicipiocidadao",
+  "bundleId": "br.gov.novomunicipio.cidadao",
+  "primaryColor": "#1351b4",
+  "apiUrl": "https://novomunicipio.gov.br"
+}

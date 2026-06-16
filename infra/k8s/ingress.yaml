@@ -1,0 +1,27 @@
+# Ingress multi-tenant por Host. O wildcard cobre os domínios das prefeituras;
+# `/api` vai para a API, o resto para o web (que repassa o Host à API).
+# TLS é terminado na borda (Cloudflare); aqui pode ser HTTP interno.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: portal
+  annotations:
+    nginx.ingress.kubernetes.io/use-forwarded-headers: 'true'
+    nginx.ingress.kubernetes.io/proxy-body-size: '10m' # uploads de fotos
+spec:
+  ingressClassName: nginx
+  rules:
+    - http:
+        paths:
+          - path: /api
+            pathType: Prefix
+            backend:
+              service:
+                name: portal-api
+                port: { number: 3001 }
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: portal-web
+                port: { number: 3000 }

@@ -1,0 +1,43 @@
+name: CD
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: cd-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build-images:
+    runs-on: ubuntu-latest
+    permissions: { contents: read, packages: write }
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build & push (api, web)
+        run: echo "docker build -t ghcr.io/org/portal-api:${{ github.sha }} ./api && push (configurar registry)"
+
+  deploy-staging:
+    needs: build-images
+    runs-on: ubuntu-latest
+    environment: staging
+    steps:
+      - uses: actions/checkout@v4
+      - name: Migrar banco (antes do rollout, compatível p/ trás)
+        run: echo "kubectl apply migrations job"
+      - name: Deploy staging
+        run: echo "kubectl set image / helm upgrade --namespace staging"
+      - name: Smoke + e2e
+        run: echo "rodar smoke tests contra staging"
+
+  deploy-prod:
+    needs: deploy-staging
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+      - name: Deploy canary
+        run: echo "rollout canary 10% -> 50% -> 100% com health checks"
+      - name: Rollback automático
+        run: echo "se erro/latência subir, kubectl rollout undo"

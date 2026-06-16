@@ -1,0 +1,100 @@
+# terraform.tfvars.example — Exemplo de configuração do Portal de Prefeitura na AWS
+#
+# INSTRUÇÕES:
+#   1. Copie este arquivo: cp terraform.tfvars.example terraform.tfvars
+#   2. Preencha todos os valores marcados como SUBSTITUA_*
+#   3. NUNCA versione terraform.tfvars com valores reais no git
+#   4. Adicione terraform.tfvars ao .gitignore:
+#        echo "terraform.tfvars" >> .gitignore
+#
+# Para secrets sensíveis (db_password, redis_auth_token), prefira usar
+# variáveis de ambiente do Terraform:
+#   export TF_VAR_db_password="minha_senha_forte"
+#   export TF_VAR_redis_auth_token="meu_token_redis"
+
+# ---------------------------------------------------------------------------
+# Configurações gerais
+# ---------------------------------------------------------------------------
+
+region       = "us-east-1"
+project_name = "portal-prefeitura"
+environment  = "production"
+
+# ---------------------------------------------------------------------------
+# Rede
+# ---------------------------------------------------------------------------
+
+vpc_cidr             = "10.0.0.0/16"
+availability_zones   = ["us-east-1a", "us-east-1b"]
+public_subnet_cidrs  = ["10.0.1.0/24", "10.0.2.0/24"]
+private_subnet_cidrs = ["10.0.11.0/24", "10.0.12.0/24"]
+
+# ---------------------------------------------------------------------------
+# Banco de dados (RDS PostgreSQL 16)
+# ---------------------------------------------------------------------------
+
+db_instance_class        = "db.t3.medium"
+db_name                  = "portal"
+db_username              = "portalmaster"              # master user do RDS (NÃO usar como DATABASE_URL do app)
+db_password              = "SUBSTITUA_POR_SENHA_FORTE" # mínimo 16 chars, letras+números+símbolos
+db_multi_az              = false
+db_backup_retention_days = 7
+
+# ---------------------------------------------------------------------------
+# Cache (ElastiCache Redis 7)
+# ---------------------------------------------------------------------------
+
+redis_node_type  = "cache.t3.micro"
+redis_auth_token = "SUBSTITUA_POR_TOKEN_FORTE_MIN_16_CHARS" # sem espaços, mín. 16 caracteres
+
+# ---------------------------------------------------------------------------
+# Domínio e certificado TLS
+#
+# Crie o certificado no ACM ANTES de rodar terraform apply:
+#   aws acm request-certificate \
+#     --domain-name suaprefeitura.gov.br \
+#     --subject-alternative-names "*.suaprefeitura.gov.br" \
+#     --validation-method DNS
+# ---------------------------------------------------------------------------
+
+domain              = "suaprefeitura.gov.br"
+acm_certificate_arn = "arn:aws:acm:us-east-1:ACCOUNT_ID:certificate/CERT_ID"
+
+# ---------------------------------------------------------------------------
+# Imagens ECR
+#
+# Preencha APÓS criar os repositórios (terraform apply somente ecr.tf) e
+# fazer o push das imagens:
+#   aws ecr get-login-password --region us-east-1 | \
+#   docker login --username AWS --password-stdin ACCOUNT_ID.dkr.ecr.us-east-1.amazonaws.com
+#
+#   docker build -t ACCOUNT_ID.dkr.ecr.us-east-1.amazonaws.com/portal-prefeitura/api:latest ./api
+#   docker push ACCOUNT_ID.dkr.ecr.us-east-1.amazonaws.com/portal-prefeitura/api:latest
+# ---------------------------------------------------------------------------
+
+image_api = "ACCOUNT_ID.dkr.ecr.us-east-1.amazonaws.com/portal-prefeitura/api:latest"
+image_web = "ACCOUNT_ID.dkr.ecr.us-east-1.amazonaws.com/portal-prefeitura/web:latest"
+
+# ---------------------------------------------------------------------------
+# Capacidade ECS Fargate
+# ---------------------------------------------------------------------------
+
+api_cpu           = 1024 # 1 vCPU
+api_memory        = 2048 # 2 GB
+web_cpu           = 512  # 0.5 vCPU
+web_memory        = 1024 # 1 GB
+api_desired_count = 1
+web_desired_count = 1
+
+# ---------------------------------------------------------------------------
+# Logs e storage
+# ---------------------------------------------------------------------------
+
+log_retention_days = 30
+s3_bucket_name     = "portal"
+
+# ---------------------------------------------------------------------------
+# Segurança
+# ---------------------------------------------------------------------------
+
+enable_waf = true

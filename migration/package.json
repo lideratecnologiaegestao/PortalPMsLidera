@@ -1,0 +1,19 @@
+{
+  "name": "migracao-barao",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "ETL idempotente: raspagem do site Joomla de Barao de Melgaco -> API da plataforma",
+  "scripts": {
+    "discover": "node src/discover.mjs",
+    "import:institucional": "node src/import-institucional.mjs",
+    "import:secretarias": "node src/import-secretarias.mjs",
+    "import:noticias": "node src/import-noticias.mjs",
+    "import:documentos": "node src/import-documentos.mjs",
+    "import:galeria": "node src/import-galeria.mjs",
+    "reconcile": "node src/reconcile.mjs"
+  },
+  "dependencies": {
+    "cheerio": "^1.0.0"
+  }
+}

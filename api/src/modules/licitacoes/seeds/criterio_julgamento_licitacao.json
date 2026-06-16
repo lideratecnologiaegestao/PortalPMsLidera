@@ -1,0 +1,62 @@
+[
+  {
+    "codigo": "11",
+    "descricao": "Conteúdo artístico",
+    "slug": "conteudo-artistico"
+  },
+  {
+    "codigo": "8",
+    "descricao": "Maior retorno econômico",
+    "slug": "maior-retorno-economico"
+  },
+  {
+    "codigo": "9",
+    "descricao": "Maior desconto",
+    "slug": "maior-desconto"
+  },
+  {
+    "codigo": "10",
+    "descricao": "Maior lance",
+    "slug": "maior-lance"
+  },
+  {
+    "codigo": "0",
+    "descricao": "Não contempla/não favorece",
+    "slug": "nao-contempla-nao-favorece"
+  },
+  {
+    "codigo": "1",
+    "descricao": "Menor Preço",
+    "slug": "menor-preco"
+  },
+  {
+    "codigo": "2",
+    "descricao": "Melhor técnica",
+    "slug": "melhor-tecnica"
+  },
+  {
+    "codigo": "3",
+    "descricao": "Técnica e Preço",
+    "slug": "tecnica-e-preco"
+  },
+  {
+    "codigo": "4",
+    "descricao": "Tarifa",
+    "slug": "tarifa"
+  },
+  {
+    "codigo": "5",
+    "descricao": "Tarifa e técnica",
+    "slug": "tarifa-e-tecnica"
+  },
+  {
+    "codigo": "6",
+    "descricao": "Contraprestação",
+    "slug": "contraprestacao"
+  },
+  {
+    "codigo": "7",
+    "descricao": "Contraprestação e técnica",
+    "slug": "contraprestacao-e-tecnica"
+  }
+]

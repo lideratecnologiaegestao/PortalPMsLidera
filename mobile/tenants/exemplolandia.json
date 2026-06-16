@@ -1,0 +1,11 @@
+{
+  "slug": "exemplolandia",
+  "name": "Exemplolândia",
+  "shortName": "Exemplolândia",
+  "scheme": "exemplolandiacidadao",
+  "bundleId": "br.gov.exemplolandia.cidadao",
+  "primaryColor": "#1351b4",
+  "apiUrl": "https://exemplolandia.lidera.app.br",
+  "easProjectId": "d2581a73-4ae9-4fa7-80a1-2474aacfaf07",
+  "easOwner": "lideratenologia"
+}

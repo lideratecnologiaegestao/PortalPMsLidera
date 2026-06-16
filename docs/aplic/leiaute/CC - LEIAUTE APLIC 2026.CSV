@@ -1,0 +1,160 @@
+NOMETABELA;ORDEM;NOMECAMPO;CHAVE;OBRIGATORIO;TIPO;DESCRICAO;TABELAORIGEM;FORMATO;REGRAS
+AGENCIA;1;BCO_Codigo;SIM;SIM;Caractere(3);Cód. do banco;TI.BANCO;;
+AGENCIA;2;AGN_Codigo;SIM;SIM;Caractere(10);Cód. da agência;;;REGRA 1: O conteúdo do campo deverá conter o/um dos seguinte(s) formato(s): 99999999-9 OU 9999999-99 OU 99999999-X.
+AGENCIA;3;AGN_Nome;NÃO;SIM;Caractere(50);Nome;;;
+CADASTRO_GERAL;1;CG_Identificacao;SIM;SIM;Caractere(20);CPF, CNPJ, núm. do passaporte ou núm. de identificação da empresa;;;REGRA 1: O conteúdo do campo deverá conter um número de CPF ("999.999.999-99") ou CNPJ ("99.999.999/9999-99") válido quando o conteúdo do campo "CG_Nacionalidade" for "1".
+CADASTRO_GERAL;2;CG_TipoPessoa;NÃO;SIM;Caractere(1);Tipo da pessoa;;"1" para física "2" para jurídica;REGRA 1: O conteúdo do campo deverá estar preenchido com "1...2".
+CADASTRO_GERAL;3;CG_TipoEmpresa;NÃO;COND;Inteiro;Tipo da empresa;TI.TIPO_EMPRESA;1...11;REGRA 1: O conteúdo do campo deverá estar preenchido com "1...11", quando o conteúdo do campo "CG_TipoPessoa" for "'2'".
+CADASTRO_GERAL;4;CG_Nacionalidade;NÃO;SIM;Caractere(1);Nacionalidade ou origem;;"1" para brasileira "2" para estrangeira;REGRA 1: O conteúdo do campo deverá estar preenchido com "1...2".
+CADASTRO_GERAL;5;CG_Nome;NÃO;SIM;Caractere(60);Nome;;;REGRA 1: O conteúdo do campo não deverá conter palavras como "SEM INFORMACAO", "NAO USAR", etc., e suas variações com acentuação.
+CADASTRO_GERAL;6;CG_Endereco;NÃO;SIM;Caractere(50);Endereço;;;
+CADASTRO_GERAL;7;CG_Complemento;NÃO;NÃO;Caractere(20);Complemento;;;
+CADASTRO_GERAL;8;CG_Bairro;NÃO;SIM;Caractere(30);Bairro;;;
+CADASTRO_GERAL;9;CG_CEP;NÃO;SIM;Caractere(9);CEP;;"99999-999";REGRA 1: O conteúdo do campo deverá conter um número de CEP ("99999-999") válido.
+CADASTRO_GERAL;10;CG_CodMunicipio;NÃO;SIM;Caractere(6);Cód. do município;TI.MUNICIPIO;;
+CADASTRO_GERAL;11;CG_CelFone;NÃO;NÃO;Caractere(20);Núm. do celular;;;REGRA 1: O conteúdo do campo deverá conter um número de TELEFONE ou CELULAR válido nos formatos "(99)9999-9999", "(999)9999-9999", "(99)99999-9999", ou "(999)99999-9999".
+CADASTRO_GERAL;12;CG_Fone;NÃO;NÃO;Caractere(20);Núm. do telefone;;;REGRA 1: O conteúdo do campo deverá conter um número de TELEFONE ou CELULAR válido nos formatos "(99)9999-9999", "(999)9999-9999", "(99)99999-9999", ou "(999)99999-9999".
+CADASTRO_GERAL;13;CG_Email;NÃO;NÃO;Caractere(70);E-mail;;;REGRA 1: O conteúdo do campo deverá conter um e-mail válido, se o campo for opcional, deixar vazio, se houver mais de um e-mail separar por "/" (barra).
+CADASTRO_GERAL;14;CG_MicroPequenaEmpresa;NÃO;COND;Inteiro;Tipo da micro pequena empresa;TI.TIPO_MICRO_PEQUENA_EMPRESA;1...4;REGRA 1: O conteúdo do campo deverá estar preenchido com "1...4", quando o conteúdo do campo "CG_TipoEmpresa" for "'1', '2'".
+CADASTRO_GERAL;15;CG_OptanteSimplesNacional;NÃO;COND;Caractere(1);É optante pelo simples nacional?;;"S" para sim "N" para não;REGRA 1: O conteúdo do campo deverá estar preenchido com "'S', 'N'", quando o conteúdo do campo "CG_MicroPequenaEmpresa" for "'1', '2'".
+CADASTRO_GERAL;16;CG_InscricaoEstadual;NÃO;COND;Caractere(20);Núm. da inscrição estadual;;;REGRA 1: O conteúdo do campo deverá estar preenchido quando o conteúdo do campo "CG_TipoPessoa" for "'2'".
+CADASTRO_GERAL;17;CG_InscricaoMunicipal;NÃO;COND;Caractere(20);Núm. da inscrição municipal;;;REGRA 1: O conteúdo do campo deverá estar preenchido quando o conteúdo do campo "CG_TipoPessoa" for "'2'".
+CONTA_BANCARIA;1;BCO_Codigo;SIM;SIM;Caractere(3);Cód. do banco;AGENCIA;;
+CONTA_BANCARIA;2;AGN_Codigo;SIM;SIM;Caractere(10);Cód. da agência;AGENCIA;;
+CONTA_BANCARIA;3;CCBCO_Numero;SIM;SIM;Caractere(16);Núm. da conta corrente;;;REGRA 1: O conteúdo do campo deverá conter somente os caracteres "0..9", "-" ou "X" e deverá estar formatado como "<números>-<número>" OU "<números>-X".
+CONTA_BANCARIA;4;CCBCO_Tipo;SIM;SIM;Caractere(1);Tipo da conta corrente;TI.TIPO_CONTA_BANCARIA;1...4;REGRA 1: O conteúdo do campo deverá estar preenchido com "1...4".
+CONTA_BANCARIA;5;CB_ContaUG;NÃO;SIM;Caractere(1);A conta é do fiscalizado?;;"S" para sim "N" para não;REGRA 1: O conteúdo do campo deverá estar preenchido com "'S', 'N'".
+CONTA_BANCARIA;6;CG_Identificacao;NÃO;SIM;Caractere(20);CNPJ do fiscalizado;CADASTRO_GERAL;;REGRA 1: O conteúdo do campo deverá conter um número de CPF ("999.999.999-99") ou CNPJ ("99.999.999/9999-99") válido.
+CONTA_BANCARIA;7;CCBCO_DataAbertura;NÃO;COND;Caractere(10);Data da abertura;;;REGRA 1: O conteúdo do campo deverá estar preenchido quando o conteúdo do campo "CB_ContaUG" for "'S'". REGRA 2: O conteúdo do campo deverá conter uma DATA válida, a DATA será validada segundo o critério "<= DATA ATUAL" (ver regra d).
+CONTA_BANCARIA;8;ECTCE_Codigo;NÃO;COND;Caractere(11);Cód. do elenco de contas;TI.ELENCO_CONTAS_TCEMT;;REGRA 1: O conteúdo do campo deverá estar preenchido quando o conteúdo do campo "CB_ContaUG" for "'S'".
+CONTRATADO;1;CONT_Tipo;SIM;SIM;Inteiro;Tipo do contrato;CONTRATO;1...33|35, 36, 37;REGRA 1: O conteúdo do campo deverá estar preenchido com "1...33|'35', '36', '37'".
+CONTRATADO;2;CONT_Numero;SIM;SIM;Caractere(16);Núm. do contrato;CONTRATO;"99999999999/AAAA" (NRO/ANO);REGRA 1: O conteúdo do campo deverá conter um valor no formato "99999999999/AAAA" (NRO/ANO), o ANO será validado segundo o critério "<= EXERCÍCIO" (ver regra d).
+CONTRATADO;3;CONT_NumAditivo;SIM;SIM;Caractere(16);Núm. do aditivo do contrato;CONTRATO;"99999999999/AAAA" (NRO/ANO);REGRA 1: O conteúdo do campo deverá conter um valor no formato "99999999999/AAAA" (NRO/ANO), o ANO será validado segundo o critério "<= EXERCÍCIO" (ver regra d).
+CONTRATADO;4;CG_Identificacao;SIM;SIM;Caractere(20);CPF/CNPJ do contratado;CADASTRO_GERAL;;REGRA 1: O conteúdo do campo deverá conter um número de CPF ("999.999.999-99") ou CNPJ ("99.999.999/9999-99") válido.
+CONTRATO;1;CONT_Tipo;SIM;SIM;Inteiro;Tipo do contrato;TI.TIPO_CONTRATO;1...33|35, 36, 37;REGRA 1: O conteúdo do campo deverá estar preenchido com "1...33|'35', '36', '37'".
+CONTRATO;2;CONT_Numero;SIM;SIM;Caractere(16);Núm. do contrato;;"99999999999/AAAA" (NRO/ANO);REGRA 1: O conteúdo do campo deverá conter um valor no formato "99999999999/AAAA" (NRO/ANO), o ANO será validado segundo o critério "<= EXERCÍCIO" (ver regra d).
+CONTRATO;3;CONT_NumAditivo;SIM;SIM;Caractere(16);Núm. do aditivo do contrato;;"99999999999/AAAA" (NRO/ANO);REGRA 1: O conteúdo do campo deverá conter um valor no formato "99999999999/AAAA" (NRO/ANO), o ANO será validado segundo o critério "<= EXERCÍCIO" (ver regra d).
+CONTRATO;4;CONT_Natureza;NÃO;SIM;Caractere(1);Tipo da natureza do contrato;TI.TIPO_NATUREZA_CONTRATO;1...7;REGRA 1: O conteúdo do campo deverá estar preenchido com "1...7".
+CONTRATO;5;CONT_Objetivo;NÃO;SIM;Caractere(255);Objetivo;;;
+CONTRATO;6;TMO_Codigo;NÃO;SIM;Caractere(1);Tipo da moeda;TI.TIPO_MOEDA;1...2|9;REGRA 1: O conteúdo do campo deverá estar preenchido com "1...2|'9'".
+CONTRATO;7;CONT_Valor;NÃO;COND;Caractere(14,2);Valor;;;REGRA 1: O conteúdo do campo deverá conter um número POSITIVO quando "CONT_Natureza" for "'1', '2', '4', '6', '7'" e o "CONT_Tipo" for "'2', '4', '5', '6', '9', '10', '11', '12', '13', '17', '19', '22', '24', '27', '28', '34'".
+CONTRATO;8;CONT_PercCaucao;NÃO;NÃO;Caractere(3,2);Percentual da caução;;"999.99" (NRO);REGRA 1: O conteúdo do campo deverá conter o número ZERO ou POSITIVO quando obrigatório e não poderá ser maior que "999.99".
+CONTRATO;9;CONT_DataAssinatura;NÃO;SIM;Caractere(10);Data da assinatura;;;REGRA 1: O conteúdo do campo deverá conter uma DATA válida, a DATA será validada segundo o critério "<= DATA ATUAL" (ver regra d).
+CONTRATO;10;CONT_PossuiDataVencimento;NÃO;SIM;Caractere(1);Possui data de vencimento?;;"S" para sim "N" para não;REGRA 1: O conteúdo do campo deverá estar preenchido com "'S', 'N'".
+CONTRATO;11;CONT_DataVencimento;NÃO;COND;Caractere(10);Data do vencimento;;;REGRA 1: O conteúdo do campo deverá estar preenchido quando o conteúdo do campo "CONT_PossuiDataVencimento" for "'S'".
+CONTRATO;12;CONV_Numero;NÃO;NÃO;Caractere(16);Núm. do convênio;CONVENIO;"99999999999/AAAA" (NRO/ANO);REGRA 1: O conteúdo do campo deverá conter um valor no formato "99999999999/AAAA" (NRO/ANO), o ANO será validado segundo o critério "<= EXERCÍCIO" (ver regra d).
+CONTRATO;13;CONV_NumAditivo;NÃO;NÃO;Caractere(16);Núm. do aditivo do convênio;CONVENIO;"99999999999/AAAA" (NRO/ANO);REGRA 1: O conteúdo do campo deverá conter um valor no formato "99999999999/AAAA" (NRO/ANO), o ANO será validado segundo o critério "<= EXERCÍCIO" (ver regra d).
+CONTRATO;14;PLIC_Numero;NÃO;NÃO;Caractere(16);Núm. de controle do processo licitatório no Aplic;PROCESSO_LICITATORIO;"99999999999/AAAA" (NRO/ANO);REGRA 1: O conteúdo do campo deverá conter um valor no formato "99999999999/AAAA" (NRO/ANO), o ANO será validado segundo o critério "<= EXERCÍCIO" (ver regra d).
+CONTRATO;15;MLIC_Codigo;NÃO;NÃO;Caractere(2);Cód. da modalidade da licitação;PROCESSO_LICITATORIO;19...72|01, 02, 03, 04, 05, 06, 07, 08, 09, 10, 12, 13, 14, 15, 17;REGRA 1: O conteúdo do campo deverá estar preenchido com "19...72|'01', '02', '03', '04', '05', '06', '07', '08', '09', '10', '12', '13', '14', '15', '17'".
+CONTRATO;16;CONT_NomeArqPDFFundamento;NÃO;NÃO;Caractere(21);Nome do arquivo PDF do fundamento técnico/jurídico;;;REGRA 1: A formatação do nome do arquivo PDF deverá estar de acordo com a regra "CONT_AAAAMM_99999.PDF" quando o conteúdo do campo "CONT_NumAditivo" for diferente de "00000000000/AAAA".
+CONTRATO;17;CONT_NomeArqRTF;NÃO;SIM;Caractere(21);Nome do arquivo RTF;;;REGRA 1: A formatação do nome do arquivo RTF deverá estar de acordo com a regra "CONT_AAAAMM_99999.RTF".
+CONTRATO_ACOMPANHAMENTO;1;CONT_Tipo;SIM;SIM;Inteiro;Tipo do contrato;CONTRATO;1...33|35, 36, 37;REGRA 1: O conteúdo do campo deverá estar preenchido com "1...33|'35', '36', '37'".
+CONTRATO_ACOMPANHAMENTO;2;CONT_Numero;SIM;SIM;Caractere(16);Núm. do contrato;CONTRATO;"99999999999/AAAA" (NRO/ANO);REGRA 1: O conteúdo do campo deverá conter um valor no formato "99999999999/AAAA" (NRO/ANO), o ANO será validado segundo o critério "<= EXERCÍCIO" (ver regra d).
+CONTRATO_ACOMPANHAMENTO;3;CONT_NumAditivo;SIM;SIM;Caractere(16);Núm. do aditivo do contrato;CONTRATO;"99999999999/AAAA" (NRO/ANO);REGRA 1: O conteúdo do campo deverá conter um valor no formato "99999999999/AAAA" (NRO/ANO), o ANO será validado segundo o critério "<= EXERCÍCIO" (ver regra d).
+CONTRATO_ACOMPANHAMENTO;4;CONTAC_DataRelatorio;SIM;SIM;Caractere(10);Data da criação do relatório;;;REGRA 1: O conteúdo do campo deverá conter uma DATA válida, a DATA será validada segundo o critério "<= DATA ATUAL" (ver regra d).
+CONTRATO_ACOMPANHAMENTO;5;CONTAC_NomeArqPDF;NÃO;SIM;Caractere(23);Nome do arquivo PDF;;;REGRA 1: A formatação do nome do arquivo PDF deverá estar de acordo com a regra "CONTAC_AAAAMM_99999.PDF".
+CONTRATO_APOSTILAMENTO;1;CONT_Tipo;SIM;SIM;Inteiro;Tipo do contrato;CONTRATO;1...33|35, 36, 37;REGRA 1: O conteúdo do campo deverá estar preenchido com "1...33|'35', '36', '37'".
+CONTRATO_APOSTILAMENTO;2;CONT_Numero;SIM;SIM;Caractere(16);Núm. do contrato;CONTRATO;"99999999999/AAAA" (NRO/ANO);REGRA 1: O conteúdo do campo deverá conter um valor no formato "99999999999/AAAA" (NRO/ANO), o ANO será validado segundo o critério "<= EXERCÍCIO" (ver regra d).
+CONTRATO_APOSTILAMENTO;3;CONT_NumAditivo;SIM;SIM;Caractere(16);Núm. do aditivo do contrato;CONTRATO;"99999999999/AAAA" (NRO/ANO);REGRA 1: O conteúdo do campo deverá conter um valor no formato "99999999999/AAAA" (NRO/ANO), o ANO será validado segundo o critério "<= EXERCÍCIO" (ver regra d).
+CONTRATO_APOSTILAMENTO;4;CONTA_Numero;SIM;SIM;Caractere(16);Núm. do apostilamento;;"99999999999/AAAA" (NRO/ANO);REGRA 1: O conteúdo do campo deverá conter um valor no formato "99999999999/AAAA" (NRO/ANO), o ANO será validado segundo o critério "<= EXERCÍCIO" (ver regra d).
+CONTRATO_APOSTILAMENTO;5;CONTA_Data;NÃO;SIM;Caractere(10);Data do apostilamento;;;REGRA 1: O conteúdo do campo deverá conter uma DATA válida, a DATA será validada segundo o critério "<= DATA ATUAL" (ver regra d).
+CONTRATO_APOSTILAMENTO;6;CONTA_Valor;NÃO;SIM;Caractere(14,2);Valor do acréscimo;;;REGRA 1: O conteúdo do campo deverá conter o número ZERO ou POSITIVO quando obrigatório.
+CONTRATO_APOSTILAMENTO;7;CONTA_NomeArqPDF;NÃO;SIM;Caractere(22);Nome do arquivo PDF;;;REGRA 1: A formatação do nome do arquivo PDF deverá estar de acordo com a regra "CONTA_AAAAMM_99999.PDF".
+CONTRATO_DOTACAO;1;CONT_Tipo;SIM;SIM;Inteiro;Tipo do contrato;CONTRATO;1...33|35, 36, 37;REGRA 1: O conteúdo do campo deverá estar preenchido com "1...33|'35', '36', '37'".
+CONTRATO_DOTACAO;2;CONT_Numero;SIM;SIM;Caractere(16);Núm. do contrato;CONTRATO;"99999999999/AAAA" (NRO/ANO);REGRA 1: O conteúdo do campo deverá conter um valor no formato "99999999999/AAAA" (NRO/ANO), o ANO será validado segundo o critério "<= EXERCÍCIO" (ver regra d).
+CONTRATO_DOTACAO;3;CONT_NumAditivo;SIM;SIM;Caractere(16);Núm. do aditivo do contrato;CONTRATO;"99999999999/AAAA" (NRO/ANO);REGRA 1: O conteúdo do campo deverá conter um valor no formato "99999999999/AAAA" (NRO/ANO), o ANO será validado segundo o critério "<= EXERCÍCIO" (ver regra d).
+CONTRATO_DOTACAO;4;ORG_Codigo;SIM;SIM;Caractere(2);Cód. do órgão;DOTACAO;;
+CONTRATO_DOTACAO;5;UNOR_Codigo;SIM;SIM;Caractere(3);Cód. da unidade orçamentária;DOTACAO;;
+CONTRATO_DOTACAO;6;FN_Codigo;SIM;SIM;Caractere(2);Cód. da função;DOTACAO;01...28|77, 99;REGRA 1: O conteúdo do campo deverá estar preenchido com "01...28|'77', '99'".
+CONTRATO_DOTACAO;7;SFN_Codigo;SIM;SIM;Caractere(3);Cód. da subfunção;DOTACAO;;
+CONTRATO_DOTACAO;8;PRG_Codigo;SIM;SIM;Caractere(4);Cód. do programa;DOTACAO;;
+CONTRATO_DOTACAO;9;PRAT_Numero;SIM;SIM;Caractere(5);Núm. do projeto/ atividade;DOTACAO;;
+CONTRATO_DOTACAO;10;CTEC_Codigo;SIM;SIM;Caractere(1);Cód. da categoria econômica;DOTACAO;1...4|9;REGRA 1: O conteúdo do campo deverá estar preenchido com "1...4|'9'".
+CONTRATO_DOTACAO;11;NDESP_Codigo;SIM;SIM;Caractere(1);Cód. do grupo da natureza de despesa;DOTACAO;1...6|9;REGRA 1: O conteúdo do campo deverá estar preenchido com "1...6|'9'".
+CONTRATO_DOTACAO;12;MDAP_Codigo;SIM;SIM;Caractere(2);Cód. da modalidade de aplicação;DOTACAO;20, 22, 30, 40, 42, 50, 60, 67, 70, 71, 72, 73, 74, 75, 76, 80, 90, 91, 92, 93, 94, 95, 96, 99;REGRA 1: O conteúdo do campo deverá estar preenchido com "'20', '22', '30', '40', '42', '50', '60', '67', '70', '71', '72', '73', '74', '75', '76', '80', '90', '91', '92', '93', '94', '95', '96', '99'".
+CONTRATO_DOTACAO;13;ELDE_Codigo;SIM;SIM;Caractere(2);Cód. do elemento de despesa;DOTACAO;00...99;REGRA 1: O conteúdo do campo deverá estar preenchido com "00...99".
+CONTRATO_DOTACAO;14;SELDE_Codigo;SIM;SIM;Caractere(2);Cód. do subelemento de despesa;DOTACAO;00...99;REGRA 1: O conteúdo do campo deverá estar preenchido com "00...99".
+CONTRATO_DOTACAO;15;DRGRP_Codigo;SIM;SIM;Caractere(1);Cód. do grupo da destinação de recurso;DOTACAO;1, 2, 9;REGRA 1: O conteúdo do campo deverá estar preenchido com "'1', '2', '9'".
+CONTRATO_DOTACAO;16;DRESP_Codigo;SIM;SIM;Caractere(3);Cód. da especificação da destinação de recurso;DOTACAO ou T.I. DESTINACAO_RECURSO;;
+CONTRATO_DOTACAO;17;DESTREC_Codigo;SIM;SIM;Caractere(7);Cód. da destinação de recurso;DOTACAO;;
+CONTRATO_DOTACAO;18;CONTD_NaturezaValor;NÃO;SIM;Caractere(1);Natureza do valor;TI.TIPO_NATUREZA_CONTRATO_VALOR;1...3;REGRA 1: O conteúdo do campo deverá estar preenchido com "1...3".
+CONTRATO_DOTACAO;19;CONTD_Valor;NÃO;SIM;Caractere(14,2);Valor;;;REGRA 1: O conteúdo do campo deverá conter o número ZERO ou POSITIVO quando obrigatório.
+CONTRATO_EMPENHO;1;CONT_Tipo;SIM;SIM;Inteiro;Tipo do contrato;CONTRATO;1...33|35, 36, 37;REGRA 1: O conteúdo do campo deverá estar preenchido com "1...33|'35', '36', '37'".
+CONTRATO_EMPENHO;2;CONT_Numero;SIM;SIM;Caractere(16);Núm. do contrato;CONTRATO;"99999999999/AAAA" (NRO/ANO);REGRA 1: O conteúdo do campo deverá conter um valor no formato "99999999999/AAAA" (NRO/ANO), o ANO será validado segundo o critério "<= EXERCÍCIO" (ver regra d).
+CONTRATO_EMPENHO;3;CONT_NumAditivo;SIM;SIM;Caractere(16);Núm. do aditivo do contrato;CONTRATO;"99999999999/AAAA" (NRO/ANO);REGRA 1: O conteúdo do campo deverá conter um valor no formato "99999999999/AAAA" (NRO/ANO), o ANO será validado segundo o critério "<= EXERCÍCIO" (ver regra d).
+CONTRATO_EMPENHO;4;ORG_Codigo;SIM;SIM;Caractere(2);Cód. do órgão;EMPENHO;;
+CONTRATO_EMPENHO;5;UNOR_Codigo;SIM;SIM;Caractere(3);Cód. da unidade orçamentária;EMPENHO;;
+CONTRATO_EMPENHO;6;EMP_Numero;SIM;SIM;Caractere(11);Núm. do empenho;EMPENHO;"999999/AAAA" (NRO/ANO);REGRA 1: O conteúdo do campo deverá conter um valor no formato "999999/AAAA" (NRO/ANO), o ANO será validado segundo o critério "<= EXERCÍCIO" (ver regra d).
+CONTRATO_FISCAL;1;CONT_Tipo;SIM;SIM;Inteiro;Tipo do contrato;CONTRATO;1...33|35, 36, 37;REGRA 1: O conteúdo do campo deverá estar preenchido com "1...33|'35', '36', '37'".
+CONTRATO_FISCAL;2;CONT_Numero;SIM;SIM;Caractere(16);Núm. do contrato;CONTRATO;"99999999999/AAAA" (NRO/ANO);REGRA 1: O conteúdo do campo deverá conter um valor no formato "99999999999/AAAA" (NRO/ANO), o ANO será validado segundo o critério "<= EXERCÍCIO" (ver regra d).
+CONTRATO_FISCAL;3;CONT_NumAditivo;SIM;SIM;Caractere(16);Núm. do aditivo do contrato;CONTRATO;"99999999999/AAAA" (NRO/ANO);REGRA 1: O conteúdo do campo deverá conter um valor no formato "99999999999/AAAA" (NRO/ANO), o ANO será validado segundo o critério "<= EXERCÍCIO" (ver regra d).
+CONTRATO_FISCAL;4;CG_Identificacao;SIM;SIM;Caractere(20);CPF do fiscal do contrato;CADASTRO_GERAL;;REGRA 1: O conteúdo do campo deverá conter um número de CPF ("999.999.999-99") válido.
+CONTRATO_FISCAL;5;CONTF_TipoPeriodo;SIM;SIM;Inteiro;Tipo do período;;"1" para início da fiscalização "2" para término da fiscalização;REGRA 1: O conteúdo do campo deverá estar preenchido com "'1', '2'".
+CONTRATO_FISCAL;6;CONTF_Data;SIM;SIM;Caractere(10);Data do início/ término da fiscalização;;;REGRA 1: O conteúdo do campo deverá conter uma DATA válida, a DATA será validada segundo o critério "<= EXERCÍCIO" (ver regra d).
+CONTRATO_FISCAL;7;CONTF_NomeArqPDF;NÃO;SIM;Caractere(22);Nome do arquivo PDF;;;REGRA 1: A formatação do nome do arquivo PDF deverá estar de acordo com a regra "CONTF_AAAAMM_99999.PDF".
+CONVENIO;1;CONV_Numero;SIM;SIM;Caractere(16);Núm. do convênio;;"99999999999/AAAA" (NRO/ANO);REGRA 1: O conteúdo do campo deverá conter um valor no formato "99999999999/AAAA" (NRO/ANO), o ANO será validado segundo o critério "<= EXERCÍCIO" (ver regra d).
+CONVENIO;2;CONV_NumAditivo;SIM;SIM;Caractere(16);Núm. do aditivo do convênio;;"99999999999/AAAA" (NRO/ANO);REGRA 1: O conteúdo do campo deverá conter um valor no formato "99999999999/AAAA" (NRO/ANO), o ANO será validado segundo o critério "<= EXERCÍCIO" (ver regra d).
+CONVENIO;3;CONV_Natureza;NÃO;SIM;Caractere(1);Natureza;TI.TIPO_NATUREZA_CONVENIO;1...5;REGRA 1: O conteúdo do campo deverá estar preenchido com "1...5".
+CONVENIO;4;CONV_Modalidade;NÃO;SIM;Caractere(1);Modalidade;TI.TIPO_MODALIDADE_CONVENIO;1...4;REGRA 1: O conteúdo do campo deverá estar preenchido com "1...4".
+CONVENIO;5;CONV_AreaAplicacao;NÃO;SIM;Caractere(2);Área de aplicação dos recursos;TI.FUNCAO;01...28|77, 99;REGRA 1: O conteúdo do campo deverá estar preenchido com "01...28|'77', '99'".
+CONVENIO;6;CONV_Objetivo;NÃO;SIM;Caractere(255);Objetivo;;;
+CONVENIO;7;TMO_Codigo;NÃO;SIM;Caractere(1);Cód. do tipo da moeda;TI.TIPO_MOEDA;1...2|9;REGRA 1: O conteúdo do campo deverá estar preenchido com "1...2|'9'".
+CONVENIO;8;CONV_Valor;NÃO;COND;Caractere(14,2);Valor;;1, 3;REGRA 1: O conteúdo do campo deverá ou não estar preenchido conforme o conteúdo dos campos "CONV_Modalidade" e "CONV_Natureza".
+CONVENIO;9;CONV_ParticMunicipal;NÃO;SIM;Caractere(3,2);Percentual de participação municipal;;;REGRA 1: O conteúdo do campo deverá conter o número ZERO ou POSITIVO quando obrigatório. REGRA 2: O somatório dos percentuais do convênio deverá ser "100.00" (cem) para as participações federal, estadual, municipal e não governamental.
+CONVENIO;10;CONV_ParticEstadual;NÃO;SIM;Caractere(3,2);Percentual de participação estadual;;;REGRA 1: O conteúdo do campo deverá conter o número ZERO ou POSITIVO quando obrigatório.
+CONVENIO;11;CONV_ParticFederal;NÃO;SIM;Caractere(3,2);Percentual de participação federal;;;REGRA 1: O conteúdo do campo deverá conter o número ZERO ou POSITIVO quando obrigatório.
+CONVENIO;12;CONV_ParticNaoGovernamental;NÃO;SIM;Caractere(3,2);Percentual de participação não governamental;;;REGRA 1: O conteúdo do campo deverá conter o número ZERO ou POSITIVO quando obrigatório.
+CONVENIO;13;CONV_NumParcela;NÃO;COND;Inteiro;Núm. de parcelas;;;REGRA 1: O conteúdo do campo deverá estar preenchido quando o conteúdo do campo "CONV_Modalidade" for "'1', '3'". REGRA 2: O conteúdo do campo deverá conter o número ZERO ou POSITIVO quando obrigatório.
+CONVENIO;14;CONV_Tipo;NÃO;SIM;Caractere(1);Tipo;;"1" para recebido "2" para cedido;REGRA 1: O conteúdo do campo deverá estar preenchido com "1...2".
+CONVENIO;15;CONV_DataAssinatura;NÃO;SIM;Caractere(10);Data da assinatura;;;REGRA 1: O conteúdo do campo deverá conter uma DATA válida, a DATA será validada segundo o critério "<= DATA ATUAL" (ver regra d).
+CONVENIO;16;CONV_DataPublicacao;NÃO;SIM;Caractere(10);Data da publicação;;;REGRA 1: O conteúdo do campo deverá conter um valor MAIOR ou IGUAL ao conteúdo do campo "CONV_DataAssinatura".
+CONVENIO;17;CONV_DataVencimento;NÃO;COND;Caractere(10);Data do vencimento;;;REGRA 1: O conteúdo do campo deverá estar preenchido quando o conteúdo do campo "CONV_Natureza" for "'1', '3', '4'".
+CONVENIO;18;CONV_TipoPrestacaoContas;NÃO;SIM;Caractere(2);Tipo de prestação de contas;TI.TIPO_PRESTACAO_CONTAS;01...12;REGRA 1: O conteúdo do campo deverá estar preenchido com "01...12".
+CONVENIO;19;CONV_TipoAditivoValor;NÃO;COND;Caractere(1);Tipo do aditivo de valor;;"1" para acréscimo "2" para decréscimo;REGRA 1: O conteúdo do campo deverá estar preenchido com "1...2", quando o conteúdo do campo "CONV_Natureza" for "'2', '4'".
+CONVENIO;20;CONV_Obra;NÃO;SIM;Caractere(1);É um convênio para obras?;;"S" para sim "N" para não;REGRA 1: O conteúdo do campo deverá estar preenchido com "'S', 'N'".
+CONVENIO;21;LEI_Numero;NÃO;NÃO;Caractere(10);Núm. da lei da autorização;LEI;"99999/AAAA" (NRO/ANO);REGRA 1: O conteúdo do campo deverá conter um valor no formato "99999/AAAA" (NRO/ANO), o ANO será validado segundo o critério "<= EXERCÍCIO" (ver regra d).
+CONVENIO;22;BCO_Codigo;NÃO;NÃO;Caractere(3);Cód. do banco;CONTA_BANCARIA;;
+CONVENIO;23;AGN_Codigo;NÃO;NÃO;Caractere(10);Cód. da agência;CONTA_BANCARIA;;
+CONVENIO;24;CCBCO_Numero;NÃO;NÃO;Caractere(16);Núm. da conta corrente;CONTA_BANCARIA;;
+CONVENIO;25;CCBCO_Tipo;NÃO;NÃO;Caractere(1);Tipo da conta corrente;CONTA_BANCARIA;1...4;REGRA 1: O conteúdo do campo deverá estar preenchido com "1...4".
+CONVENIO;26;CONV_NomeArqPDF;NÃO;NÃO;Caractere(21);Nome do arquivo PDF;;;REGRA 1: A formatação do nome do arquivo PDF deverá estar de acordo com a regra "CONV_AAAAMM_99999.PDF".
+LEI;1;LEI_Numero;SIM;SIM;Caractere(10);Núm. da lei;LEI;"99999/AAAA" (NRO/ANO);REGRA 1: O conteúdo do campo deverá conter um valor no formato "99999/AAAA" (NRO/ANO), o ANO será validado segundo o critério "<= EXERCÍCIO" (ver regra d).
+LEI;2;LEI_EsferaOrigem;NÃO;SIM;Caractere(1);Tipo da esfera de governo da origem da lei;TI.TIPO_ESFERA_GOVERNO;1...3;REGRA 1: O conteúdo do campo deverá estar preenchido com "1...3".
+LEI;3;LEI_Natureza;NÃO;COND;Inteiro;Natureza;TI.NATUREZA_LEI;1...31|33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83;REGRA 1: O conteúdo do campo deverá estar preenchido quando o conteúdo do campo "LEI_EsferaOrigem" for o mesmo da esfera de governo do fiscalizado.
+LEI;4;LEI_Altera;NÃO;COND;Caractere(1);Esta lei altera uma anterior?;;"S" para sim "N" para não;REGRA 1: O conteúdo do campo deverá estar preenchido quando o conteúdo do campo "LEI_EsferaOrigem" for o mesmo da esfera de governo do fiscalizado.
+LEI;5;LEI_DataAprovacao;NÃO;COND;Caractere(10);Data da aprovação;;;REGRA 1: O conteúdo do campo deverá estar preenchido quando o conteúdo do campo "LEI_EsferaOrigem" for o mesmo da esfera de governo do fiscalizado.
+LEI;6;LEI_DataPublicacao;NÃO;COND;Caractere(10);Data da publicação;;;REGRA 1: O conteúdo do campo deverá estar preenchido quando o conteúdo do campo "LEI_EsferaOrigem" for o mesmo da esfera de governo do fiscalizado.
+LEI;7;LEI_VeicComunicacao;NÃO;COND;Caractere(255);Local da publicação;;;REGRA 1: O conteúdo do campo deverá estar preenchido quando o conteúdo do campo "LEI_EsferaOrigem" for o mesmo da esfera de governo do fiscalizado.
+LEI;8;LEI_NomeArqPDF;NÃO;COND;Caractere(20);Nome do arquivo PDF;;;REGRA 1: O conteúdo do campo deverá estar preenchido quando o conteúdo do campo "LEI_EsferaOrigem" for o mesmo da esfera de governo do fiscalizado. REGRA 2: A formatação do nome do arquivo PDF deverá estar de acordo com a regra "LEI_AAAAMM_99999.PDF".
+LEI_ALTERADA;1;LEI_Numero;SIM;SIM;Caractere(10);Núm. da lei que está sendo revogada ou alterada;LEI;"99999/AAAA" (NRO/ANO);REGRA 1: O conteúdo do campo deverá conter um valor no formato "99999/AAAA" (NRO/ANO), o ANO será validado segundo o critério "<= EXERCÍCIO" (ver regra d).
+LEI_ALTERADA;2;LEI_NumeroAltera;SIM;SIM;Caractere(10);Núm. da lei que revoga ou altera a anterior;LEI;"99999/AAAA" (NRO/ANO);REGRA 1: O conteúdo do campo deverá conter um valor no formato "99999/AAAA" (NRO/ANO), o ANO será validado segundo o critério "<= EXERCÍCIO" (ver regra d).
+LEI_ALTERADA;3;LEI_Tipo;NÃO;SIM;Caractere(1);Tipo da lei;;"1" para revogada "2" para alterada;REGRA 1: O conteúdo do campo deverá estar preenchido com "1...2".
+PARALISACAO_RESCISAO_CONTRATO;1;CONT_Tipo;SIM;SIM;Inteiro;Tipo do contrato;CONTRATO;1...33|35, 36, 37;REGRA 1: O conteúdo do campo deverá estar preenchido com "1...33|'35', '36', '37'".
+PARALISACAO_RESCISAO_CONTRATO;2;CONT_Numero;SIM;SIM;Caractere(16);Núm. do contrato;CONTRATO;"99999999999/AAAA" (NRO/ANO);REGRA 1: O conteúdo do campo deverá conter um valor no formato "99999999999/AAAA" (NRO/ANO), o ANO será validado segundo o critério "<= EXERCÍCIO" (ver regra d).
+PARALISACAO_RESCISAO_CONTRATO;3;CONT_NumAditivo;SIM;SIM;Caractere(16);Núm. do aditivo do contrato;CONTRATO;"99999999999/AAAA" (NRO/ANO);REGRA 1: O conteúdo do campo deverá conter um valor no formato "99999999999/AAAA" (NRO/ANO), o ANO será validado segundo o critério "<= EXERCÍCIO" (ver regra d).
+PARALISACAO_RESCISAO_CONTRATO;4;PRCONT_Data;SIM;SIM;Caractere(10);Data da paralisação/ rescisão;;;REGRA 1: O conteúdo do campo deverá conter uma DATA válida, a DATA será validada segundo o critério "COMPETÊNCIA DA CARGA" (ver regra d).
+PARALISACAO_RESCISAO_CONTRATO;5;PRCONT_Tipo;NÃO;SIM;Caractere(1);Tipo da operação;;"1" para paralisação "2" para rescisão;REGRA 1: O conteúdo do campo deverá estar preenchido com "1...2".
+PARALISACAO_RESCISAO_CONTRATO;6;PRCONT_Motivo;NÃO;SIM;Caractere(120);Motivo;;;
+PARALISACAO_RESCISAO_CONTRATO;7;PRCONT_Prazo;NÃO;COND;Caractere(10);Prazo da paralisação;;;REGRA 1: O conteúdo do campo deverá estar preenchido quando o conteúdo do campo "PRCONT_Tipo" for "'1'".
+PARTICIPANTE_CONVENIO;1;CONV_Numero;SIM;SIM;Caractere(16);Núm. do convênio;CONVENIO;"99999999999/AAAA" (NRO/ANO);REGRA 1: O conteúdo do campo deverá conter um valor no formato "99999999999/AAAA" (NRO/ANO), o ANO será validado segundo o critério "<= EXERCÍCIO" (ver regra d).
+PARTICIPANTE_CONVENIO;2;CONV_NumAditivo;SIM;SIM;Caractere(16);Núm. do aditivo do convênio;CONVENIO;"99999999999/AAAA" (NRO/ANO);REGRA 1: O conteúdo do campo deverá conter um valor no formato "99999999999/AAAA" (NRO/ANO), o ANO será validado segundo o critério "<= EXERCÍCIO" (ver regra d).
+PARTICIPANTE_CONVENIO;3;CG_Identificacao;SIM;SIM;Caractere(20);Identificação do participante;CADASTRO_GERAL;;
+PARTICIPANTE_CONVENIO;4;PCONV_ValorParticip;NÃO;COND;Caractere(14,2);Valor da participação;;;REGRA 1: O conteúdo do campo deverá conter o número ZERO ou POSITIVO quando obrigatório.
+PARTICIPANTE_CONVENIO;5;PCONV_PercParticip;NÃO;COND;Caractere(3,2);Percentual da participação;;"999.99" (NRO);REGRA 1: O conteúdo do campo deverá conter o número ZERO ou POSITIVO quando obrigatório e não poderá ser maior que "999.99".
+PUBLICACAO_CONTRATO;1;CONT_Tipo;SIM;SIM;Inteiro;Tipo do contrato;CONTRATO;1...33|35, 36, 37;REGRA 1: O conteúdo do campo deverá estar preenchido com "1...33|'35', '36', '37'".
+PUBLICACAO_CONTRATO;2;CONT_Numero;SIM;SIM;Caractere(16);Núm. do contrato;CONTRATO;"99999999999/AAAA" (NRO/ANO);REGRA 1: O conteúdo do campo deverá conter um valor no formato "99999999999/AAAA" (NRO/ANO), o ANO será validado segundo o critério "<= EXERCÍCIO" (ver regra d).
+PUBLICACAO_CONTRATO;3;CONT_NumAditivo;SIM;SIM;Caractere(16);Núm. do aditivo do contrato;CONTRATO;"99999999999/AAAA" (NRO/ANO);REGRA 1: O conteúdo do campo deverá conter um valor no formato "99999999999/AAAA" (NRO/ANO), o ANO será validado segundo o critério "<= EXERCÍCIO" (ver regra d).
+PUBLICACAO_CONTRATO;4;PCONT_Data;SIM;SIM;Caractere(10);Data da publicação;;;REGRA 1: O conteúdo do campo deverá conter uma DATA válida, a DATA será validada segundo o critério "<= DATA ATUAL" (ver regra d).
+PUBLICACAO_CONTRATO;5;PCONT_Tipo;NÃO;SIM;Caractere(1);Tipo da publicação;TI.TIPO_PUBLICACAO_CONTRATO;1...3;REGRA 1: O conteúdo do campo deverá estar preenchido com "1...3".
+PUBLICACAO_CONTRATO;6;PCONT_VeicComunicacao;NÃO;SIM;Caractere(255);Local da publicação;;;
+PUBLICACAO_CONTRATO;7;PCONT_NomeArqPDF;NÃO;SIM;Caractere(22);Nome do arquivo PDF;;;REGRA 1: A formatação do nome do arquivo PDF deverá estar de acordo com a regra "PCONT_AAAAMM_99999.PDF".
+PUBLICACAO_CONVENIO;1;CONV_Numero;SIM;SIM;Caractere(16);Núm. do convênio;CONVENIO;"99999999999/AAAA" (NRO/ANO);REGRA 1: O conteúdo do campo deverá conter um valor no formato "99999999999/AAAA" (NRO/ANO), o ANO será validado segundo o critério "<= EXERCÍCIO" (ver regra d).
+PUBLICACAO_CONVENIO;2;CONV_NumAditivo;SIM;SIM;Caractere(16);Núm. do aditivo do convênio;CONVENIO;"99999999999/AAAA" (NRO/ANO);REGRA 1: O conteúdo do campo deverá conter um valor no formato "99999999999/AAAA" (NRO/ANO), o ANO será validado segundo o critério "<= EXERCÍCIO" (ver regra d).
+PUBLICACAO_CONVENIO;3;PCONV_Data;SIM;SIM;Caractere(10);Data da publicação;;;REGRA 1: O conteúdo do campo deverá conter uma DATA válida, a DATA será validada segundo o critério "COMPETÊNCIA DA CARGA" (ver regra d).
+PUBLICACAO_CONVENIO;4;PCONV_Tipo;NÃO;SIM;Caractere(1);Tipo da publicação;;"1" para edital "2" para rescisão;REGRA 1: O conteúdo do campo deverá estar preenchido com "1...2".
+PUBLICACAO_CONVENIO;5;PCONV_VeicComunicacao;NÃO;SIM;Caractere(255);Local da publicação;;;
+RESCISAO_CONVENIO;1;CONV_Numero;SIM;SIM;Caractere(16);Núm. do convênio;CONVENIO;"99999999999/AAAA" (NRO/ANO);REGRA 1: O conteúdo do campo deverá conter um valor no formato "99999999999/AAAA" (NRO/ANO), o ANO será validado segundo o critério "<= EXERCÍCIO" (ver regra d).
+RESCISAO_CONVENIO;2;CONV_NumAditivo;SIM;SIM;Caractere(16);Núm. do aditivo do convênio;CONVENIO;"99999999999/AAAA" (NRO/ANO);REGRA 1: O conteúdo do campo deverá conter um valor no formato "99999999999/AAAA" (NRO/ANO), o ANO será validado segundo o critério "<= EXERCÍCIO" (ver regra d).
+RESCISAO_CONVENIO;3;RCONV_Data;NÃO;SIM;Caractere(10);Data da rescisão;;;REGRA 1: O conteúdo do campo deverá conter uma DATA válida, a DATA será validada segundo o critério "COMPETÊNCIA DA CARGA" (ver regra d).
+RESCISAO_CONVENIO;4;RCONV_DataPublicacao;NÃO;SIM;Caractere(10);Data da publicação;;;REGRA 1: O conteúdo do campo deverá conter uma DATA válida, a DATA será validada segundo o critério "COMPETÊNCIA DA CARGA" (ver regra d).
+RESCISAO_CONVENIO;5;RCONV_Motivo;NÃO;SIM;Caractere(120);Motivo da rescisão;;;

@@ -1,0 +1,118 @@
+# Ambiente de DESENVOLVIMENTO LOCAL: sobe tudo isolado nesta máquina.
+# Em PRODUÇÃO (Servidor Lidera) o portal REUSA o redis e o Evolution existentes
+# e provisiona portal-postgres (PostGIS) + MinIO. Ver docs/12-infraestrutura.md.
+services:
+  # ------------------------------------------------------------- Banco (PostGIS)
+  db:
+    image: postgis/postgis:16-3.4
+    environment:
+      POSTGRES_DB: portal
+      POSTGRES_USER: portal
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-portal}
+    ports:
+      - '5432:5432'
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      # as migrations rodam em ordem alfabética na primeira subida do container
+      - ./db:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U portal -d portal']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # ------------------------------------------- PgBouncer (transaction pooling)
+  # Reduz conexões ao Postgres (ADR-0001). RLS é compatível: o set_config do
+  # tenant é local à transação. A API conecta com ?pgbouncer=true (Prisma).
+  pgbouncer:
+    image: edoburu/pgbouncer:latest
+    environment:
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_USER: portal
+      DB_PASSWORD: ${DB_PASSWORD:-portal}
+      DB_NAME: portal
+      POOL_MODE: transaction
+      MAX_CLIENT_CONN: 200
+      DEFAULT_POOL_SIZE: 20
+      AUTH_TYPE: scram-sha-256
+    ports:
+      - '6432:6432'
+    depends_on:
+      db:
+        condition: service_healthy
+
+  # ------------------------------------------------------------- Redis (BullMQ)
+  redis:
+    image: redis:7-alpine
+    command: redis-server --appendonly yes
+    ports:
+      - '6379:6379'
+    volumes:
+      - redisdata:/data
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  # ----------------------------------------- n8n (ETL/integrações c/ contábil)
+  n8n:
+    image: n8nio/n8n:latest
+    environment:
+      N8N_HOST: localhost
+      N8N_PORT: 5678
+      N8N_PROTOCOL: http
+      DB_TYPE: postgresdb
+      DB_POSTGRESDB_HOST: db
+      DB_POSTGRESDB_DATABASE: portal
+      DB_POSTGRESDB_USER: portal
+      DB_POSTGRESDB_PASSWORD: ${DB_PASSWORD:-portal}
+    ports:
+      - '5678:5678'
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - n8ndata:/home/node/.n8n
+
+  # ------------------------------------------------------------- API (NestJS)
+  api:
+    build: ./api
+    environment:
+      # via PgBouncer (transaction pooling); pgbouncer=true desliga prepared
+      # statements nomeados do Prisma, incompatíveis com transaction mode.
+      DATABASE_URL: postgresql://portal:${DB_PASSWORD:-portal}@pgbouncer:6432/portal?pgbouncer=true
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_TLS: 'false'
+      PORT: 3001
+    ports:
+      - '3001:3001'
+    depends_on:
+      pgbouncer:
+        condition: service_started
+      redis:
+        condition: service_healthy
+    healthcheck:
+      # readiness real: checa Postgres + Redis (ver HealthModule)
+      test: ['CMD-SHELL', 'node -e "require(''http'').get(''http://127.0.0.1:3001/api/health/ready'',r=>process.exit(r.statusCode===200?0:1)).on(''error'',()=>process.exit(1))"']
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+  # ------------------------------------------------------------- Web (Next.js)
+  web:
+    build: ./web
+    environment:
+      API_URL: http://api:3001
+    ports:
+      - '3000:3000'
+    depends_on:
+      - api
+
+volumes:
+  pgdata:
+  redisdata:
+  n8ndata:

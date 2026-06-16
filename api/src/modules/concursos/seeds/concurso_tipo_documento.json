@@ -1,0 +1,322 @@
+[
+  {
+    "codigo": "1",
+    "descricao": "Justificativa para abertura do certame e autorização da autoridade competente",
+    "certame": "Todos",
+    "situacao": "1 - Abertura",
+    "publicacao_obrigatoria": "N",
+    "slug": "justificativa-para-abertura-do-certame-e-autorizacao-da-autoridade-competente"
+  },
+  {
+    "codigo": "2",
+    "descricao": "Contrato social da empresa vencedora e contratada para realizar o certame",
+    "certame": "1 – Concurso Público e 3 – Processo Seletivo Público",
+    "situacao": "1 - Abertura",
+    "publicacao_obrigatoria": "N",
+    "slug": "contrato-social-da-empresa-vencedora-e-contratada-para-realizar-o-certame"
+  },
+  {
+    "codigo": "3",
+    "descricao": "Declaração do ordenador de despesa da adequação orçamentária e financeira com a LOA e compatibilidade com o PPA e a LDO",
+    "certame": "Todos",
+    "situacao": "1 - Abertura",
+    "publicacao_obrigatoria": "N",
+    "slug": "declaracao-do-ordenador-de-despesa-da-adequacao-orcamentaria-e-financeira-com-a-"
+  },
+  {
+    "codigo": "4",
+    "descricao": "Edital de abertura na íntegra do certame",
+    "certame": "Todos",
+    "situacao": "1 - Abertura",
+    "publicacao_obrigatoria": "N",
+    "slug": "edital-de-abertura-na-integra-do-certame"
+  },
+  {
+    "codigo": "5",
+    "descricao": "Termo aditivo ao edital de abertura do certame",
+    "certame": "Todos",
+    "situacao": "2 – Retificação da Abertura",
+    "publicacao_obrigatoria": "N",
+    "slug": "termo-aditivo-ao-edital-de-abertura-do-certame"
+  },
+  {
+    "codigo": "6",
+    "descricao": "Edital de homologação das inscrições",
+    "certame": "Todos",
+    "situacao": "3 – Homologação ou 4 - Retificação da Homologação",
+    "publicacao_obrigatoria": "N",
+    "slug": "edital-de-homologacao-das-inscricoes"
+  },
+  {
+    "codigo": "7",
+    "descricao": "Decisão quanto aos recursos interpostos contra o edital de homologação das inscrições",
+    "certame": "Todos",
+    "situacao": "3 – Homologação ou 4 - Retificação da Homologação",
+    "publicacao_obrigatoria": "N",
+    "slug": "decisao-quanto-aos-recursos-interpostos-contra-o-edital-de-homologacao-das-inscr"
+  },
+  {
+    "codigo": "8",
+    "descricao": "Relação dos candidatos aprovados e classificados, destacando as pessoas com necessidades especiais",
+    "certame": "Todos",
+    "situacao": "3 – Homologação ou 4 - Retificação da Homologação",
+    "publicacao_obrigatoria": "N",
+    "slug": "relacao-dos-candidatos-aprovados-e-classificados-destacando-as-pessoas-com-neces"
+  },
+  {
+    "codigo": "9",
+    "descricao": "Decisão quanto aos recursos interpostos contra a relação dos candidatos aprovados e classificados",
+    "certame": "Todos",
+    "situacao": "3 – Homologação ou 4 - Retificação da Homologação",
+    "publicacao_obrigatoria": "N",
+    "slug": "decisao-quanto-aos-recursos-interpostos-contra-a-relacao-dos-candidatos-aprovado"
+  },
+  {
+    "codigo": "10",
+    "descricao": "Edital de resultado final do certame",
+    "certame": "Todos",
+    "situacao": "3 – Homologação ou 4 - Retificação da Homologação",
+    "publicacao_obrigatoria": "N",
+    "slug": "edital-de-resultado-final-do-certame"
+  },
+  {
+    "codigo": "11",
+    "descricao": "Ato de homologação do certame",
+    "certame": "Todos",
+    "situacao": "3 – Homologação ou 4 - Retificação da Homologação",
+    "publicacao_obrigatoria": "N",
+    "slug": "ato-de-homologacao-do-certame"
+  },
+  {
+    "codigo": "12",
+    "descricao": "Declaração assinada pelo responsável sobre a existência ou não de candidatos remanescentes de concursos pretéritos, em validade, bem como sobre a existência ou não de servidores em disponibilidade para a função objeto da contratação",
+    "certame": "2 – Processo Seletivo Simplificado",
+    "situacao": "1 - Abertura",
+    "publicacao_obrigatoria": "N",
+    "slug": "declaracao-assinada-pelo-responsavel-sobre-a-existencia-ou-nao-de-candidatos-rem"
+  },
+  {
+    "codigo": "13",
+    "descricao": "Ato administrativo de prorrogação da validade do certame",
+    "certame": "Todos",
+    "situacao": "5 - Prorrogação da Validade",
+    "publicacao_obrigatoria": "S",
+    "slug": "ato-administrativo-de-prorrogacao-da-validade-do-certame"
+  },
+  {
+    "codigo": "14",
+    "descricao": "Ato Administrativo de cancelamento ou anulação do certame",
+    "certame": "Todos",
+    "situacao": "6 – Cancelamento / Anulação",
+    "publicacao_obrigatoria": "S",
+    "slug": "ato-administrativo-de-cancelamento-ou-anulacao-do-certame"
+  },
+  {
+    "codigo": "15",
+    "descricao": "Ato Administrativo de paralisação do certame",
+    "certame": "Todos",
+    "situacao": "7 – Paralisação",
+    "publicacao_obrigatoria": "S",
+    "slug": "ato-administrativo-de-paralisacao-do-certame"
+  },
+  {
+    "codigo": "16",
+    "descricao": "Parecer do controle interno",
+    "certame": "Todos",
+    "situacao": "1 - Abertura",
+    "publicacao_obrigatoria": "N",
+    "slug": "parecer-do-controle-interno"
+  },
+  {
+    "codigo": "17",
+    "descricao": "Comprovante da publicação resumida do edital de abertura do concurso na Imprensa Oficial",
+    "certame": "Todos",
+    "situacao": "1 - Abertura",
+    "publicacao_obrigatoria": "S",
+    "slug": "comprovante-da-publicacao-resumida-do-edital-de-abertura-do-concurso-na-imprensa"
+  },
+  {
+    "codigo": "18",
+    "descricao": "Comprovante da publicação do termo aditivo ao edital na Imprensa Oficial",
+    "certame": "Todos",
+    "situacao": "2 – Retificação da Abertura",
+    "publicacao_obrigatoria": "S",
+    "slug": "comprovante-da-publicacao-do-termo-aditivo-ao-edital-na-imprensa-oficial"
+  },
+  {
+    "codigo": "19",
+    "descricao": "Comprovante da publicação do edital de homologação das inscrições na Imprensa Oficial",
+    "certame": "Todos",
+    "situacao": "3 – Homologação ou 4 - Retificação da Homologação",
+    "publicacao_obrigatoria": "S",
+    "slug": "comprovante-da-publicacao-do-edital-de-homologacao-das-inscricoes-na-imprensa-of"
+  },
+  {
+    "codigo": "20",
+    "descricao": "Comprovante da publicação da decisão quanto aos recursos interpostos contra o edital de homologação das inscrições na Imprensa Oficial",
+    "certame": "Todos",
+    "situacao": "3 – Homologação ou 4 - Retificação da Homologação",
+    "publicacao_obrigatoria": "S",
+    "slug": "comprovante-da-publicacao-da-decisao-quanto-aos-recursos-interpostos-contra-o-ed"
+  },
+  {
+    "codigo": "21",
+    "descricao": "Comprovante da publicação da relação dos candidatos aprovados e classificados, destacando as pessoas com necessidades especiais na Imprensa Oficial",
+    "certame": "Todos",
+    "situacao": "3 – Homologação ou 4 - Retificação da Homologação",
+    "publicacao_obrigatoria": "S",
+    "slug": "comprovante-da-publicacao-da-relacao-dos-candidatos-aprovados-e-classificados-de"
+  },
+  {
+    "codigo": "22",
+    "descricao": "Comprovante da publicação da decisão quanto aos recursos interpostos contra a relação dos candidatos aprovados e classificados na Imprensa Oficial",
+    "certame": "Todos",
+    "situacao": "3 – Homologação ou 4 - Retificação da Homologação",
+    "publicacao_obrigatoria": "S",
+    "slug": "comprovante-da-publicacao-da-decisao-quanto-aos-recursos-interpostos-contra-a-re"
+  },
+  {
+    "codigo": "23",
+    "descricao": "Comprovante de publicação do resultado final do concurso público na Imprensa Oficial",
+    "certame": "Todos",
+    "situacao": "3 – Homologação ou 4 - Retificação da Homologação",
+    "publicacao_obrigatoria": "S",
+    "slug": "comprovante-de-publicacao-do-resultado-final-do-concurso-publico-na-imprensa-ofi"
+  },
+  {
+    "codigo": "24",
+    "descricao": "Comprovante de publicação do ato de homologação do concurso público na Imprensa Oficial",
+    "certame": "Todos",
+    "situacao": "3 – Homologação ou 4 - Retificação da Homologação",
+    "publicacao_obrigatoria": "S",
+    "slug": "comprovante-de-publicacao-do-ato-de-homologacao-do-concurso-publico-na-imprensa-"
+  },
+  {
+    "codigo": "33",
+    "descricao": "Ato de homologação parcial do certame",
+    "certame": "Todos",
+    "situacao": "8 – Homologação Parcial ou 9 - Retificação da Homologação Parcial",
+    "publicacao_obrigatoria": "N",
+    "slug": "ato-de-homologacao-parcial-do-certame"
+  },
+  {
+    "codigo": "34",
+    "descricao": "Relação dos candidatos aprovados e classificados referenciados na homologação parcial do certame, destacando as pessoas com necessidades especiais",
+    "certame": "Todos",
+    "situacao": "8 – Homologação Parcial ou 9 - Retificação da Homologação Parcial",
+    "publicacao_obrigatoria": "N",
+    "slug": "relacao-dos-candidatos-aprovados-e-classificados-referenciados-na-homologacao-pa"
+  },
+  {
+    "codigo": "35",
+    "descricao": "Edital de resultado parcial do certame",
+    "certame": "Todos",
+    "situacao": "8 – Homologação Parcial ou 9 - Retificação da Homologação Parcial",
+    "publicacao_obrigatoria": "N",
+    "slug": "edital-de-resultado-parcial-do-certame"
+  },
+  {
+    "codigo": "36",
+    "descricao": "Decisão quanto aos recursos interpostos contra a relação dos candidatos aprovados e classificados, que foram referenciados na hologação parcial do certame",
+    "certame": "Todos",
+    "situacao": "8 – Homologação Parcial ou 9 - Retificação da Homologação Parcial",
+    "publicacao_obrigatoria": "N",
+    "slug": "decisao-quanto-aos-recursos-interpostos-contra-a-relacao-dos-candidatos-aprovado"
+  },
+  {
+    "codigo": "37",
+    "descricao": "Comprovante da publicação da relação dos candidatos aprovados e classificados referenciados na homologação parcial do certame, destacando as pessoas com necessidades especiais na Imprensa Oficial",
+    "certame": "Todos",
+    "situacao": "8 – Homologação Parcial ou 9 - Retificação da Homologação Parcial",
+    "publicacao_obrigatoria": "N",
+    "slug": "comprovante-da-publicacao-da-relacao-dos-candidatos-aprovados-e-classificados-re"
+  },
+  {
+    "codigo": "38",
+    "descricao": "Comprovante da publicação da decisão quanto aos recursos interpostos contra a relação dos candidatos aprovados e classificados na Imprensa Oficial, que foram referenciados na homologação parcial do certame",
+    "certame": "Todos",
+    "situacao": "8 – Homologação Parcial ou 9 - Retificação da Homologação Parcial",
+    "publicacao_obrigatoria": "N",
+    "slug": "comprovante-da-publicacao-da-decisao-quanto-aos-recursos-interpostos-contra-a-re"
+  },
+  {
+    "codigo": "39",
+    "descricao": "Comprovante de publicação do ato de homologação parcial do certame na Imprensa Oficial",
+    "certame": "Todos",
+    "situacao": "8 – Homologação Parcial ou 9 - Retificação da Homologação Parcial",
+    "publicacao_obrigatoria": "N",
+    "slug": "comprovante-de-publicacao-do-ato-de-homologacao-parcial-do-certame-na-imprensa-o"
+  },
+  {
+    "codigo": "40",
+    "descricao": "Comprovante de publicação do resultado final dos candidatos aprovados e classificados referenciados na homologação parcial do certame, na Imprensa Oficial",
+    "certame": "Todos",
+    "situacao": "8 – Homologação Parcial ou 9 - Retificação da Homologação Parcial",
+    "publicacao_obrigatoria": "N",
+    "slug": "comprovante-de-publicacao-do-resultado-final-dos-candidatos-aprovados-e-classifi"
+  },
+  {
+    "codigo": "25",
+    "descricao": "Ofício de Encaminhamento",
+    "certame": "Todos",
+    "situacao": "1 - Abertura",
+    "publicacao_obrigatoria": "N",
+    "slug": "oficio-de-encaminhamento"
+  },
+  {
+    "codigo": "26",
+    "descricao": "Demonstrativo da estimativa do impacto orçamentário-financeiro no exercício em que a despesa entrará em vigor, bem como nos dois exercícios subsequentes",
+    "certame": "Todos",
+    "situacao": "1 - Abertura",
+    "publicacao_obrigatoria": "N",
+    "slug": "demonstrativo-da-estimativa-do-impacto-orcamentario-financeiro-no-exercicio-em-q"
+  },
+  {
+    "codigo": "27",
+    "descricao": "Comprovante da publicação de ato administrativo que designa a comissão de concurso, na imprensa oficial",
+    "certame": "Todos",
+    "situacao": "1 - Abertura",
+    "publicacao_obrigatoria": "N",
+    "slug": "comprovante-da-publicacao-de-ato-administrativo-que-designa-a-comissao-de-concur"
+  },
+  {
+    "codigo": "28",
+    "descricao": "Demonstrativo analítico do lotacionograma atualizado, demonstrando somente os cargos a serem preenchidos pelo concurso, com informações de numero de cargos ocupados e disponíveis, distinguindo efetivos de contratos",
+    "certame": "Todos",
+    "situacao": "1 - Abertura",
+    "publicacao_obrigatoria": "N",
+    "slug": "demonstrativo-analitico-do-lotacionograma-atualizado-demonstrando-somente-os-car"
+  },
+  {
+    "codigo": "29",
+    "descricao": "Publicação do resultado do certame licitatório ou dispensa/inexigibilidade que originou a contratação da empresa responsável pela realização do certame, a partir de 2015",
+    "certame": "Todos",
+    "situacao": "1 - Abertura",
+    "publicacao_obrigatoria": "N",
+    "slug": "publicacao-do-resultado-do-certame-licitatorio-ou-dispensa-inexigibilidade-que-o"
+  },
+  {
+    "codigo": "30",
+    "descricao": "Lei que autoriza a criação dos cargos para o respectivo concurso/processo seletivo ou cópia da lei que regulamenta a contratação temporária no ente estatal no caso de processo seletivo simplificado",
+    "certame": "Todos",
+    "situacao": "1 - Abertura",
+    "publicacao_obrigatoria": "N",
+    "slug": "lei-que-autoriza-a-criacao-dos-cargos-para-o-respectivo-concurso-processo-seleti"
+  },
+  {
+    "codigo": "31",
+    "descricao": "Justificativa do não-encaminhamento de documentos, conforme Anexo XLV do Manual de Triagem",
+    "certame": "Todos",
+    "situacao": "1 - Abertura",
+    "publicacao_obrigatoria": "N",
+    "slug": "justificativa-do-nao-encaminhamento-de-documentos-conforme-anexo-xlv-do-manual-d"
+  },
+  {
+    "codigo": "32",
+    "descricao": "Comprovante de residência dos candidatos inscritos tempestivo à data da seleção para Agentes Comunitários de Saúde",
+    "certame": "2 – Proc. Seletivo Simplificado e 3 – Proc. Seletivo Público",
+    "situacao": "3 – Homologação ou 4 - Retificação da Homologação ou 8 – Homologação Parcial ou 9 - Retificação da Homologação Parcial",
+    "publicacao_obrigatoria": "N",
+    "slug": "comprovante-de-residencia-dos-candidatos-inscritos-tempestivo-a-data-da-selecao-"
+  }
+]

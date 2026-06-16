@@ -1,0 +1,248 @@
+[
+  {
+    "codigo": "01",
+    "descricao": "Educação - CME",
+    "obrigatorio": "N",
+    "slug": "educacao-cme"
+  },
+  {
+    "codigo": "02",
+    "descricao": "FUNDEF",
+    "obrigatorio": "N",
+    "slug": "fundef"
+  },
+  {
+    "codigo": "03",
+    "descricao": "Alimentação Escolar - CAE",
+    "obrigatorio": "N",
+    "slug": "alimentacao-escolar-cae"
+  },
+  {
+    "codigo": "04",
+    "descricao": "Saúde",
+    "obrigatorio": "S",
+    "slug": "saude"
+  },
+  {
+    "codigo": "05",
+    "descricao": "Previdência",
+    "obrigatorio": "N",
+    "slug": "previdencia"
+  },
+  {
+    "codigo": "06",
+    "descricao": "Assistência Social",
+    "obrigatorio": "S",
+    "slug": "assistencia-social"
+  },
+  {
+    "codigo": "07",
+    "descricao": "Direitos da criança e do adolescente - COMDICA",
+    "obrigatorio": "S",
+    "slug": "direitos-da-crianca-e-do-adolescente-comdica"
+  },
+  {
+    "codigo": "08",
+    "descricao": "Cultura",
+    "obrigatorio": "N",
+    "slug": "cultura"
+  },
+  {
+    "codigo": "09",
+    "descricao": "Turismo",
+    "obrigatorio": "N",
+    "slug": "turismo"
+  },
+  {
+    "codigo": "10",
+    "descricao": "Trânsito/Transportes",
+    "obrigatorio": "N",
+    "slug": "transito-transportes"
+  },
+  {
+    "codigo": "11",
+    "descricao": "Meio Ambiente - CMMA",
+    "obrigatorio": "N",
+    "slug": "meio-ambiente-cmma"
+  },
+  {
+    "codigo": "12",
+    "descricao": "Segurança",
+    "obrigatorio": "N",
+    "slug": "seguranca"
+  },
+  {
+    "codigo": "13",
+    "descricao": "Idoso - COMUI",
+    "obrigatorio": "N",
+    "slug": "idoso-comui"
+  },
+  {
+    "codigo": "14",
+    "descricao": "Trabalho e emprego",
+    "obrigatorio": "N",
+    "slug": "trabalho-e-emprego"
+  },
+  {
+    "codigo": "15",
+    "descricao": "Habitação e SaneamentoBásico",
+    "obrigatorio": "N",
+    "slug": "habitacao-e-saneamentobasico"
+  },
+  {
+    "codigo": "19",
+    "descricao": "Pessoas com Deficiência - COMPEDE",
+    "obrigatorio": "N",
+    "slug": "pessoas-com-deficiencia-compede"
+  },
+  {
+    "codigo": "17",
+    "descricao": "Conselho Diretor de Política de Desenvolvimento Industrial",
+    "obrigatorio": "N",
+    "slug": "conselho-diretor-de-politica-de-desenvolvimento-industrial"
+  },
+  {
+    "codigo": "18",
+    "descricao": "Conselho Municipal de Desenvolvimento Rural",
+    "obrigatorio": "N",
+    "slug": "conselho-municipal-de-desenvolvimento-rural"
+  },
+  {
+    "codigo": "20",
+    "descricao": "Combate às Drogas - COMAD",
+    "obrigatorio": "N",
+    "slug": "combate-as-drogas-comad"
+  },
+  {
+    "codigo": "21",
+    "descricao": "Direitos da Mulher - COMDIM",
+    "obrigatorio": "N",
+    "slug": "direitos-da-mulher-comdim"
+  },
+  {
+    "codigo": "22",
+    "descricao": "Segurança Alimentar e Nutricional - COMSEA",
+    "obrigatorio": "N",
+    "slug": "seguranca-alimentar-e-nutricional-comsea"
+  },
+  {
+    "codigo": "23",
+    "descricao": "Economia Solidária",
+    "obrigatorio": "N",
+    "slug": "economia-solidaria"
+  },
+  {
+    "codigo": "24",
+    "descricao": "Esporte e Lazer",
+    "obrigatorio": "N",
+    "slug": "esporte-e-lazer"
+  },
+  {
+    "codigo": "25",
+    "descricao": "Defesa do Consumidor - CONDEC",
+    "obrigatorio": "N",
+    "slug": "defesa-do-consumidor-condec"
+  },
+  {
+    "codigo": "26",
+    "descricao": "Desenvolvimento Econômico",
+    "obrigatorio": "N",
+    "slug": "desenvolvimento-economico"
+  },
+  {
+    "codigo": "27",
+    "descricao": "Conselho da Cidade",
+    "obrigatorio": "N",
+    "slug": "conselho-da-cidade"
+  },
+  {
+    "codigo": "28",
+    "descricao": "RPPS - Deliberativo",
+    "obrigatorio": "N",
+    "slug": "rpps-deliberativo"
+  },
+  {
+    "codigo": "29",
+    "descricao": "RPPS - Curador (Desativado em 2026)",
+    "obrigatorio": "N",
+    "slug": "rpps-curador-desativado-em-2026"
+  },
+  {
+    "codigo": "30",
+    "descricao": "RPPS – Gestão para RPPS – Gestão/Dirigentes",
+    "obrigatorio": "N",
+    "slug": "rpps-gestao-para-rpps-gestao-dirigentes"
+  },
+  {
+    "codigo": "31",
+    "descricao": "RPPS - Administração",
+    "obrigatorio": "N",
+    "slug": "rpps-administracao"
+  },
+  {
+    "codigo": "32",
+    "descricao": "RPPS - Comitê de Investimento",
+    "obrigatorio": "N",
+    "slug": "rpps-comite-de-investimento"
+  },
+  {
+    "codigo": "33",
+    "descricao": "Tutelar",
+    "obrigatorio": "S",
+    "slug": "tutelar"
+  },
+  {
+    "codigo": "16",
+    "descricao": "FUNDEB",
+    "obrigatorio": "S",
+    "slug": "fundeb"
+  },
+  {
+    "codigo": "34",
+    "descricao": "Desenvolvimento Integrado - CMDI",
+    "obrigatorio": "N",
+    "slug": "desenvolvimento-integrado-cmdi"
+  },
+  {
+    "codigo": "35",
+    "descricao": "Arborização Urbana - COMAU",
+    "obrigatorio": "N",
+    "slug": "arborizacao-urbana-comau"
+  },
+  {
+    "codigo": "36",
+    "descricao": "Participação e Desenvolvimento da Comunidade Negra",
+    "obrigatorio": "N",
+    "slug": "participacao-e-desenvolvimento-da-comunidade-negra"
+  },
+  {
+    "codigo": "37",
+    "descricao": "Direitos LGBT",
+    "obrigatorio": "N",
+    "slug": "direitos-lgbt"
+  },
+  {
+    "codigo": "38",
+    "descricao": "Deliberativo do Fundo de Gestão Compartilhada",
+    "obrigatorio": "N",
+    "slug": "deliberativo-do-fundo-de-gestao-compartilhada"
+  },
+  {
+    "codigo": "39",
+    "descricao": "FETHAB",
+    "obrigatorio": "N",
+    "slug": "fethab"
+  },
+  {
+    "codigo": "40",
+    "descricao": "RPPS - Fiscal",
+    "obrigatorio": "",
+    "slug": "rpps-fiscal"
+  },
+  {
+    "codigo": "41",
+    "descricao": "RPPS - Gestor de Recursos",
+    "obrigatorio": "",
+    "slug": "rpps-gestor-de-recursos"
+  }
+]

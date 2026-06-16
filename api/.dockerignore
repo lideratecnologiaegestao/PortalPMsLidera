@@ -1,0 +1,8 @@
+node_modules
+dist
+.env
+.env.*
+test
+**/*.spec.ts
+**/*.e2e-spec.ts
+npm-debug.log

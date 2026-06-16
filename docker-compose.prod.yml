@@ -1,0 +1,204 @@
+# docker-compose.prod.yml — Ambiente de PRODUCAO (Servidor Lidera)
+#
+# IMPORTANTES:
+# - Redis e Evolution API sao EXTERNOS (ja existem na rede evolution-net).
+#   NAO sao declarados aqui; sao referenciados pelo hostname de rede.
+# - Todos os segredos vem de .env.prod (nunca commitar o arquivo com valores reais).
+# - Coloque este arquivo em /home/lidera/portal/ junto com .env.prod.
+# - Subir: docker compose -f docker-compose.prod.yml --env-file .env.prod up -d
+#
+# Ver: docs/instalacao/03-docker.md   docs/12-infraestrutura.md
+
+networks:
+  # Rede Docker existente onde vivem redis, evolution-api e demais servicos Lidera.
+  # Criada pelo stack do Evolution; o portal se JUNTA a ela — nao recria.
+  evolution-net:
+    external: true
+
+volumes:
+  portal_pg_data:
+    driver: local
+  portal_minio_data:
+    driver: local
+  portal_n8n_data:
+    driver: local
+
+services:
+
+  # ================================================================ Banco (PostGIS)
+  # Postgres dedicado ao portal com extensao PostGIS (necessaria para geo dos chamados).
+  # NAO usa o postgres:16-alpine existente no servidor (sem PostGIS e sem RLS do portal).
+  # Papel de APLICACAO: portal_app (NOSUPERUSER NOBYPASSRLS) — criado pelas migrations.
+  # CRITICO: a DATABASE_URL NUNCA aponta para superusuario — superusuario bypassa RLS.
+  portal-postgres:
+    image: postgis/postgis:16-3.4
+    container_name: portal-postgres
+    restart: always
+    environment:
+      POSTGRES_DB: portal
+      # Superusuario inicial do container (usado so para criar os papeis portal_app/ro).
+      # Em producao defina POSTGRES_USER diferente de 'postgres' se preferir.
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_SUPERUSER_PASSWORD}
+    volumes:
+      - portal_pg_data:/var/lib/postgresql/data
+      # As migrations (db/001..062) NAO rodam automaticamente em producao:
+      # o volume ja existe apos a primeira inicializacao. Rode manualmente via
+      # o script mostrado em docs/instalacao/03-docker.md secao "Migrations".
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U postgres -d portal']
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    networks:
+      - evolution-net
+
+  # ================================================================ Object Storage
+  # MinIO S3-compativel para fotos, anexos, PDFs do Diario, uploads de formularios.
+  # NUNCA exponha :9000 ou :9001 diretamente na internet — acesso so pela API.
+  # Console web :9001 acessivel via tunel ZT para o operador (nao para o cidadao).
+  portal-minio:
+    image: minio/minio:latest
+    container_name: portal-minio
+    restart: always
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${STORAGE_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${STORAGE_ROOT_PASSWORD}
+    volumes:
+      - portal_minio_data:/data
+    # Portas expostas APENAS para acesso interno/LAN via Nginx/ZT.
+    # Em producao considere remover o expose de :9001 e acessar via 'docker exec'.
+    ports:
+      - '127.0.0.1:9000:9000'
+      - '127.0.0.1:9001:9001'
+    healthcheck:
+      test: ['CMD-SHELL', 'mc ready local 2>/dev/null || curl -sf http://localhost:9000/minio/health/live']
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    networks:
+      - evolution-net
+
+  # ================================================================ n8n (ETL/Transparencia)
+  # Usado para importacao contabil APLIC TCE-MT e integracoes ETL.
+  # Compartilha o banco portal-postgres (schema proprio n8n).
+  portal-n8n:
+    image: n8nio/n8n:latest
+    container_name: portal-n8n
+    restart: always
+    environment:
+      N8N_HOST: ${N8N_HOST}
+      N8N_PORT: 5678
+      N8N_PROTOCOL: https
+      WEBHOOK_URL: ${N8N_WEBHOOK_URL}
+      DB_TYPE: postgresdb
+      DB_POSTGRESDB_HOST: portal-postgres
+      DB_POSTGRESDB_PORT: 5432
+      DB_POSTGRESDB_DATABASE: portal
+      DB_POSTGRESDB_USER: ${N8N_DB_USER}
+      DB_POSTGRESDB_PASSWORD: ${N8N_DB_PASSWORD}
+      N8N_BASIC_AUTH_ACTIVE: 'true'
+      N8N_BASIC_AUTH_USER: ${N8N_BASIC_AUTH_USER}
+      N8N_BASIC_AUTH_PASSWORD: ${N8N_BASIC_AUTH_PASSWORD}
+    volumes:
+      - portal_n8n_data:/home/node/.n8n
+    ports:
+      - '127.0.0.1:5678:5678'
+    depends_on:
+      portal-postgres:
+        condition: service_healthy
+    networks:
+      - evolution-net
+
+  # ================================================================ API (NestJS)
+  # Monolito modular NestJS. Runtime inclui:
+  #   openssl, postgresql16-client (pg_dump), tesseract-ocr+por, poppler-utils.
+  # Conecta via PgBouncer interno (transaction pooling) OU diretamente ao portal-postgres.
+  # Em producao pode-se omitir o PgBouncer e usar conexao direta se a carga for baixa.
+  # CRITICO: DATABASE_URL aponta para portal_app (NOSUPERUSER NOBYPASSRLS).
+  portal-api:
+    image: ${REGISTRY}/portal-api:${IMAGE_TAG:-latest}
+    container_name: portal-api
+    restart: always
+    env_file:
+      - .env.prod
+    ports:
+      - '127.0.0.1:3001:3001'
+    depends_on:
+      portal-postgres:
+        condition: service_healthy
+      portal-minio:
+        condition: service_healthy
+    healthcheck:
+      # Checa Postgres + Redis internamente (HealthModule da API).
+      test:
+        - 'CMD-SHELL'
+        - >
+          node -e "require('http').get('http://127.0.0.1:3001/api/health/ready',
+          r => process.exit(r.statusCode === 200 ? 0 : 1)).on('error', () => process.exit(1))"
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 40s
+    networks:
+      - evolution-net
+
+  # ================================================================ Web (Next.js)
+  # Portal SSR/ISR. Fala SOMENTE com portal-api (HTTP interno).
+  # Nunca acessa banco, storage, filas ou APIs externas diretamente.
+  portal-web:
+    image: ${REGISTRY}/portal-web:${IMAGE_TAG:-latest}
+    container_name: portal-web
+    restart: always
+    environment:
+      # URL interna (container-to-container). Para o browser, a API e acessada
+      # pelo hostname publico (via Nginx proxy_pass /api -> portal-api:3001).
+      API_URL: http://portal-api:3001
+      NODE_ENV: production
+    ports:
+      - '127.0.0.1:3000:3000'
+    depends_on:
+      portal-api:
+        condition: service_healthy
+    networks:
+      - evolution-net
+
+  # ================================================================ PgBouncer (opcional prod)
+  # Descomente se o numero de conexoes ao Postgres for alto (muitos workers/replicas).
+  # Em implantacoes iniciais (1 api + workers) a conexao direta e suficiente.
+  #
+  # portal-pgbouncer:
+  #   image: edoburu/pgbouncer:latest
+  #   container_name: portal-pgbouncer
+  #   restart: always
+  #   environment:
+  #     DB_HOST: portal-postgres
+  #     DB_PORT: 5432
+  #     DB_USER: portal_app
+  #     DB_PASSWORD: ${DB_APP_PASSWORD}
+  #     DB_NAME: portal
+  #     POOL_MODE: transaction
+  #     MAX_CLIENT_CONN: 200
+  #     DEFAULT_POOL_SIZE: 20
+  #     AUTH_TYPE: scram-sha-256
+  #   depends_on:
+  #     portal-postgres:
+  #       condition: service_healthy
+  #   networks:
+  #     - evolution-net
+
+  # ================================================================ ClamAV (antivirus — opcional)
+  # Varredura de uploads (formularios, anexos de Ouvidoria/ESIC, Diario).
+  # Descomente para habilitar; configure CLAMAV_HOST=portal-clamav no .env.prod.
+  #
+  # portal-clamav:
+  #   image: clamav/clamav:stable
+  #   container_name: portal-clamav
+  #   restart: always
+  #   ports:
+  #     - '127.0.0.1:3310:3310'
+  #   networks:
+  #     - evolution-net

@@ -1,0 +1,39 @@
+# deps
+node_modules/
+# build
+dist/
+.next/
+build/
+# env e segredos
+.env
+.env.*
+!.env.example
+!.env.prod.example
+*.pem
+*.p12
+*.pfx
+*.key
+*.crt
+secrets/
+# credenciais e arquivos sensíveis (NUNCA versionar)
+docs/CREDENCIAIS-PRODUCAO.md
+**/CREDENCIAIS*.md
+*.tmp.json
+.upload.tmp.json
+# artefatos de ferramentas
+.playwright-mcp/
+.mcp.local.json
+# ETL de migração: manter só o código-fonte da ferramenta, NÃO o conteúdo raspado
+# (1.5 GB de HTML/JSON do site real = bloat + dado pessoal de cidadãos)
+migration/cache/
+migration/state/
+migration/.cache/
+*.zip
+# claude code local
+.claude/settings.local.json
+# logs / sistema
+*.log
+.DS_Store
+coverage/
+# mobile
+.expo/

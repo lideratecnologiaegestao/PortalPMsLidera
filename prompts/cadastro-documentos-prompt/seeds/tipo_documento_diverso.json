@@ -1,0 +1,932 @@
+[
+  {
+    "codigo": "80",
+    "descricao": "Fotocópia do Protocolo de Intenções e alterações, quando houver",
+    "slug": "fotocopia-do-protocolo-de-intencoes-e-alteracoes-quando-houver"
+  },
+  {
+    "codigo": "81",
+    "descricao": "Comprovante de publicação do protocolo de intenções na imprensa oficial e das alterações posteriores, quando houver",
+    "slug": "comprovante-de-publicacao-do-protocolo-de-intencoes-na-imprensa-oficial-e-das-al"
+  },
+  {
+    "codigo": "82",
+    "descricao": "Leis de ratificação do Protocolo de Intenções",
+    "slug": "leis-de-ratificacao-do-protocolo-de-intencoes"
+  },
+  {
+    "codigo": "83",
+    "descricao": "Homologação da Assembleia Geral do Consórcio Público, quando for o caso",
+    "slug": "homologacao-da-assembleia-geral-do-consorcio-publico-quando-for-o-caso"
+  },
+  {
+    "codigo": "84",
+    "descricao": "Comprovação do exame prévio e aprovação da assessoria jurídica do órgão",
+    "slug": "comprovacao-do-exame-previo-e-aprovacao-da-assessoria-juridica-do-orgao"
+  },
+  {
+    "codigo": "85",
+    "descricao": "Comprovante de publicação da homologação da Assembleia Geral",
+    "slug": "comprovante-de-publicacao-da-homologacao-da-assembleia-geral"
+  },
+  {
+    "codigo": "86",
+    "descricao": "Relação dos contratos de rateio, dos contratos, dos convênios, dos repasses e contratos de programas firmados no exercício",
+    "slug": "relacao-dos-contratos-de-rateio-dos-contratos-dos-convenios-dos-repasses-e-contr"
+  },
+  {
+    "codigo": "87",
+    "descricao": "Ato de exclusão de ente consorciado",
+    "slug": "ato-de-exclusao-de-ente-consorciado"
+  },
+  {
+    "codigo": "88",
+    "descricao": "Certificado do gestor de aprovação em exame organizado por entidade autônoma de reconhecida capacidade técnica e difusão no mercado brasileiro de capitais, nos termos da Portaria MPS nº 155/2008",
+    "slug": "certificado-do-gestor-de-aprovacao-em-exame-organizado-por-entidade-autonoma-de-"
+  },
+  {
+    "codigo": "89",
+    "descricao": "Balanço Orçamentário",
+    "slug": "balanco-orcamentario"
+  },
+  {
+    "codigo": "90",
+    "descricao": "Balanço Financeiro",
+    "slug": "balanco-financeiro"
+  },
+  {
+    "codigo": "91",
+    "descricao": "Balanço Patrimonial",
+    "slug": "balanco-patrimonial"
+  },
+  {
+    "codigo": "92",
+    "descricao": "Demonstração das Variações Patrimoniais",
+    "slug": "demonstracao-das-variacoes-patrimoniais"
+  },
+  {
+    "codigo": "93",
+    "descricao": "Demonstração Analítica dos Investimentos",
+    "slug": "demonstracao-analitica-dos-investimentos"
+  },
+  {
+    "codigo": "94",
+    "descricao": "Notas explicativas às Demonstrações Financeiras contendo, dentre outros, a avaliação da situação patrimonial, a avaliação e contabilização dos investimentos, os critérios utilizados para constituições de provisões, depreciações, amortizações e reavaliações, com indicação dos efeitos no patrimônio do RPPS",
+    "slug": "notas-explicativas-as-demonstracoes-financeiras-contendo-dentre-outros-a-avaliac"
+  },
+  {
+    "codigo": "95",
+    "descricao": "Cópia da avaliação atuarial anual",
+    "slug": "copia-da-avaliacao-atuarial-anual"
+  },
+  {
+    "codigo": "96",
+    "descricao": "Demonstrativo das despesas com manutenção do RPPS no exercício, nos termos do art. 15, da Portaria MPS nº 402/2008, conforme Anexo XLI",
+    "slug": "demonstrativo-das-despesas-com-manutencao-do-rpps-no-exercicio-nos-termos-do-art"
+  },
+  {
+    "codigo": "97",
+    "descricao": "Demonstrativo dos processos de concessão de benefícios pelo RPPS, cujos beneficiários tenham tempo de serviço certificado pelo RGPS, nos termos da Lei nº 9.796/99 e art. 14 da Lei nº 10.887/04, conforme Anexo XXXVII",
+    "slug": "demonstrativo-dos-processos-de-concessao-de-beneficios-pelo-rpps-cujos-beneficia"
+  },
+  {
+    "codigo": "98",
+    "descricao": "Avaliação do desempenho da arrecadação em relação à previsão, destacando as providências adotadas no caso de recuperação de créditos nas instâncias administrativa e judicial, nos termos do art. 58 da LC 101/00 – LRF",
+    "slug": "avaliacao-do-desempenho-da-arrecadacao-em-relacao-a-previsao-destacando-as-provi"
+  },
+  {
+    "codigo": "99",
+    "descricao": "Avaliação de desempenho das aplicações financeiras, nos termos do inciso III do artigo 3º da Portaria MPS nº 519, de 24 de agosto de 2011, destacando a composição dos investimentos, o quadro comparativo de taxas ofertadas por instituições do mercado e a classificação efetuada por agências classificadoras de risco, quando se aplicar.",
+    "slug": "avaliacao-de-desempenho-das-aplicacoes-financeiras-nos-termos-do-inciso-iii-do-a"
+  },
+  {
+    "codigo": "100",
+    "descricao": "Parecer do Conselho fiscal, quando se aplicar",
+    "slug": "parecer-do-conselho-fiscal-quando-se-aplicar"
+  },
+  {
+    "codigo": "101",
+    "descricao": "Declaração em que se indique o endereço eletrônico na internet de disponibilização das receitas e despesas previdenciárias, nos termos do art. 9º, inciso III, da Lei nº 10.887/04",
+    "slug": "declaracao-em-que-se-indique-o-endereco-eletronico-na-internet-de-disponibilizac"
+  },
+  {
+    "codigo": "102",
+    "descricao": "Declaração em que se afirme a disponibilização do registro individualizado aos servidores, mediante extrato anual, nos termos definidos no art. 18 da Portaria nº 402/2008 do MPS e art. 1º, VII, da Lei nº 9.717/98",
+    "slug": "declaracao-em-que-se-afirme-a-disponibilizacao-do-registro-individualizado-aos-s"
+  },
+  {
+    "codigo": "103",
+    "descricao": "Quando houver, no exercício, parcelamento de contribuições devidas pelo ente – parte patronal: cópia da lei autorizativa e termo de parcelamento, constando a quantidade e o valor das parcelas, o índice de atualização e a taxa de juros",
+    "slug": "quando-houver-no-exercicio-parcelamento-de-contribuicoes-devidas-pelo-ente-parte"
+  },
+  {
+    "codigo": "104",
+    "descricao": "Quando ocorrer extinção do RPPS no exercício : cópia da lei de extinção, extrato bancário do mês de encerramento com a respectiva conciliação, balanço de encerramento e relação de bens, direitos e ativos",
+    "slug": "quando-ocorrer-extincao-do-rpps-no-exercicio-copia-da-lei-de-extincao-extrato-ba"
+  },
+  {
+    "codigo": "105",
+    "descricao": "Relatório de atividades/relatórios de auditorias da Unidade de Controle Interno",
+    "slug": "relatorio-de-atividades-relatorios-de-auditorias-da-unidade-de-controle-interno"
+  },
+  {
+    "codigo": "106",
+    "descricao": "Relatório Parcial do Controle Interno",
+    "slug": "relatorio-parcial-do-controle-interno"
+  },
+  {
+    "codigo": "1",
+    "descricao": "Parecer técnico conclusivo emitido pela unidade de controle interno",
+    "slug": "parecer-tecnico-conclusivo-emitido-pela-unidade-de-controle-interno"
+  },
+  {
+    "codigo": "2",
+    "descricao": "Cadastro dos responsáveis (inclusive do contador e controlador interno), conforme Anexo I",
+    "slug": "cadastro-dos-responsaveis-inclusive-do-contador-e-controlador-interno-conforme-a"
+  },
+  {
+    "codigo": "3",
+    "descricao": "Pronunciamento expresso e indelegável do gestor sobre as contas anuais e sobre o parecer do controle interno (art. 9º da Lei Complementar nº 269/2007)",
+    "slug": "pronunciamento-expresso-e-indelegavel-do-gestor-sobre-as-contas-anuais-e-sobre-o"
+  },
+  {
+    "codigo": "4",
+    "descricao": "Relatório contendo os valores da receita efetivamente renunciada no exercício, decorrentes dos benefícios fiscais concedidos (art. 210 do RITCE)",
+    "slug": "relatorio-contendo-os-valores-da-receita-efetivamente-renunciada-no-exercicio-de"
+  },
+  {
+    "codigo": "5",
+    "descricao": "Documento comprobatório da publicação dos balanços ou Leis",
+    "slug": "documento-comprobatorio-da-publicacao-dos-balancos-ou-leis"
+  },
+  {
+    "codigo": "6",
+    "descricao": "Cópias das leis autorizativas de contratação de dívida",
+    "slug": "copias-das-leis-autorizativas-de-contratacao-de-divida"
+  },
+  {
+    "codigo": "7",
+    "descricao": "Relação dos restos a pagar inscritos no exercício",
+    "slug": "relacao-dos-restos-a-pagar-inscritos-no-exercicio"
+  },
+  {
+    "codigo": "8",
+    "descricao": "Relação dos restos a pagar pagos no exercício",
+    "slug": "relacao-dos-restos-a-pagar-pagos-no-exercicio"
+  },
+  {
+    "codigo": "9",
+    "descricao": "Relação dos restos a pagar cancelados no exercício, em ordem sequencial de número de empenhos/ano, discriminando a classificação funcional programática, as respectivas dotações, valores, datas e beneficiários",
+    "slug": "relacao-dos-restos-a-pagar-cancelados-no-exercicio-em-ordem-sequencial-de-numero"
+  },
+  {
+    "codigo": "10",
+    "descricao": "Demonstrativo analitico das ocorrencias relativas as execucoes fiscais iniciadas no exercicio, conforme anexo XXIII",
+    "slug": "demonstrativo-analitico-das-ocorrencias-relativas-as-execucoes-fiscais-iniciadas"
+  },
+  {
+    "codigo": "11",
+    "descricao": "Justificativa dos cancelamentos dos restos a pagar",
+    "slug": "justificativa-dos-cancelamentos-dos-restos-a-pagar"
+  },
+  {
+    "codigo": "12",
+    "descricao": "No último ano de mandato, demonstrativo das despesas contraídas nos dois últimos quadrimestres, identificando as liquidadas e não liquidadas, em ordem sequencial de número de empenhos, discriminando a classificação funcional programática, as respectivas dotações, valores, datas e beneficiários",
+    "slug": "no-ultimo-ano-de-mandato-demonstrativo-das-despesas-contraidas-nos-dois-ultimos-"
+  },
+  {
+    "codigo": "13",
+    "descricao": "Demonstrativo analítico das ocorrências relativas às execuções fiscais iniciadas no exercício, conforme Anexo XXIII",
+    "slug": "demonstrativo-analitico-das-ocorrencias-relativas-as-execucoes-fiscais-iniciadas"
+  },
+  {
+    "codigo": "14",
+    "descricao": "Ofício de encaminhamento",
+    "slug": "oficio-de-encaminhamento"
+  },
+  {
+    "codigo": "15",
+    "descricao": "Relatório conclusivo da Comissão de Transmissão de Governo",
+    "slug": "relatorio-conclusivo-da-comissao-de-transmissao-de-governo"
+  },
+  {
+    "codigo": "16",
+    "descricao": "Relatório com informações acerca do montante dos recursos aplicados na execução de cada um dos programas incluídos no orçamento anual",
+    "slug": "relatorio-com-informacoes-acerca-do-montante-dos-recursos-aplicados-na-execucao-"
+  },
+  {
+    "codigo": "17",
+    "descricao": "Balanço Orçamentário - MCASP (consolidado Ente)",
+    "slug": "balanco-orcamentario-mcasp-consolidado-ente"
+  },
+  {
+    "codigo": "18",
+    "descricao": "Balanço Financeiro - MCASP (consolidado Ente)",
+    "slug": "balanco-financeiro-mcasp-consolidado-ente"
+  },
+  {
+    "codigo": "19",
+    "descricao": "Balanço Patrimonial - MCASP (consolidado Ente)",
+    "slug": "balanco-patrimonial-mcasp-consolidado-ente"
+  },
+  {
+    "codigo": "20",
+    "descricao": "Demonstração das Variações Patrimoniais - DVP - MCASP (consolidado Ente)",
+    "slug": "demonstracao-das-variacoes-patrimoniais-dvp-mcasp-consolidado-ente"
+  },
+  {
+    "codigo": "21",
+    "descricao": "Anexo 1 (consolidado Ente)",
+    "slug": "anexo-1-consolidado-ente"
+  },
+  {
+    "codigo": "22",
+    "descricao": "Anexo 2 (consolidado Ente)",
+    "slug": "anexo-2-consolidado-ente"
+  },
+  {
+    "codigo": "23",
+    "descricao": "Anexo 6 (consolidado Ente)",
+    "slug": "anexo-6-consolidado-ente"
+  },
+  {
+    "codigo": "24",
+    "descricao": "Anexo 7 (consolidado Ente)",
+    "slug": "anexo-7-consolidado-ente"
+  },
+  {
+    "codigo": "25",
+    "descricao": "Anexo 8 (consolidado Ente)",
+    "slug": "anexo-8-consolidado-ente"
+  },
+  {
+    "codigo": "26",
+    "descricao": "Anexo 9 (consolidado Ente)",
+    "slug": "anexo-9-consolidado-ente"
+  },
+  {
+    "codigo": "27",
+    "descricao": "Anexo 10 (consolidado Ente)",
+    "slug": "anexo-10-consolidado-ente"
+  },
+  {
+    "codigo": "28",
+    "descricao": "Anexo 11 (consolidado Ente) até o nível de modalidade de aplicação",
+    "slug": "anexo-11-consolidado-ente-ate-o-nivel-de-modalidade-de-aplicacao"
+  },
+  {
+    "codigo": "29",
+    "descricao": "Anexo 16 (consolidado Ente)",
+    "slug": "anexo-16-consolidado-ente"
+  },
+  {
+    "codigo": "30",
+    "descricao": "Anexo 17 (consolidado Ente)",
+    "slug": "anexo-17-consolidado-ente"
+  },
+  {
+    "codigo": "31",
+    "descricao": "Demonstrativo analítico dos profissionais do magistério do ensino básico, conforme Anexo XIV",
+    "slug": "demonstrativo-analitico-dos-profissionais-do-magisterio-do-ensino-basico-conform"
+  },
+  {
+    "codigo": "32",
+    "descricao": "Relação dos restos a pagar da saúde (ASPS), inscritos no exercício",
+    "slug": "relacao-dos-restos-a-pagar-da-saude-asps-inscritos-no-exercicio"
+  },
+  {
+    "codigo": "33",
+    "descricao": "Relação dos restos a pagar da educação (MDE), inscritos no exercício",
+    "slug": "relacao-dos-restos-a-pagar-da-educacao-mde-inscritos-no-exercicio"
+  },
+  {
+    "codigo": "34",
+    "descricao": "Relação dos restos a pagar do Fundeb (70%), inscritos no exercício",
+    "slug": "relacao-dos-restos-a-pagar-do-fundeb-70-inscritos-no-exercicio"
+  },
+  {
+    "codigo": "35",
+    "descricao": "Relação dos restos a pagar do Fundeb (30%), inscritos no exercício",
+    "slug": "relacao-dos-restos-a-pagar-do-fundeb-30-inscritos-no-exercicio"
+  },
+  {
+    "codigo": "36",
+    "descricao": "Relação dos restos a pagar da saúde (ASPS), pagos no exercício",
+    "slug": "relacao-dos-restos-a-pagar-da-saude-asps-pagos-no-exercicio"
+  },
+  {
+    "codigo": "37",
+    "descricao": "Relação dos restos a pagar da educação (MDE), pagos no exercício",
+    "slug": "relacao-dos-restos-a-pagar-da-educacao-mde-pagos-no-exercicio"
+  },
+  {
+    "codigo": "38",
+    "descricao": "Relação dos restos a pagar do Fundeb (70%), pagos no exercício",
+    "slug": "relacao-dos-restos-a-pagar-do-fundeb-70-pagos-no-exercicio"
+  },
+  {
+    "codigo": "39",
+    "descricao": "Relação dos restos a pagar do Fundeb (30%), pagos no exercício",
+    "slug": "relacao-dos-restos-a-pagar-do-fundeb-30-pagos-no-exercicio"
+  },
+  {
+    "codigo": "40",
+    "descricao": "Ficha cadastral – Recadastramento",
+    "slug": "ficha-cadastral-recadastramento"
+  },
+  {
+    "codigo": "41",
+    "descricao": "Agente de desenvolvimento local",
+    "slug": "agente-de-desenvolvimento-local"
+  },
+  {
+    "codigo": "42",
+    "descricao": "Sanção aplicada a contratado",
+    "slug": "sancao-aplicada-a-contratado"
+  },
+  {
+    "codigo": "43",
+    "descricao": "Sanção aplicada a licitante",
+    "slug": "sancao-aplicada-a-licitante"
+  },
+  {
+    "codigo": "44",
+    "descricao": "Lei de diretrizes orçamentárias",
+    "slug": "lei-de-diretrizes-orcamentarias"
+  },
+  {
+    "codigo": "45",
+    "descricao": "Anexo I – contendo as metas e ações priorizadas para o exercício a que se refere ou sua referência no texto da Lei",
+    "slug": "anexo-i-contendo-as-metas-e-acoes-priorizadas-para-o-exercicio-a-que-se-refere-o"
+  },
+  {
+    "codigo": "46",
+    "descricao": "Anexo de Metas Fiscais",
+    "slug": "anexo-de-metas-fiscais"
+  },
+  {
+    "codigo": "47",
+    "descricao": "Anexo de Riscos Fiscais",
+    "slug": "anexo-de-riscos-fiscais"
+  },
+  {
+    "codigo": "48",
+    "descricao": "Relatório dos projetos em andamento encaminhados ao Poder Legislativo",
+    "slug": "relatorio-dos-projetos-em-andamento-encaminhados-ao-poder-legislativo"
+  },
+  {
+    "codigo": "49",
+    "descricao": "Comprovação de que a LDO, em seu processo de elaboração e discussão, teve a participação popular e/ou a realização de audiências públicas",
+    "slug": "comprovacao-de-que-a-ldo-em-seu-processo-de-elaboracao-e-discussao-teve-a-partic"
+  },
+  {
+    "codigo": "50",
+    "descricao": "Comprovante de remessa de relatório de projetos em andamento no Poder Legislativo",
+    "slug": "comprovante-de-remessa-de-relatorio-de-projetos-em-andamento-no-poder-legislativ"
+  },
+  {
+    "codigo": "51",
+    "descricao": "Comprovante de publicação de relatório de projetos em andamento (ampla divulgação)",
+    "slug": "comprovante-de-publicacao-de-relatorio-de-projetos-em-andamento-ampla-divulgacao"
+  },
+  {
+    "codigo": "52",
+    "descricao": "Lei Orçamentária Anual",
+    "slug": "lei-orcamentaria-anual"
+  },
+  {
+    "codigo": "53",
+    "descricao": "Quadros e anexos exigidos pelo artigo 165, § 6º da Constituição Federal e pelos § § 1º, 2º e incisos do artigo 2º, e artigo 22 da Lei nº 4.320/64 (que integrarão a Lei do Orçamento): I. sumário geral da receita por fontes e das despesas por funções do governo",
+    "slug": "quadros-e-anexos-exigidos-pelo-artigo-165-6o-da-constituicao-federal-e-pelos-1o-"
+  },
+  {
+    "codigo": "54",
+    "descricao": "Quadro demonstrativo da receita e despesa segundo categorias econômicas, na forma do Anexo 1 da Lei nº 4.320/64",
+    "slug": "quadro-demonstrativo-da-receita-e-despesa-segundo-categorias-economicas-na-forma"
+  },
+  {
+    "codigo": "55",
+    "descricao": "Anexo 2 da Lei n° 4.320/64 - Receita segundo as categorias econômicas",
+    "slug": "anexo-2-da-lei-n-4-320-64-receita-segundo-as-categorias-economicas"
+  },
+  {
+    "codigo": "56",
+    "descricao": "Anexo 2 da Lei n° 4.320/64 - Despesa segundo as categorias econômicas – Consolidação Geral",
+    "slug": "anexo-2-da-lei-n-4-320-64-despesa-segundo-as-categorias-economicas-consolidacao-"
+  },
+  {
+    "codigo": "57",
+    "descricao": "Quadro discriminativo da receita, por fontes, e respectiva legislação,",
+    "slug": "quadro-discriminativo-da-receita-por-fontes-e-respectiva-legislacao"
+  },
+  {
+    "codigo": "58",
+    "descricao": "Quadro das dotações por órgãos do governo: Poder legislativo e Poder Executivo",
+    "slug": "quadro-das-dotacoes-por-orgaos-do-governo-poder-legislativo-e-poder-executivo"
+  },
+  {
+    "codigo": "59",
+    "descricao": "Quadro demonstrativo da receita e planos de aplicação dos fundos especiais",
+    "slug": "quadro-demonstrativo-da-receita-e-planos-de-aplicacao-dos-fundos-especiais"
+  },
+  {
+    "codigo": "60",
+    "descricao": "Quadro demonstrativo do programa anual de trabalho do governo em termos de realização de obras e de prestação de serviços",
+    "slug": "quadro-demonstrativo-do-programa-anual-de-trabalho-do-governo-em-termos-de-reali"
+  },
+  {
+    "codigo": "61",
+    "descricao": "Tabela explicativa da evolução da receita e da despesa - artigo 22, inciso III da Lei n° 4.320/64",
+    "slug": "tabela-explicativa-da-evolucao-da-receita-e-da-despesa-artigo-22-inciso-iii-da-l"
+  },
+  {
+    "codigo": "62",
+    "descricao": "Descrição sucinta de cada unidade administrativa e suas principais finalidades, com a respectiva legislação",
+    "slug": "descricao-sucinta-de-cada-unidade-administrativa-e-suas-principais-finalidades-c"
+  },
+  {
+    "codigo": "63",
+    "descricao": "Demonstrativo regionalizado do efeito, sobre as receitas e despesas, decorrentes de isenções, anistias, remissões, subsídios e benefícios de natureza financeira, tributária e creditícia",
+    "slug": "demonstrativo-regionalizado-do-efeito-sobre-as-receitas-e-despesas-decorrentes-d"
+  },
+  {
+    "codigo": "64",
+    "descricao": "Novos conteúdos introduzidos pela Lei de Responsabilidade Fiscal, em seu artigo 5º:a) anexo demonstrativo da compatibilidade da programação dos orçamentos com os objetivos e as metas constantes do Anexo de Metas Fiscais, que integra a LDO (exigido dos municípios com mais de 50.000 hab ou que não tenham formalizada a opção a que se refere o art. 63 da LRF)",
+    "slug": "novos-conteudos-introduzidos-pela-lei-de-responsabilidade-fiscal-em-seu-artigo-5"
+  },
+  {
+    "codigo": "65",
+    "descricao": "b)demonstrativo de medidas de compensação às renúncias de receita e ao aumento de despesas obrigatórias de caráter continuado",
+    "slug": "b-demonstrativo-de-medidas-de-compensacao-as-renuncias-de-receita-e-ao-aumento-d"
+  },
+  {
+    "codigo": "66",
+    "descricao": "c)comprovação de que a LOA, em seu processo de elaboração e discussão, teve a participação popular e/ou a realização de audiências públicas",
+    "slug": "c-comprovacao-de-que-a-loa-em-seu-processo-de-elaboracao-e-discussao-teve-a-part"
+  },
+  {
+    "codigo": "67",
+    "descricao": "Lei que instituiu o plano plurianual, o qual devera ser detalhado quanto aos objetivos, diretrizes e metas (art 166, § 5º do ritce/mt)",
+    "slug": "lei-que-instituiu-o-plano-plurianual-o-qual-devera-ser-detalhado-quanto-aos-obje"
+  },
+  {
+    "codigo": "68",
+    "descricao": "Anexo (s) contendo os programas e metas do governo a serem realizados no periodo",
+    "slug": "anexo-s-contendo-os-programas-e-metas-do-governo-a-serem-realizados-no-periodo"
+  },
+  {
+    "codigo": "69",
+    "descricao": "Comprovacao de que o ppa, em seu processo de elaboracao e discussao, teve a participacao popular e/ou a realizacao de audiencia publicas",
+    "slug": "comprovacao-de-que-o-ppa-em-seu-processo-de-elaboracao-e-discussao-teve-a-partic"
+  },
+  {
+    "codigo": "70",
+    "descricao": "Pronunciamento conclusivo do titular da pasta a que estiver vinculada a entidade",
+    "slug": "pronunciamento-conclusivo-do-titular-da-pasta-a-que-estiver-vinculada-a-entidade"
+  },
+  {
+    "codigo": "71",
+    "descricao": "Relatório da Diretoria ou da Administração",
+    "slug": "relatorio-da-diretoria-ou-da-administracao"
+  },
+  {
+    "codigo": "72",
+    "descricao": "Balanço Patrimonial",
+    "slug": "balanco-patrimonial"
+  },
+  {
+    "codigo": "73",
+    "descricao": "Demostração do resultado do exercício",
+    "slug": "demostracao-do-resultado-do-exercicio"
+  },
+  {
+    "codigo": "74",
+    "descricao": "Demonstração dos lucros ou prejuízos acumulados ou demonstração das mutações patrimoniais",
+    "slug": "demonstracao-dos-lucros-ou-prejuizos-acumulados-ou-demonstracao-das-mutacoes-pat"
+  },
+  {
+    "codigo": "75",
+    "descricao": "Demonstração dos Fluxos de Caixa (substituição da DOAR – Lei 11.638/2007)",
+    "slug": "demonstracao-dos-fluxos-de-caixa-substituicao-da-doar-lei-11-638-2007"
+  },
+  {
+    "codigo": "76",
+    "descricao": "Notas Explicativas",
+    "slug": "notas-explicativas"
+  },
+  {
+    "codigo": "77",
+    "descricao": "Parecer do Conselho Fiscal",
+    "slug": "parecer-do-conselho-fiscal"
+  },
+  {
+    "codigo": "78",
+    "descricao": "Parecer de auditoria independente (para sociedades de economia mista)",
+    "slug": "parecer-de-auditoria-independente-para-sociedades-de-economia-mista"
+  },
+  {
+    "codigo": "79",
+    "descricao": "Relatório do conselho de deliberação máxima da associação (art. 187, inciso III do RITCE/MT)",
+    "slug": "relatorio-do-conselho-de-deliberacao-maxima-da-associacao-art-187-inciso-iii-do-"
+  },
+  {
+    "codigo": "124",
+    "descricao": "Anexos da RGF – Relatório de Gestão Fiscal do Poder Legislativo",
+    "slug": "anexos-da-rgf-relatorio-de-gestao-fiscal-do-poder-legislativo"
+  },
+  {
+    "codigo": "130",
+    "descricao": "Relatório de acompanhamento do plano de ação",
+    "slug": "relatorio-de-acompanhamento-do-plano-de-acao"
+  },
+  {
+    "codigo": "138",
+    "descricao": "Ata da Assembleia Geral dos Cotistas",
+    "slug": "ata-da-assembleia-geral-dos-cotistas"
+  },
+  {
+    "codigo": "140",
+    "descricao": "Extrato que confirme o valor da amortização",
+    "slug": "extrato-que-confirme-o-valor-da-amortizacao"
+  },
+  {
+    "codigo": "144",
+    "descricao": "Relatório de acompanhamento do plano de ação - Logística de Medicamentos",
+    "slug": "relatorio-de-acompanhamento-do-plano-de-acao-logistica-de-medicamentos"
+  },
+  {
+    "codigo": "145",
+    "descricao": "Relatório de acompanhamento do plano de ação - Alimentação Escolar",
+    "slug": "relatorio-de-acompanhamento-do-plano-de-acao-alimentacao-escolar"
+  },
+  {
+    "codigo": "146",
+    "descricao": "Relatório de acompanhamento do plano de ação - Gestão de Frotas",
+    "slug": "relatorio-de-acompanhamento-do-plano-de-acao-gestao-de-frotas"
+  },
+  {
+    "codigo": "147",
+    "descricao": "Relatório de acompanhamento do plano de ação - Contratações Públicas",
+    "slug": "relatorio-de-acompanhamento-do-plano-de-acao-contratacoes-publicas"
+  },
+  {
+    "codigo": "148",
+    "descricao": "Relatório de acompanhamento do plano de ação - Gestão Financeira",
+    "slug": "relatorio-de-acompanhamento-do-plano-de-acao-gestao-financeira"
+  },
+  {
+    "codigo": "149",
+    "descricao": "Relatório de acompanhamento do plano de ação - Nível de Entidade",
+    "slug": "relatorio-de-acompanhamento-do-plano-de-acao-nivel-de-entidade"
+  },
+  {
+    "codigo": "155",
+    "descricao": "Notas explicativas ao Balanço Orçamentário, conforme orientação do MCASP vigente",
+    "slug": "notas-explicativas-ao-balanco-orcamentario-conforme-orientacao-do-mcasp-vigente"
+  },
+  {
+    "codigo": "156",
+    "descricao": "Notas explicativas ao Balanço Financeiro, conforme orientação do MCASP vigente",
+    "slug": "notas-explicativas-ao-balanco-financeiro-conforme-orientacao-do-mcasp-vigente"
+  },
+  {
+    "codigo": "157",
+    "descricao": "Notas explicativas ao Balanço Patrimonial, conforme orientação do MCASP vigente",
+    "slug": "notas-explicativas-ao-balanco-patrimonial-conforme-orientacao-do-mcasp-vigente"
+  },
+  {
+    "codigo": "158",
+    "descricao": "Notas explicativas à DVP, conforme orientação do MCASP vigente",
+    "slug": "notas-explicativas-a-dvp-conforme-orientacao-do-mcasp-vigente"
+  },
+  {
+    "codigo": "159",
+    "descricao": "Notas explicativas à DFC, conforme orientação do MCASP vigente",
+    "slug": "notas-explicativas-a-dfc-conforme-orientacao-do-mcasp-vigente"
+  },
+  {
+    "codigo": "150",
+    "descricao": "Demonstrativo da Dívida Consolidada Líquida (Anexo II do RGF)",
+    "slug": "demonstrativo-da-divida-consolidada-liquida-anexo-ii-do-rgf"
+  },
+  {
+    "codigo": "151",
+    "descricao": "Demonstrativo da Disponibilidade de Caixa e dos Restos a Pagar (Anexo V do RGF)",
+    "slug": "demonstrativo-da-disponibilidade-de-caixa-e-dos-restos-a-pagar-anexo-v-do-rgf"
+  },
+  {
+    "codigo": "152",
+    "descricao": "Demonstrativo dos Restos a Pagar por Poder e Órgão (Anexo VII do RREO)",
+    "slug": "demonstrativo-dos-restos-a-pagar-por-poder-e-orgao-anexo-vii-do-rreo"
+  },
+  {
+    "codigo": "153",
+    "descricao": "Lista de Órgãos integrantes do OFSS e respectivas Unidades Orçamentárias",
+    "slug": "lista-de-orgaos-integrantes-do-ofss-e-respectivas-unidades-orcamentarias"
+  },
+  {
+    "codigo": "154",
+    "descricao": "Listas de Consórcios Públicos que o Ente participa (com CNPJ)",
+    "slug": "listas-de-consorcios-publicos-que-o-ente-participa-com-cnpj"
+  },
+  {
+    "codigo": "160",
+    "descricao": "Norma (decreto) sobre o encerramento do exercício financeiro, inclusive diretrizes para cancelamento de restos a pagar não processados",
+    "slug": "norma-decreto-sobre-o-encerramento-do-exercicio-financeiro-inclusive-diretrizes-"
+  },
+  {
+    "codigo": "176",
+    "descricao": "Contrato de prestação de serviços de implantação e manutenção do Siafic",
+    "slug": "contrato-de-prestacao-de-servicos-de-implantacao-e-manutencao-do-siafic"
+  },
+  {
+    "codigo": "177",
+    "descricao": "Demonstrativo de Acompanhamento do Acordo de Parcelamento",
+    "slug": "demonstrativo-de-acompanhamento-do-acordo-de-parcelamento"
+  },
+  {
+    "codigo": "178",
+    "descricao": "Relatório de Investimentos – Art. 129 da Portaria MTP nº 1.467/2022",
+    "slug": "relatorio-de-investimentos-art-129-da-portaria-mtp-no-1-467-2022"
+  },
+  {
+    "codigo": "179",
+    "descricao": "Relatório de Rentabilidade, Riscos e Aderência à Política de Investimentos - Art. 136, da Portaria MTP nº 1.467/2022",
+    "slug": "relatorio-de-rentabilidade-riscos-e-aderencia-a-politica-de-investimentos-art-13"
+  },
+  {
+    "codigo": "107",
+    "descricao": "Anexos do RREO – Relatório Resumido de Execução Orçamentária",
+    "slug": "anexos-do-rreo-relatorio-resumido-de-execucao-orcamentaria"
+  },
+  {
+    "codigo": "108",
+    "descricao": "Anexos da RGF – Relatório de Gestão Fiscal do Poder Executivo",
+    "slug": "anexos-da-rgf-relatorio-de-gestao-fiscal-do-poder-executivo"
+  },
+  {
+    "codigo": "109",
+    "descricao": "Audiência Pública para cumprimento das metas fiscais",
+    "slug": "audiencia-publica-para-cumprimento-das-metas-fiscais"
+  },
+  {
+    "codigo": "110",
+    "descricao": "Julgamento das Contas do Legislativo - Resolução ou decreto legislativo",
+    "slug": "julgamento-das-contas-do-legislativo-resolucao-ou-decreto-legislativo"
+  },
+  {
+    "codigo": "111",
+    "descricao": "Julgamento das Contas do Legislativo - Ata da sessão de julgamento",
+    "slug": "julgamento-das-contas-do-legislativo-ata-da-sessao-de-julgamento"
+  },
+  {
+    "codigo": "112",
+    "descricao": "Julgamento das Contas do Legislativo - Documento comprobatório da publicação da resolução ou decreto legislativo (Art.37, caput da CF)",
+    "slug": "julgamento-das-contas-do-legislativo-documento-comprobatorio-da-publicacao-da-re"
+  },
+  {
+    "codigo": "113",
+    "descricao": "Julgamento das Contas do Legislativo – Comprovante de remessa de todo o processo ao Ministério Público, no caso das Contas de Governo ser rejeitadas (Art. 210, inciso IV da CE/MT)",
+    "slug": "julgamento-das-contas-do-legislativo-comprovante-de-remessa-de-todo-o-processo-a"
+  },
+  {
+    "codigo": "114",
+    "descricao": "Declaração das Fontes de Renda",
+    "slug": "declaracao-das-fontes-de-renda"
+  },
+  {
+    "codigo": "115",
+    "descricao": "Declaração dos bens do casal (Bens Móveis, Imóveis e Semoventes, Saldos Bancários e Créditos Mobiliários, Títulos, Ações, Apólices, quaisquer outros bens, etc.)",
+    "slug": "declaracao-dos-bens-do-casal-bens-moveis-imoveis-e-semoventes-saldos-bancarios-e"
+  },
+  {
+    "codigo": "116",
+    "descricao": "Diploma expedido pelo TRE, que habilita o eleito a tomar posse e exercer seu mandato",
+    "slug": "diploma-expedido-pelo-tre-que-habilita-o-eleito-a-tomar-posse-e-exercer-seu-mand"
+  },
+  {
+    "codigo": "117",
+    "descricao": "Relatório de Avaliação de Risco",
+    "slug": "relatorio-de-avaliacao-de-risco"
+  },
+  {
+    "codigo": "118",
+    "descricao": "Regulamento do Fundo de Investimento",
+    "slug": "regulamento-do-fundo-de-investimento"
+  },
+  {
+    "codigo": "119",
+    "descricao": "Prospecto do Fundo de Investimento",
+    "slug": "prospecto-do-fundo-de-investimento"
+  },
+  {
+    "codigo": "120",
+    "descricao": "Autorização de Aplicação e Resgate assinada pelo gestor/autorizador e pelo liquidante da operação",
+    "slug": "autorizacao-de-aplicacao-e-resgate-assinada-pelo-gestor-autorizador-e-pelo-liqui"
+  },
+  {
+    "codigo": "121",
+    "descricao": "Documentos comprobatórios (de forma consolidada) da pesquisa de preços realizada pelo gestor dos recursos do RPPS para fins de utilização como referência em negociações no mercado financeiro, antes do efetivo fechamento da operação (compra/venda), nos termos do art. 16 da resolução CMN 3922/2010",
+    "slug": "documentos-comprobatorios-de-forma-consolidada-da-pesquisa-de-precos-realizada-p"
+  },
+  {
+    "codigo": "122",
+    "descricao": "Nota de negociação do título",
+    "slug": "nota-de-negociacao-do-titulo"
+  },
+  {
+    "codigo": "125",
+    "descricao": "Demonstrativo da base de cálculo utilizada no cômputo da taxa administração",
+    "slug": "demonstrativo-da-base-de-calculo-utilizada-no-computo-da-taxa-administracao"
+  },
+  {
+    "codigo": "126",
+    "descricao": "Documento que aprovou a utilização das sobras de custeio do exercício anterior para a constituição de reserva a ser utilizada no cômputo da taxa de administração do exercício corrente e de futuros exercícios",
+    "slug": "documento-que-aprovou-a-utilizacao-das-sobras-de-custeio-do-exercicio-anterior-p"
+  },
+  {
+    "codigo": "127",
+    "descricao": "Balancete Mensal de Verificação atestado pelo Contador e Gestor",
+    "slug": "balancete-mensal-de-verificacao-atestado-pelo-contador-e-gestor"
+  },
+  {
+    "codigo": "137",
+    "descricao": "Audiências Pública - Outras",
+    "slug": "audiencias-publica-outras"
+  },
+  {
+    "codigo": "141",
+    "descricao": "Relação dos recursos recebidos, as aquisições, os contratos e os demais atos de aplicação dos recursos para o enfrentamento do Covid-19”, conforme determinado no inciso VIII, art. 2o da NOVA RN",
+    "slug": "relacao-dos-recursos-recebidos-as-aquisicoes-os-contratos-e-os-demais-atos-de-ap"
+  },
+  {
+    "codigo": "131",
+    "descricao": "Extrato bancário de conta encerrada",
+    "slug": "extrato-bancario-de-conta-encerrada"
+  },
+  {
+    "codigo": "132",
+    "descricao": "Conciliação bancária de conta encerrada",
+    "slug": "conciliacao-bancaria-de-conta-encerrada"
+  },
+  {
+    "codigo": "133",
+    "descricao": "Comprovante de encerramento da conta",
+    "slug": "comprovante-de-encerramento-da-conta"
+  },
+  {
+    "codigo": "134",
+    "descricao": "Declaração de veracidade sobre parcelamento",
+    "slug": "declaracao-de-veracidade-sobre-parcelamento"
+  },
+  {
+    "codigo": "135",
+    "descricao": "Declaração de veracidade (Contribuições previdenciárias)",
+    "slug": "declaracao-de-veracidade-contribuicoes-previdenciarias"
+  },
+  {
+    "codigo": "142",
+    "descricao": "Justificativa da rescisão, suspensão ou alteração contratual de pessoal temporário quando tiver por fundamento o enfrentamento do Covid-19",
+    "slug": "justificativa-da-rescisao-suspensao-ou-alteracao-contratual-de-pessoal-temporari"
+  },
+  {
+    "codigo": "180",
+    "descricao": "Aprovação pelo conselho deliberativo(ART. 63 §1º INCISO III, PORTARIA MTP Nº 1467/2022)",
+    "slug": "aprovacao-pelo-conselho-deliberativo-art-63-1o-inciso-iii-portaria-mtp-no-1467-2"
+  },
+  {
+    "codigo": "181",
+    "descricao": "Estudo técnico com análise de viabilidade econômico-finaceira(art.63 §1º INCISOS I, II E IV, PORTARIA MTP Nº 1467/2022)",
+    "slug": "estudo-tecnico-com-analise-de-viabilidade-economico-finaceira-art-63-1o-incisos-"
+  },
+  {
+    "codigo": "123",
+    "descricao": "Planejamento Anual de Auditoria Interna",
+    "slug": "planejamento-anual-de-auditoria-interna"
+  },
+  {
+    "codigo": "128",
+    "descricao": "Demonstração dos Fluxos de Caixa - DFC - MCASP (consolidado Ente)",
+    "slug": "demonstracao-dos-fluxos-de-caixa-dfc-mcasp-consolidado-ente"
+  },
+  {
+    "codigo": "129",
+    "descricao": "Plano de Ação",
+    "slug": "plano-de-acao"
+  },
+  {
+    "codigo": "136",
+    "descricao": "Plano de Ação - Controle Interno (Acordãos 281/2017-TP e 342/2017- TP)",
+    "slug": "plano-de-acao-controle-interno-acordaos-281-2017-tp-e-342-2017-tp"
+  },
+  {
+    "codigo": "139",
+    "descricao": "Novo regulamento do fundo/ata da assembleia que tenha decidido pela nova classificação",
+    "slug": "novo-regulamento-do-fundo-ata-da-assembleia-que-tenha-decidido-pela-nova-classif"
+  },
+  {
+    "codigo": "143",
+    "descricao": "Plano de ação para a adequação do ente às disposições do Decreto Federal n. 10.540/2020",
+    "slug": "plano-de-acao-para-a-adequacao-do-ente-as-disposicoes-do-decreto-federal-n-10-54"
+  },
+  {
+    "codigo": "161",
+    "descricao": "Ato de criação da Ouvidoria Documento que formaliza a criação da Ouvidoria no âmbito da entidade pública",
+    "slug": "ato-de-criacao-da-ouvidoria-documento-que-formaliza-a-criacao-da-ouvidoria-no-am"
+  },
+  {
+    "codigo": "162",
+    "descricao": "Ato de nomeação do responsável (Ouvidor) Ato administrativo que designa oficialmente o responsável pela ouvidoria",
+    "slug": "ato-de-nomeacao-do-responsavel-ouvidor-ato-administrativo-que-designa-oficialmen"
+  },
+  {
+    "codigo": "163",
+    "descricao": "Ato que normatiza a Ouvidoria Documento que estabelece as regras, competências e funcionamento da Ouvidoria",
+    "slug": "ato-que-normatiza-a-ouvidoria-documento-que-estabelece-as-regras-competencias-e-"
+  },
+  {
+    "codigo": "164",
+    "descricao": "Carta de Serviços Documento que informa os serviços prestados pela entidade pública e os canais disponíveis para contato com a Ouvidoria",
+    "slug": "carta-de-servicos-documento-que-informa-os-servicos-prestados-pela-entidade-publ"
+  },
+  {
+    "codigo": "171",
+    "descricao": "Relação do quantitativo de servidores Efetivos, Comissionados e Cedidos  Documento contendo o levantamento detalhado de servidores por categoria (Efetivos, Comissionados e Cedidos), por competência mensal do exercício",
+    "slug": "relacao-do-quantitativo-de-servidores-efetivos-comissionados-e-cedidos-documento"
+  },
+  {
+    "codigo": "172",
+    "descricao": "Relação do quantitativo de servidores ativos e inativos  Documento contendo levantamento do quantitativo de servidores ativos e inativos, por competência mensal do exercício",
+    "slug": "relacao-do-quantitativo-de-servidores-ativos-e-inativos-documento-contendo-levan"
+  },
+  {
+    "codigo": "173",
+    "descricao": "Questionário sobre ações preventivas de \"violência contra a mulher\"",
+    "slug": "questionario-sobre-acoes-preventivas-de-violencia-contra-a-mulher"
+  },
+  {
+    "codigo": "174",
+    "descricao": "Comprovante de Publicação dos Balanços  Comprovante de publicação dos balanços financeiros da entidade",
+    "slug": "comprovante-de-publicacao-dos-balancos-comprovante-de-publicacao-dos-balancos-fi"
+  },
+  {
+    "codigo": "175",
+    "descricao": "Declaração do Presidente da Câmara Municipal atestando a disponibilidade das Contas de Governo do exercício para consulta pública aos contribuintes, na sede do Legislativo  Em cumprimento aos artigos 37 e 38 da Constituição Federal, que estabelecem os princípios da publicidade e transparência na administração pública",
+    "slug": "declaracao-do-presidente-da-camara-municipal-atestando-a-disponibilidade-das-con"
+  },
+  {
+    "codigo": "165",
+    "descricao": "Lei ou normativa que regulamenta a remuneração dos ACS e ACE  Documento legal (Lei/Ato normativo) que estabelece a regulamentação para a remuneração, subsídios e benefícios concedidos aos Agentes Comunitários de Saúde (ACS) e Agentes de Combate às Endemias (ACE)",
+    "slug": "lei-ou-normativa-que-regulamenta-a-remuneracao-dos-acs-e-ace-documento-legal-lei"
+  },
+  {
+    "codigo": "166",
+    "descricao": "Comprovante de remuneração dos ACS e ACE - pagas na competência de dezembro (por servidor)  Documento que detalha a remuneração bruta e líquida, subsídios e adicionais (insalubridade) pagos aos Agentes Comunitários de Saúde (ACS) e Agentes de Combate às Endemias (ACE), pagas na competência de dezembro. Ex.: Resumo da Folha de Pagamento, por servidor da categoria",
+    "slug": "comprovante-de-remuneracao-dos-acs-e-ace-pagas-na-competencia-de-dezembro-por-se"
+  },
+  {
+    "codigo": "167",
+    "descricao": "Ato normativo que regulamenta o adicional de insalubridade pago aos ACS e ACE  Documento legal (Lei/Ato normativo) que estabelece as regras e condições para concessão do adicional de insalubridade aos Agentes Comunitários de Saúde (ACS) e Agentes de Combate às Endemias (ACE)",
+    "slug": "ato-normativo-que-regulamenta-o-adicional-de-insalubridade-pago-aos-acs-e-ace-do"
+  },
+  {
+    "codigo": "168",
+    "descricao": "Ato normativo que regulamenta a concessão de Reajuste Anual Geral (RGA) para os ACS e ACE  Documento legal (Lei/Ato normativo) que disciplina o reajuste anual concedido aos Agentes Comunitários de Saúde (ACS) e Agentes de Combate às Endemias (ACE)",
+    "slug": "ato-normativo-que-regulamenta-a-concessao-de-reajuste-anual-geral-rga-para-os-ac"
+  },
+  {
+    "codigo": "169",
+    "descricao": "Ato normativo que regulamenta a aposentadoria dos ACS e ACE  Documento legal (Lei/Ato normativo) que estabelece as normas aplicáveis às aposentadorias dos Agentes Comunitários de Saúde (ACS) e Agentes de Combate às Endemias (ACE)",
+    "slug": "ato-normativo-que-regulamenta-a-aposentadoria-dos-acs-e-ace-documento-legal-lei-"
+  },
+  {
+    "codigo": "170",
+    "descricao": "Comprovação de inclusão das aposentadorias e demais benefícios previdenciários dos ACS e ACE no cálculo atuarial  Documento comprobatório que evidencia a inclusão das aposentadorias e benefícios dos Agentes Comunitários de Saúde (ACS) e Agentes de Combate às Endemias (ACE) nos estudos de cálculo atuarial realizados pelo regime previdenciário",
+    "slug": "comprovacao-de-inclusao-das-aposentadorias-e-demais-beneficios-previdenciarios-d"
+  },
+  {
+    "codigo": "182",
+    "descricao": "Declaração do Gestor do RPPS sobre a veracidade dos dados enviados ao TCE-MT (RN 12/2020)",
+    "slug": "declaracao-do-gestor-do-rpps-sobre-a-veracidade-dos-dados-enviados-ao-tce-mt-rn-"
+  },
+  {
+    "codigo": "183",
+    "descricao": "Declaração do Controlador Interno sobre a avaliação e confiabilidade dos dados enviados ao TCE-MT (RN 12/2020)",
+    "slug": "declaracao-do-controlador-interno-sobre-a-avaliacao-e-confiabilidade-dos-dados-e"
+  },
+  {
+    "codigo": "184",
+    "descricao": "Declaração e Informações sobre Terceirização de Serviços: OS, OSCIP, Cooperativas e Entidades Sem Fins Lucrativos",
+    "slug": "declaracao-e-informacoes-sobre-terceirizacao-de-servicos-os-oscip-cooperativas-e"
+  },
+  {
+    "codigo": "185",
+    "descricao": "Anexos 1, 2, 6, 7, 8, 9, 10, 11, 16 e 17 da Lei nº. 4.320/1964",
+    "slug": "anexos-1-2-6-7-8-9-10-11-16-e-17-da-lei-no-4-320-1964"
+  },
+  {
+    "codigo": "186",
+    "descricao": "Parecer dos órgãos internos que devam se pronunciar sobre as contas, quando houver",
+    "slug": "parecer-dos-orgaos-internos-que-devam-se-pronunciar-sobre-as-contas-quando-houve"
+  }
+]

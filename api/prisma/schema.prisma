@@ -1,0 +1,1989 @@
+// Prisma é a camada de QUERY. O RLS e as policies vivem no SQL (../db/*.sql),
+// pois Prisma não expressa Row Level Security. Após rodar as migrations SQL,
+// use `prisma db pull` para sincronizar — abaixo está o resultado esperado
+// (resumido para os modelos usados neste scaffold).
+
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["postgresqlExtensions"]
+}
+
+datasource db {
+  provider   = "postgresql"
+  url        = env("DATABASE_URL")
+  extensions = [pgcrypto, citext, postgis, unaccent, pg_trgm]
+}
+
+// @@map aponta para o NOME do tipo enum no Postgres (snake_case) — sem isso o
+// Prisma casta para "public.UserRole" etc., que não existe (o DB usa user_role).
+enum UserRole {
+  super_admin
+  admin_prefeitura
+  gestor
+  ouvidor
+  servidor
+  cidadao
+  @@map("user_role")
+}
+
+enum ManifestacaoCanal {
+  esic
+  ouvidoria
+  @@map("manifestacao_canal")
+}
+
+enum DiarioStatus {
+  rascunho
+  publicado
+  revogado
+  @@map("diario_status")
+}
+
+enum ManifestacaoTipo {
+  acesso_informacao
+  denuncia
+  reclamacao
+  sugestao
+  elogio
+  solicitacao
+  @@map("manifestacao_tipo")
+}
+
+enum ManifestacaoStatus {
+  registrada
+  em_analise
+  em_tratamento
+  aguardando_cidadao
+  prorrogada
+  respondida
+  indeferida
+  parcialmente_atendida
+  recurso_1a_instancia
+  recurso_2a_instancia
+  concluida
+  arquivada
+  @@map("manifestacao_status")
+}
+
+model Tenant {
+  id                  String    @id @default(uuid()) @db.Uuid
+  slug                String    @unique
+  nome                String
+  uf                  String    @db.Char(2)
+  cnpj                String?   @unique
+  municipioIbge       String?   @map("municipio_ibge")
+  dominio             String?   @unique
+  subdominio          String?   @unique
+  plano               String    @default("padrao")
+  ativo               Boolean   @default(true)
+  iaTriagemHabilitada Boolean   @default(false) @map("ia_triagem_habilitada")
+  iaChatHabilitada    Boolean   @default(false) @map("ia_chat_habilitada")
+  cfCustomHostnameId  String?   @map("cf_custom_hostname_id")
+  cfStatus            String?   @map("cf_status")
+  cfValidacao         Json?     @map("cf_validacao")
+  cfAtualizadoEm      DateTime? @map("cf_atualizado_em") @db.Timestamptz(6)
+  dpoNome             String?   @map("dpo_nome")
+  dpoEmail            String?   @map("dpo_email")
+  atendimentoHumanoAtivo    Boolean @default(false) @map("atendimento_humano_ativo")
+  iaChatWidgetAtivo         Boolean @default(false) @map("ia_chat_widget_ativo")
+  atendimentoAvisoLgpd      String? @map("atendimento_aviso_lgpd")
+  atendimentoMensagemForaExp String? @map("atendimento_mensagem_fora_exp")
+  atendimentoSaudacao       String? @map("atendimento_saudacao")
+  atendimentoInatividadeMin Int     @default(30) @map("atendimento_inatividade_min")
+  atendimentoTimezone       String  @default("America/Cuiaba") @map("atendimento_timezone")
+  evolutionInstancia        String? @map("evolution_instancia")
+  criadoEm            DateTime  @default(now()) @map("criado_em")
+  atualizadoEm        DateTime  @updatedAt @map("atualizado_em")
+  @@map("tenants")
+}
+
+model User {
+  id            String    @id @default(uuid()) @db.Uuid
+  tenantId      String?   @map("tenant_id") @db.Uuid
+  secretariaId  String?   @map("secretaria_id") @db.Uuid
+  nome          String
+  email         String
+  senhaHash     String?   @map("senha_hash")
+  cpfHash       String?   @map("cpf_hash")
+  role          UserRole  @default(cidadao)
+  govbrSub      String?   @map("govbr_sub")
+  govbrNivel    Int?      @map("govbr_nivel") @db.SmallInt
+  ultimoLoginEm DateTime? @map("ultimo_login_em")
+  senhaAlteradaEm DateTime? @map("senha_alterada_em")
+  mfaSecret     String?   @map("mfa_secret")
+  mfaHabilitado Boolean   @default(false) @map("mfa_habilitado")
+  avatarStorageKey String? @map("avatar_storage_key")
+  avatarMime    String?   @map("avatar_mime")
+  telefone      String?
+  emailVerificado    Boolean @default(false) @map("email_verificado")
+  telefoneVerificado Boolean @default(false) @map("telefone_verificado")
+  ativo         Boolean   @default(true)
+  // Relações inversas — migration 046
+  grupos        UsuarioGrupo[]
+  sessions      UserSession[]
+  sessionsRevogadas UserSession[] @relation("SessionRevogadoPor")
+  // Relações inversas — migration 048 (LGPD)
+  solicitacoesTitular  SolicitacaoTitular[] @relation("SolicitacaoTitular")
+  solicitacoesTratadas SolicitacaoTitular[] @relation("SolicitacaoTratadaPor")
+  incidentesResponsavel IncidenteSeguranca[] @relation("IncidenteResponsavel")
+  // Relação inversa — migration 049 (formulários)
+  enviosFormulario     FormularioEnvio[]
+  // Relações inversas — migration 050 (atendimento omnichannel)
+  atendConversasCidadao AtendimentoConversa[] @relation("AtendConversaCidadao")
+  atendConversasAgente  AtendimentoConversa[] @relation("AtendConversaAgente")
+  atendMensagens        AtendimentoMensagem[]
+  atendEventos          AtendimentoEvento[]
+  @@unique([tenantId, email])
+  @@unique([tenantId, govbrSub])
+  @@map("users")
+}
+
+/// Requisição de direitos do titular (LGPD art. 18) — migration 048.
+model SolicitacaoTitular {
+  id                  String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId            String    @map("tenant_id") @db.Uuid
+  titularId           String    @map("titular_id") @db.Uuid
+  tipo                String
+  descricao           String?
+  status              String    @default("aberta")
+  prazoEm             DateTime  @map("prazo_em") @db.Timestamptz(6)
+  atrasada            Boolean   @default(false)
+  resposta            String?
+  indeferimentoMotivo String?   @map("indeferimento_motivo")
+  anexoStorageKey     String?   @map("anexo_storage_key")
+  tratadoPor          String?   @map("tratado_por") @db.Uuid
+  tratadoEm           DateTime? @map("tratado_em") @db.Timestamptz(6)
+  criadoEm            DateTime  @default(now()) @map("criado_em") @db.Timestamptz(6)
+  atualizadoEm        DateTime  @default(now()) @updatedAt @map("atualizado_em") @db.Timestamptz(6)
+  titular             User      @relation("SolicitacaoTitular", fields: [titularId], references: [id], onDelete: Restrict)
+  tratadoPorUser      User?     @relation("SolicitacaoTratadaPor", fields: [tratadoPor], references: [id], onDelete: SetNull)
+  @@index([tenantId, status])
+  @@index([titularId])
+  @@map("solicitacoes_titular")
+}
+
+/// Registro/comunicação de incidente de segurança (LGPD art. 48) — migration 048.
+model IncidenteSeguranca {
+  id                        String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId                  String    @map("tenant_id") @db.Uuid
+  titulo                    String
+  descricao                 String
+  categoria                 String
+  natureza                  String?
+  dadosAfetados             String[]  @map("dados_afetados")
+  titularesAfetadosEstimados Int?     @map("titulares_afetados_estimados")
+  severidade                String
+  riscoDescricao            String?   @map("risco_descricao")
+  riscoNivel                String?   @map("risco_nivel")
+  ocorridoEm                DateTime? @map("ocorrido_em") @db.Timestamptz(6)
+  detectadoEm               DateTime  @default(now()) @map("detectado_em") @db.Timestamptz(6)
+  prazoComunicacaoEm        DateTime  @map("prazo_comunicacao_em") @db.Timestamptz(6)
+  comunicacaoAtrasada       Boolean   @default(false) @map("comunicacao_atrasada")
+  status                    String    @default("registrado")
+  medidasContencao          String?   @map("medidas_contencao")
+  medidasMitigacao          String?   @map("medidas_mitigacao")
+  comunicadoAnpd            Boolean   @default(false) @map("comunicado_anpd")
+  comunicadoAnpdEm          DateTime? @map("comunicado_anpd_em") @db.Timestamptz(6)
+  comunicadoAnpdProtocolo   String?   @map("comunicado_anpd_protocolo")
+  comunicadoTitulares       Boolean   @default(false) @map("comunicado_titulares")
+  comunicadoTitularesEm     DateTime? @map("comunicado_titulares_em") @db.Timestamptz(6)
+  comunicadoTitularesMeio   String?   @map("comunicado_titulares_meio")
+  responsavelId             String?   @map("responsavel_id") @db.Uuid
+  criadoEm                  DateTime  @default(now()) @map("criado_em") @db.Timestamptz(6)
+  atualizadoEm              DateTime  @default(now()) @updatedAt @map("atualizado_em") @db.Timestamptz(6)
+  responsavel               User?     @relation("IncidenteResponsavel", fields: [responsavelId], references: [id], onDelete: SetNull)
+  @@index([tenantId, status])
+  @@index([tenantId, detectadoEm])
+  @@map("incidentes_seguranca")
+}
+
+/// Documentação LGPD gerada por entidade (template global + dados do tenant) — migration 062.
+model LgpdDocumento {
+  id           String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId     String    @unique @map("tenant_id") @db.Uuid
+  dados        Json      @default("{}")
+  html         String?
+  versao       Int       @default(1)
+  publicado    Boolean   @default(false)
+  publicadoEm  DateTime? @map("publicado_em") @db.Timestamptz(6)
+  geradoEm     DateTime? @map("gerado_em") @db.Timestamptz(6)
+  geradoPor    String?   @map("gerado_por") @db.Uuid
+  criadoEm     DateTime  @default(now()) @map("criado_em") @db.Timestamptz(6)
+  atualizadoEm DateTime  @default(now()) @updatedAt @map("atualizado_em") @db.Timestamptz(6)
+  @@map("lgpd_documentos")
+}
+
+/// Formulário eletrônico (builder drag-drop) — migration 049.
+model Formulario {
+  id                  String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId            String   @map("tenant_id") @db.Uuid
+  slug                String
+  titulo              String
+  descricao           String?
+  schema              Json     @default("[]")
+  status              String   @default("rascunho")
+  mensagemConfirmacao String?  @map("mensagem_confirmacao")
+  redirecionarUrl     String?  @map("redirecionar_url")
+  loginObrigatorio    Boolean  @default(false) @map("login_obrigatorio")
+  multiplosEnvios     Boolean  @default(true) @map("multiplos_envios")
+  captchaHabilitado   Boolean  @default(true) @map("captcha_habilitado")
+  notificarEmails     String[] @map("notificar_emails")
+  notificarCc         String[] @map("notificar_cc")
+  notificarBcc        String[] @map("notificar_bcc")
+  totalEnvios         Int      @default(0) @map("total_envios")
+  criadoEm            DateTime @default(now()) @map("criado_em") @db.Timestamptz(6)
+  atualizadoEm        DateTime @default(now()) @updatedAt @map("atualizado_em") @db.Timestamptz(6)
+  envios              FormularioEnvio[]
+  @@unique([tenantId, slug])
+  @@index([tenantId, status])
+  @@map("formularios")
+}
+
+/// Resposta captada de um formulário (dado pessoal — LGPD) — migration 049.
+model FormularioEnvio {
+  id           String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId     String     @map("tenant_id") @db.Uuid
+  formularioId String     @map("formulario_id") @db.Uuid
+  dados        Json       @default("{}")
+  anexos       Json       @default("[]")
+  cidadaoId    String?    @map("cidadao_id") @db.Uuid
+  ip           String?    @db.Inet
+  userAgent    String?    @map("user_agent")
+  lido         Boolean    @default(false)
+  criadoEm     DateTime   @default(now()) @map("criado_em") @db.Timestamptz(6)
+  formulario   Formulario @relation(fields: [formularioId], references: [id], onDelete: Cascade)
+  cidadao      User?      @relation(fields: [cidadaoId], references: [id], onDelete: SetNull)
+  @@index([tenantId, formularioId, criadoEm])
+  @@map("formulario_envios")
+}
+
+/// Base de conhecimento curada do assistente de IA, por tenant — migration 053.
+model IaConhecimento {
+  id           String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId     String   @map("tenant_id") @db.Uuid
+  pergunta     String
+  resposta     String
+  tags         String[]
+  fixado       Boolean  @default(false)
+  ativo        Boolean  @default(true)
+  criadoPor    String?  @map("criado_por") @db.Uuid
+  criadoEm     DateTime @default(now()) @map("criado_em") @db.Timestamptz(6)
+  atualizadoEm DateTime @default(now()) @updatedAt @map("atualizado_em") @db.Timestamptz(6)
+  // busca tsvector (GENERATED) é gerenciada pelo banco — usar raw query p/ FTS
+  @@index([tenantId, ativo])
+  @@map("ia_conhecimento")
+}
+
+/// Configuração de WhatsApp por tenant (adapter Z-API/Evolution/Meta) — migration 052.
+model TenantWhatsappConfig {
+  id                     String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId               String   @unique @map("tenant_id") @db.Uuid
+  provider               String   @default("evolution")
+  fallbackProvider       String?  @map("fallback_provider")
+  zapiInstanceId         String?  @map("zapi_instance_id")
+  zapiTokenCifrado       String?  @map("zapi_token_cifrado")
+  zapiClientTokenCifrado String?  @map("zapi_client_token_cifrado")
+  zapiWebhookSecret      String?  @map("zapi_webhook_secret")
+  evolutionApiUrl        String?  @map("evolution_api_url")
+  evolutionInstance      String?  @map("evolution_instance")
+  evolutionApiKeyCifrado String?  @map("evolution_api_key_cifrado")
+  ativo                  Boolean  @default(true)
+  atualizadoEm           DateTime @default(now()) @updatedAt @map("atualizado_em") @db.Timestamptz(6)
+  criadoEm               DateTime @default(now()) @map("criado_em") @db.Timestamptz(6)
+  @@map("tenant_whatsapp_config")
+}
+
+/// Configuração de IA por tenant — override opcional sobre o global — migration 056.
+model TenantIaConfig {
+  id                     String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId               String   @unique @map("tenant_id") @db.Uuid
+  iaMaxChunks            Int?     @map("ia_max_chunks")
+  embeddingsProvider     String?  @map("embeddings_provider")
+  voyageApiKeyCifrado    String?  @map("voyage_api_key_cifrado")
+  anthropicApiKeyCifrado String?  @map("anthropic_api_key_cifrado")
+  openaiApiKeyCifrado    String?  @map("openai_api_key_cifrado")
+  ativo                  Boolean  @default(true)
+  atualizadoEm           DateTime @default(now()) @updatedAt @map("atualizado_em") @db.Timestamptz(6)
+  criadoEm               DateTime @default(now()) @map("criado_em") @db.Timestamptz(6)
+  @@map("tenant_ia_config")
+}
+
+/// Importação da carga contábil APLIC (TCE-MT), módulo CT — migration 057.
+model AplicCarga {
+  id             String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId       String   @map("tenant_id") @db.Uuid
+  modulo         String
+  ug             String?
+  exercicio      Int
+  competencia    String?
+  arquivoNome    String?  @map("arquivo_nome")
+  status         String   @default("concluida")
+  totalRegistros Int      @default(0) @map("total_registros")
+  porTabela      Json?    @map("por_tabela")
+  erro           String?
+  criadoPor      String?  @map("criado_por") @db.Uuid
+  criadoEm       DateTime @default(now()) @map("criado_em") @db.Timestamptz(6)
+  @@map("aplic_carga")
+}
+
+model AplicCredor {
+  id            String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId      String   @map("tenant_id") @db.Uuid
+  identificacao String
+  tipoPessoa    String?  @map("tipo_pessoa")
+  nome          String?
+  municipioCod  String?  @map("municipio_cod")
+  dados         Json
+  atualizadoEm  DateTime @default(now()) @map("atualizado_em") @db.Timestamptz(6)
+  @@unique([tenantId, identificacao], map: "aplic_credor_uk")
+  @@map("aplic_credor")
+}
+
+model AplicDotacao {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId    String   @map("tenant_id") @db.Uuid
+  cargaId     String?  @map("carga_id") @db.Uuid
+  exercicio   Int
+  competencia String?
+  orgCodigo   String?  @map("org_codigo")
+  unorCodigo  String?  @map("unor_codigo")
+  dados       Json
+  criadoEm    DateTime @default(now()) @map("criado_em") @db.Timestamptz(6)
+  @@map("aplic_dotacao")
+}
+
+model AplicEmpenho {
+  id           String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId     String    @map("tenant_id") @db.Uuid
+  cargaId      String?   @map("carga_id") @db.Uuid
+  exercicio    Int
+  competencia  String?
+  orgCodigo    String?   @map("org_codigo")
+  unorCodigo   String?   @map("unor_codigo")
+  empNumero    String    @map("emp_numero")
+  empData      DateTime? @map("emp_data") @db.Date
+  empValor     Decimal   @default(0) @map("emp_valor") @db.Decimal(16, 2)
+  credorIdent  String?   @map("credor_ident")
+  fnCodigo     String?   @map("fn_codigo")
+  elementoDesp String?   @map("elemento_desp")
+  descricao    String?
+  dados        Json
+  criadoEm     DateTime  @default(now()) @map("criado_em") @db.Timestamptz(6)
+  @@map("aplic_empenho")
+}
+
+model AplicLiquidacao {
+  id          String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId    String    @map("tenant_id") @db.Uuid
+  cargaId     String?   @map("carga_id") @db.Uuid
+  exercicio   Int
+  competencia String?
+  orgCodigo   String?   @map("org_codigo")
+  unorCodigo  String?   @map("unor_codigo")
+  empNumero   String    @map("emp_numero")
+  liqNumero   String    @map("liq_numero")
+  liqData     DateTime? @map("liq_data") @db.Date
+  liqValor    Decimal   @default(0) @map("liq_valor") @db.Decimal(16, 2)
+  dados       Json
+  criadoEm    DateTime  @default(now()) @map("criado_em") @db.Timestamptz(6)
+  @@map("aplic_liquidacao")
+}
+
+model AplicPagamento {
+  id          String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId    String    @map("tenant_id") @db.Uuid
+  cargaId     String?   @map("carga_id") @db.Uuid
+  exercicio   Int
+  competencia String?
+  pgtoNumero  String    @map("pgto_numero")
+  pgtoData    DateTime? @map("pgto_data") @db.Date
+  pgtoValor   Decimal   @default(0) @map("pgto_valor") @db.Decimal(16, 2)
+  dados       Json
+  criadoEm    DateTime  @default(now()) @map("criado_em") @db.Timestamptz(6)
+  @@map("aplic_pagamento")
+}
+
+model AplicPagamentoLiquidacao {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId    String   @map("tenant_id") @db.Uuid
+  cargaId     String?  @map("carga_id") @db.Uuid
+  exercicio   Int
+  competencia String?
+  orgCodigo   String?  @map("org_codigo")
+  unorCodigo  String?  @map("unor_codigo")
+  empNumero   String?  @map("emp_numero")
+  liqNumero   String?  @map("liq_numero")
+  pgtoNumero  String?  @map("pgto_numero")
+  dados       Json
+  criadoEm    DateTime @default(now()) @map("criado_em") @db.Timestamptz(6)
+  @@map("aplic_pagamento_liquidacao")
+}
+
+/// Configuração GLOBAL da plataforma (singleton id=1) — migration 059.
+model PlatformSettings {
+  id              Int      @id @default(1)
+  devAtivo        Boolean  @default(true) @map("dev_ativo")
+  devNome         String?  @map("dev_nome")
+  devRazaoSocial  String?  @map("dev_razao_social")
+  devCnpj         String?  @map("dev_cnpj")
+  devEndereco     String?  @map("dev_endereco")
+  devEmail        String?  @map("dev_email")
+  devSuporteUrl   String?  @map("dev_suporte_url")
+  devWhatsapp     String?  @map("dev_whatsapp")
+  devSiteUrl      String?  @map("dev_site_url")
+  devLogoUrl      String?  @map("dev_logo_url")
+  smtpAtivo       Boolean  @default(false) @map("smtp_ativo")
+  smtpHost        String?  @map("smtp_host")
+  smtpPort        Int?     @map("smtp_port")
+  smtpSecure      Boolean  @default(false) @map("smtp_secure")
+  smtpUser        String?  @map("smtp_user")
+  smtpPassCifrado String?  @map("smtp_pass_cifrado")
+  smtpFrom        String?  @map("smtp_from")
+  backup          Json     @default("{}")
+  dados           Json     @default("{}")
+  atualizadoEm    DateTime @default(now()) @updatedAt @map("atualizado_em") @db.Timestamptz(6)
+  atualizadoPor   String?  @map("atualizado_por") @db.Uuid
+  @@map("platform_settings")
+}
+
+/// Expediente de atendimento por dia da semana — migration 050.
+model AtendimentoHorario {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId    String   @map("tenant_id") @db.Uuid
+  diaSemana   Int      @map("dia_semana")
+  horaInicio  DateTime @map("hora_inicio") @db.Time(6)
+  horaFim     DateTime @map("hora_fim") @db.Time(6)
+  ativo       Boolean  @default(true)
+  @@unique([tenantId, diaSemana])
+  @@map("atendimento_horario")
+}
+
+/// Etiqueta de conversa — migration 050.
+model AtendimentoTag {
+  id        String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId  String @map("tenant_id") @db.Uuid
+  nome      String
+  cor       String @default("#6B7280")
+  @@unique([tenantId, nome])
+  @@map("atendimento_tags")
+}
+
+/// Sessão de atendimento omnichannel (widget/WhatsApp; bot→humano) — migration 050.
+model AtendimentoConversa {
+  id                     String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId               String    @map("tenant_id") @db.Uuid
+  canal                  String
+  status                 String    @default("bot")
+  visitanteNome          String?   @map("visitante_nome")
+  visitanteEmail         String?   @map("visitante_email")
+  visitanteTelefone      String?   @map("visitante_telefone")
+  visitanteIdentificador String?   @map("visitante_identificador")
+  cidadaoId              String?   @map("cidadao_id") @db.Uuid
+  secretariaId           String?   @map("secretaria_id") @db.Uuid
+  agenteId               String?   @map("agente_id") @db.Uuid
+  assunto                String?
+  origemUrl              String?   @map("origem_url")
+  tagIds                 String[]  @map("tag_ids") @db.Uuid
+  iniciadaEm             DateTime  @default(now()) @map("iniciada_em") @db.Timestamptz(6)
+  encerradaEm            DateTime? @map("encerrada_em") @db.Timestamptz(6)
+  ultimaAtividadeEm      DateTime  @default(now()) @map("ultima_atividade_em") @db.Timestamptz(6)
+  botTentativas          Int       @default(0) @map("bot_tentativas")
+  cidadao                User?     @relation("AtendConversaCidadao", fields: [cidadaoId], references: [id], onDelete: SetNull)
+  agente                 User?     @relation("AtendConversaAgente", fields: [agenteId], references: [id], onDelete: SetNull)
+  mensagens              AtendimentoMensagem[]
+  eventos                AtendimentoEvento[]
+  @@index([tenantId, status])
+  @@index([tenantId, secretariaId])
+  @@map("atendimento_conversas")
+}
+
+/// Mensagem da conversa de atendimento — migration 050.
+model AtendimentoMensagem {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId    String   @map("tenant_id") @db.Uuid
+  conversaId  String   @map("conversa_id") @db.Uuid
+  autorTipo   String   @map("autor_tipo")
+  autorId     String?  @map("autor_id") @db.Uuid
+  conteudo    String
+  anexos      Json     @default("[]")
+  interno     Boolean  @default(false)
+  criadoEm    DateTime @default(now()) @map("criado_em") @db.Timestamptz(6)
+  conversa    AtendimentoConversa @relation(fields: [conversaId], references: [id], onDelete: Cascade)
+  autor       User?    @relation(fields: [autorId], references: [id], onDelete: SetNull)
+  @@index([conversaId, criadoEm])
+  @@map("atendimento_mensagens")
+}
+
+/// Trilha de auditoria por conversa — migration 050.
+model AtendimentoEvento {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId    String   @map("tenant_id") @db.Uuid
+  conversaId  String   @map("conversa_id") @db.Uuid
+  tipo        String
+  atorId      String?  @map("ator_id") @db.Uuid
+  payload     Json     @default("{}")
+  criadoEm    DateTime @default(now()) @map("criado_em") @db.Timestamptz(6)
+  conversa    AtendimentoConversa @relation(fields: [conversaId], references: [id], onDelete: Cascade)
+  ator        User?    @relation(fields: [atorId], references: [id], onDelete: SetNull)
+  @@index([conversaId, criadoEm])
+  @@map("atendimento_eventos")
+}
+
+model Manifestacao {
+  id              String              @id @default(uuid()) @db.Uuid
+  tenantId        String              @map("tenant_id") @db.Uuid
+  protocolo       String
+  canal           ManifestacaoCanal
+  tipo            ManifestacaoTipo
+  status          ManifestacaoStatus  @default(registrada)
+  anonima         Boolean             @default(false)
+  cidadaoId       String?             @map("cidadao_id") @db.Uuid
+  solicitanteNome String?             @map("solicitante_nome")
+  solicitanteEmail String?            @map("solicitante_email")
+  assunto         String
+  descricao       String
+  secretariaId    String?             @map("secretaria_id") @db.Uuid
+  responsavelId   String?             @map("responsavel_id") @db.Uuid
+  prazoEm         DateTime            @map("prazo_em")
+  prorrogado      Boolean             @default(false)
+  prorrogacaoJustificativa String?    @map("prorrogacao_justificativa")
+  slaPausadoEm    DateTime?           @map("sla_pausado_em")
+  resposta        String?
+  respondidoEm    DateTime?           @map("respondido_em")
+  classificacaoSigilo String?         @map("classificacao_sigilo")
+  chaveHash       String?             @map("chave_hash")
+  criadoEm        DateTime            @default(now()) @map("criado_em")
+  atualizadoEm    DateTime            @updatedAt @map("atualizado_em")
+  eventos         ManifestacaoEvento[]
+  mensagens       ManifestacaoMensagem[]
+  anexos          ManifestacaoAnexo[]
+  satisfacao      PesquisaSatisfacao?
+  @@unique([tenantId, protocolo])
+  @@index([tenantId, status])
+  @@map("manifestacoes")
+}
+
+model ManifestacaoMensagem {
+  id              String             @id @default(uuid()) @db.Uuid
+  tenantId        String             @map("tenant_id") @db.Uuid
+  manifestacaoId  String             @map("manifestacao_id") @db.Uuid
+  autorTipo       String             @map("autor_tipo")        // cidadao | servidor | sistema
+  autorId         String?            @map("autor_id") @db.Uuid
+  autorNome       String?            @map("autor_nome")
+  conteudo        String
+  interno         Boolean            @default(false)
+  criadoEm        DateTime           @default(now()) @map("criado_em")
+  manifestacao    Manifestacao       @relation(fields: [manifestacaoId], references: [id])
+  @@index([manifestacaoId, criadoEm])
+  @@map("manifestacao_mensagens")
+}
+
+model ManifestacaoAnexo {
+  id              String             @id @default(uuid()) @db.Uuid
+  tenantId        String             @map("tenant_id") @db.Uuid
+  manifestacaoId  String             @map("manifestacao_id") @db.Uuid
+  origem          String             @default("cidadao")       // cidadao | orgao
+  nomeArquivo     String             @map("nome_arquivo")
+  storageKey      String             @map("storage_key")
+  mime            String?
+  tamanhoBytes    BigInt?            @map("tamanho_bytes")
+  criadoEm        DateTime           @default(now()) @map("criado_em")
+  manifestacao    Manifestacao       @relation(fields: [manifestacaoId], references: [id])
+  @@map("manifestacao_anexos")
+}
+
+model PesquisaSatisfacao {
+  id              String             @id @default(uuid()) @db.Uuid
+  tenantId        String             @map("tenant_id") @db.Uuid
+  manifestacaoId  String             @unique @map("manifestacao_id") @db.Uuid
+  nota            Int
+  comentario      String?
+  criadoEm        DateTime           @default(now()) @map("criado_em")
+  manifestacao    Manifestacao       @relation(fields: [manifestacaoId], references: [id])
+  @@map("pesquisa_satisfacao")
+}
+
+model UserContato {
+  id                 String    @id @default(uuid()) @db.Uuid
+  tenantId           String    @map("tenant_id") @db.Uuid
+  userId             String    @map("user_id") @db.Uuid
+  whatsapp           String?
+  whatsappVerificado Boolean   @default(false) @map("whatsapp_verificado")
+  whatsappCodigo     String?   @map("whatsapp_codigo")
+  whatsappCodigoExp  DateTime? @map("whatsapp_codigo_exp")
+  email              String?
+  emailVerificado    Boolean   @default(false) @map("email_verificado")
+  emailCodigo        String?   @map("email_codigo")
+  emailCodigoExp     DateTime? @map("email_codigo_exp")
+  notifWhatsapp      Boolean   @default(true) @map("notif_whatsapp")
+  notifEmail         Boolean   @default(true) @map("notif_email")
+  criadoEm           DateTime  @default(now()) @map("criado_em")
+  atualizadoEm       DateTime  @updatedAt @map("atualizado_em")
+  @@unique([tenantId, userId])
+  @@map("user_contatos")
+}
+
+model NotificacaoLog {
+  id             String   @id @default(uuid()) @db.Uuid
+  tenantId       String   @map("tenant_id") @db.Uuid
+  manifestacaoId String?  @map("manifestacao_id") @db.Uuid
+  evento         String
+  canal          String
+  destinatario   String?
+  status         String
+  provedorId     String?  @map("provedor_id")
+  erro           String?
+  criadoEm       DateTime @default(now()) @map("criado_em")
+  @@index([tenantId, criadoEm])
+  @@map("notificacao_log")
+}
+
+model NotificacaoUsuario {
+  id             String   @id @default(uuid()) @db.Uuid
+  tenantId       String   @map("tenant_id") @db.Uuid
+  userId         String   @map("user_id") @db.Uuid
+  evento         String
+  titulo         String
+  corpo          String?
+  protocolo      String?
+  manifestacaoId String?  @map("manifestacao_id") @db.Uuid
+  lida           Boolean  @default(false)
+  criadoEm       DateTime @default(now()) @map("criado_em")
+  @@index([tenantId, userId, criadoEm])
+  @@map("notificacoes_usuario")
+}
+
+model TenantEmailConfig {
+  tenantId     String   @id @map("tenant_id") @db.Uuid
+  smtpHost     String?  @map("smtp_host")
+  smtpPort     Int?     @map("smtp_port")
+  smtpSecure   Boolean  @default(true) @map("smtp_secure")
+  smtpUser     String?  @map("smtp_user")
+  smtpPass     String?  @map("smtp_pass")
+  smtpFrom     String?  @map("smtp_from")
+  imapHost     String?  @map("imap_host")
+  imapPort     Int?     @map("imap_port")
+  ativo        Boolean  @default(true)
+  atualizadoEm DateTime @updatedAt @map("atualizado_em")
+  @@map("tenant_email_config")
+}
+
+model AuthVerificacao {
+  id         String   @id @default(uuid()) @db.Uuid
+  tenantId   String   @map("tenant_id") @db.Uuid
+  userId     String   @map("user_id") @db.Uuid
+  finalidade String   // email | telefone | reset
+  codigoHash String   @map("codigo_hash")
+  expiraEm   DateTime @map("expira_em")
+  criadoEm   DateTime @default(now()) @map("criado_em")
+  @@index([userId, finalidade])
+  @@map("auth_verificacoes")
+}
+
+model PushToken {
+  id         String   @id @default(uuid()) @db.Uuid
+  tenantId   String   @map("tenant_id") @db.Uuid
+  userId     String   @map("user_id") @db.Uuid
+  token      String   @unique
+  plataforma String?
+  criadoEm   DateTime @default(now()) @map("criado_em")
+  @@index([tenantId, userId])
+  @@map("push_tokens")
+}
+
+model ChatConversa {
+  id             String              @id @default(uuid()) @db.Uuid
+  tenantId       String              @map("tenant_id") @db.Uuid
+  tipo           String              // dm | grupo | protocolo
+  titulo         String?
+  manifestacaoId String?             @map("manifestacao_id") @db.Uuid
+  criadoPor      String?             @map("criado_por") @db.Uuid
+  criadoEm       DateTime            @default(now()) @map("criado_em")
+  atualizadoEm   DateTime            @updatedAt @map("atualizado_em")
+  participantes  ChatParticipante[]
+  mensagens      ChatMensagem[]
+  @@index([manifestacaoId])
+  @@map("chat_conversas")
+}
+
+model ChatParticipante {
+  id           String       @id @default(uuid()) @db.Uuid
+  tenantId     String       @map("tenant_id") @db.Uuid
+  conversaId   String       @map("conversa_id") @db.Uuid
+  userId       String       @map("user_id") @db.Uuid
+  papel        String?
+  ultimoLidoEm DateTime?    @map("ultimo_lido_em")
+  criadoEm     DateTime     @default(now()) @map("criado_em")
+  conversa     ChatConversa @relation(fields: [conversaId], references: [id])
+  @@unique([conversaId, userId])
+  @@index([tenantId, userId])
+  @@map("chat_participantes")
+}
+
+model ChatMensagem {
+  id            String       @id @default(uuid()) @db.Uuid
+  tenantId      String       @map("tenant_id") @db.Uuid
+  conversaId    String       @map("conversa_id") @db.Uuid
+  autorId       String?      @map("autor_id") @db.Uuid
+  conteudo      String?
+  anexos        Json         @default("[]")
+  respondendoA  String?      @map("respondendo_a") @db.Uuid
+  editadoEm     DateTime?    @map("editado_em")
+  excluidoEm    DateTime?    @map("excluido_em")
+  criadoEm      DateTime     @default(now()) @map("criado_em")
+  conversa      ChatConversa @relation(fields: [conversaId], references: [id])
+  @@index([conversaId, criadoEm])
+  @@map("chat_mensagens")
+}
+
+model ManifestacaoEvento {
+  id              BigInt             @id @default(autoincrement())
+  tenantId        String             @map("tenant_id") @db.Uuid
+  manifestacaoId  String             @map("manifestacao_id") @db.Uuid
+  deStatus        ManifestacaoStatus? @map("de_status")
+  paraStatus      ManifestacaoStatus @map("para_status")
+  evento          String
+  atorId          String?            @map("ator_id") @db.Uuid
+  observacao      String?
+  criadoEm        DateTime           @default(now()) @map("criado_em")
+  manifestacao    Manifestacao       @relation(fields: [manifestacaoId], references: [id])
+  @@map("manifestacao_eventos")
+}
+
+model TenantTheme {
+  tenantId      String   @id @map("tenant_id") @db.Uuid
+  tokens        Json     @default("{}")
+  wcagOk        Boolean  @default(false) @map("wcag_ok")
+  wcagRelatorio Json     @default("{}") @map("wcag_relatorio")
+  atualizadoEm  DateTime @updatedAt @map("atualizado_em")
+  @@map("tenant_themes")
+}
+
+model DiarioEdicao {
+  id            String       @id @default(uuid()) @db.Uuid
+  tenantId      String       @map("tenant_id") @db.Uuid
+  numero        String
+  numeroSeq     Int?         @map("numero_seq")
+  tipoEdicao    String       @default("ordinaria") @map("tipo_edicao")
+  suplementoDeId String?     @map("suplemento_de") @db.Uuid
+  dataEdicao    DateTime     @map("data_edicao") @db.Date
+  titulo        String
+  conteudo      String       @default("")
+  arquivoKey    String?      @map("arquivo_key")
+  totalPaginas  Int?         @map("total_paginas")
+  status        DiarioStatus @default(rascunho)
+  hash          String?
+  assinatura    String?
+  algoritmo     String?
+  carimboTempo  DateTime?    @map("carimbo_tempo")
+  publicadoEm   DateTime?    @map("publicado_em")
+  criadoEm      DateTime     @default(now()) @map("criado_em")
+  atualizadoEm  DateTime     @default(now()) @updatedAt @map("atualizado_em")
+  suplementoDe  DiarioEdicao?  @relation("Suplemento", fields: [suplementoDeId], references: [id], onDelete: SetNull)
+  suplementos   DiarioEdicao[] @relation("Suplemento")
+  materias      DiarioMateria[]
+  @@unique([tenantId, numero])
+  @@index([tenantId, dataEdicao])
+  @@map("diario_edicoes")
+}
+
+model Enquete {
+  id        String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId  String         @map("tenant_id") @db.Uuid
+  pergunta  String
+  ativa     Boolean        @default(false)
+  encerrada Boolean        @default(false)
+  criadoEm  DateTime       @default(now()) @map("criado_em") @db.Timestamptz(6)
+  opcoes    EnqueteOpcao[]
+  votos     EnqueteVoto[]
+  @@index([tenantId, ativa])
+  @@map("enquetes")
+}
+
+model EnqueteOpcao {
+  id        String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId  String        @map("tenant_id") @db.Uuid
+  enqueteId String        @map("enquete_id") @db.Uuid
+  texto     String
+  ordem     Int           @default(0)
+  votos     Int           @default(0)
+  enquete   Enquete       @relation(fields: [enqueteId], references: [id], onDelete: Cascade)
+  votoLog   EnqueteVoto[]
+  @@index([tenantId, enqueteId, ordem])
+  @@map("enquete_opcoes")
+}
+
+model EnqueteVoto {
+  id          String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId    String       @map("tenant_id") @db.Uuid
+  enqueteId   String       @map("enquete_id") @db.Uuid
+  opcaoId     String       @map("opcao_id") @db.Uuid
+  votanteHash String       @map("votante_hash")
+  criadoEm    DateTime     @default(now()) @map("criado_em") @db.Timestamptz(6)
+  enquete     Enquete      @relation(fields: [enqueteId], references: [id], onDelete: Cascade)
+  opcao       EnqueteOpcao @relation(fields: [opcaoId], references: [id], onDelete: Cascade)
+  @@unique([enqueteId, votanteHash])
+  @@map("enquete_votos")
+}
+
+model HomeConfig {
+  tenantId        String   @id @map("tenant_id") @db.Uuid
+  arColunas       Int      @default(1) @map("ar_colunas") @db.SmallInt
+  arCardsLinha    Int      @default(4) @map("ar_cards_linha") @db.SmallInt
+  arLadoCards     String   @default("esquerda") @map("ar_lado_cards")
+  cardIconeForma  String   @default("circulo") @map("card_icone_forma")
+  cardCorDestaque String?  @map("card_cor_destaque")
+  sliderTipo      String   @default("imagem") @map("slider_tipo")
+  sliderImagem    String?  @map("slider_imagem")
+  sliderLink      String?  @map("slider_link")
+  sliderHtml      String?  @map("slider_html")
+  sliderVideo     String?  @map("slider_video")
+  sliderYoutube   String?  @map("slider_youtube")
+  sliderEnqueteId String?  @map("slider_enquete_id") @db.Uuid
+  googleAnalyticsId  String?  @map("google_analytics_id")
+  ogImageUrl         String?  @map("og_image_url")
+  modoManutencao     Boolean  @default(false) @map("modo_manutencao")
+  manutencaoMensagem String?  @map("manutencao_mensagem")
+  atualizadoEm    DateTime @default(now()) @updatedAt @map("atualizado_em")
+  @@map("home_config")
+}
+
+model HomeAtalho {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId  String   @map("tenant_id") @db.Uuid
+  label     String
+  descricao String?
+  href      String
+  icone     String   @default("link")
+  ordem     Int      @default(0)
+  ativo     Boolean  @default(true)
+  criadoEm  DateTime @default(now()) @map("criado_em") @db.Timestamptz(6)
+  @@index([tenantId, ordem])
+  @@map("home_atalhos")
+}
+
+model DiarioAlerta {
+  id             String    @id @default(uuid()) @db.Uuid
+  tenantId       String    @map("tenant_id") @db.Uuid
+  termo          String
+  canal          String
+  destino        String
+  status         String    @default("pendente")
+  token          String    @unique
+  confirmadoEm   DateTime? @map("confirmado_em")
+  canceladoEm    DateTime? @map("cancelado_em")
+  ultimoEnvioEm  DateTime? @map("ultimo_envio_em")
+  criadoEm       DateTime  @default(now()) @map("criado_em")
+  @@index([tenantId, status])
+  @@map("diario_alertas")
+}
+
+model DiarioMateria {
+  id                String        @id @default(uuid()) @db.Uuid
+  tenantId          String        @map("tenant_id") @db.Uuid
+  edicaoId          String        @map("edicao_id") @db.Uuid
+  secretariaId      String?       @map("secretaria_id") @db.Uuid
+  orgaoNome         String?       @map("orgao_nome")
+  tipo              String        @default("outro")
+  numeroAto         String?       @map("numero_ato")
+  titulo            String
+  ementa            String?
+  conteudo          String        @default("")
+  ordem             Int           @default(0)
+  paginaInicial     Int?          @map("pagina_inicial")
+  retificaMateriaId String?       @map("retifica_materia_id") @db.Uuid
+  criadoEm          DateTime      @default(now()) @map("criado_em")
+  edicao            DiarioEdicao    @relation(fields: [edicaoId], references: [id], onDelete: Cascade)
+  secretaria        Secretaria?     @relation(fields: [secretariaId], references: [id], onDelete: SetNull)
+  retifica          DiarioMateria?  @relation("Retificacao", fields: [retificaMateriaId], references: [id], onDelete: SetNull)
+  retificadaPor     DiarioMateria[] @relation("Retificacao")
+  @@index([tenantId, edicaoId, ordem])
+  @@index([tenantId, tipo])
+  @@map("diario_materias")
+}
+
+model CmsPage {
+  id           String     @id @default(uuid()) @db.Uuid
+  tenantId     String     @map("tenant_id") @db.Uuid
+  slug         String
+  titulo       String
+  publicado    Boolean    @default(false)
+  seo          Json       @default("{}")
+  criadoEm     DateTime   @default(now()) @map("criado_em")
+  atualizadoEm DateTime   @default(now()) @updatedAt @map("atualizado_em")
+  blocks       CmsBlock[]
+  snapshots    CmsPageSnapshot[]
+  @@unique([tenantId, slug])
+  @@map("cms_pages")
+}
+
+/// Versão/backup de uma página do CMS (migration 051).
+model CmsPageSnapshot {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId  String   @map("tenant_id") @db.Uuid
+  pageId    String   @map("page_id") @db.Uuid
+  titulo    String
+  snapshot  Json
+  motivo    String?
+  criadoPor String?  @map("criado_por") @db.Uuid
+  criadoEm  DateTime @default(now()) @map("criado_em") @db.Timestamptz(6)
+  page      CmsPage  @relation(fields: [pageId], references: [id], onDelete: Cascade)
+  @@index([pageId, criadoEm])
+  @@map("cms_page_snapshots")
+}
+
+model CmsBlock {
+  id        String  @id @default(uuid()) @db.Uuid
+  tenantId  String  @map("tenant_id") @db.Uuid
+  pageId    String  @map("page_id") @db.Uuid
+  tipo      String
+  conteudo  Json    @default("{}")
+  ordem     Int     @default(0)
+  visivel   Boolean @default(true)
+  page      CmsPage @relation(fields: [pageId], references: [id], onDelete: Cascade)
+  @@index([pageId, ordem])
+  @@map("cms_blocks")
+}
+
+model TranspDespesa {
+  id             String    @id @default(uuid()) @db.Uuid
+  tenantId       String    @map("tenant_id") @db.Uuid
+  exercicio      Int
+  empenho        String
+  orgao          String?
+  unidade        String?
+  funcao         String?
+  elemento       String?
+  modalidade     String?
+  credorNome     String?   @map("credor_nome")
+  credorDoc      String?   @map("credor_doc")
+  fase           String?
+  valorEmpenhado Decimal   @default(0) @map("valor_empenhado") @db.Decimal(15, 2)
+  valorLiquidado Decimal   @default(0) @map("valor_liquidado") @db.Decimal(15, 2)
+  valorPago      Decimal   @default(0) @map("valor_pago") @db.Decimal(15, 2)
+  dataEmpenho    DateTime? @map("data_empenho") @db.Date
+  fonteOrigem    String?   @map("fonte_origem")
+  atualizadoEm   DateTime  @default(now()) @updatedAt @map("atualizado_em")
+  @@unique([tenantId, exercicio, empenho])
+  @@index([tenantId, exercicio])
+  @@map("transp_despesas")
+}
+
+model TranspReceita {
+  id              String   @id @default(uuid()) @db.Uuid
+  tenantId        String   @map("tenant_id") @db.Uuid
+  exercicio       Int
+  codigo          String
+  descricao       String?
+  categoria       String?
+  fonte           String?
+  valorPrevisto   Decimal  @default(0) @map("valor_previsto") @db.Decimal(15, 2)
+  valorArrecadado Decimal  @default(0) @map("valor_arrecadado") @db.Decimal(15, 2)
+  dataLancamento  DateTime @default(now()) @map("data_lancamento") @db.Date
+  fonteOrigem     String?  @map("fonte_origem")
+  atualizadoEm    DateTime @default(now()) @updatedAt @map("atualizado_em")
+  @@unique([tenantId, exercicio, codigo, dataLancamento])
+  @@index([tenantId, exercicio])
+  @@map("transp_receitas")
+}
+
+model TranspFolha {
+  id                 String   @id @default(uuid()) @db.Uuid
+  tenantId           String   @map("tenant_id") @db.Uuid
+  exercicio          Int
+  mes                Int
+  matricula          String
+  nomeServidor       String?  @map("nome_servidor")
+  nomeSuprimido      Boolean  @default(false) @map("nome_suprimido")
+  cargo              String?
+  vinculo            String?
+  orgao              String?
+  remuneracaoBruta   Decimal  @default(0) @map("remuneracao_bruta") @db.Decimal(15, 2)
+  descontos          Decimal  @default(0) @db.Decimal(15, 2)
+  remuneracaoLiquida Decimal  @default(0) @map("remuneracao_liquida") @db.Decimal(15, 2)
+  fonteOrigem        String?  @map("fonte_origem")
+  atualizadoEm       DateTime @default(now()) @updatedAt @map("atualizado_em")
+  @@unique([tenantId, exercicio, mes, matricula])
+  @@index([tenantId, exercicio, mes])
+  @@map("transp_folha")
+}
+
+model TranspSyncLog {
+  id        BigInt   @id @default(autoincrement())
+  tenantId  String   @map("tenant_id") @db.Uuid
+  dataset   String
+  origem    String?
+  registros Int      @default(0)
+  status    String   @default("ok")
+  criadoEm  DateTime @default(now()) @map("criado_em")
+  @@index([tenantId, dataset, criadoEm])
+  @@map("transp_sync_log")
+}
+
+// ---- Datasets PNTP (migration 014 + licitações/contratos da 007) ----
+
+model TranspDocumento {
+  id           String    @id @default(uuid()) @db.Uuid
+  tenantId     String    @map("tenant_id") @db.Uuid
+  categoria    String
+  exercicio    Int?
+  periodo      String?
+  titulo       String
+  descricao    String?
+  orgao        String?
+  urlExterna   String?   @map("url_externa")
+  storageKey   String?   @map("storage_key")
+  competencia  DateTime? @db.Date
+  publicadoEm  DateTime  @default(now()) @map("publicado_em")
+  atualizadoEm DateTime  @default(now()) @updatedAt @map("atualizado_em")
+  @@index([tenantId, categoria, exercicio])
+  @@map("transp_documentos")
+}
+
+model TranspDiaria {
+  id           String    @id @default(uuid()) @db.Uuid
+  tenantId     String    @map("tenant_id") @db.Uuid
+  exercicio    Int
+  documento    String
+  beneficiario String?
+  cargo        String?
+  orgao        String?
+  destino      String?
+  finalidade   String?
+  quantidade   Decimal   @default(0) @db.Decimal(10, 2)
+  valorTotal   Decimal   @default(0) @map("valor_total") @db.Decimal(15, 2)
+  dataInicio   DateTime? @map("data_inicio") @db.Date
+  dataFim      DateTime? @map("data_fim") @db.Date
+  fonteOrigem  String?   @map("fonte_origem")
+  atualizadoEm DateTime  @default(now()) @updatedAt @map("atualizado_em")
+  @@unique([tenantId, exercicio, documento])
+  @@index([tenantId, exercicio])
+  @@map("transp_diarias")
+}
+
+model TranspObra {
+  id                String    @id @default(uuid()) @db.Uuid
+  tenantId          String    @map("tenant_id") @db.Uuid
+  exercicio         Int?
+  identificador     String
+  objeto            String?
+  situacao          String?
+  responsavel       String?
+  contratada        String?
+  endereco          String?
+  bairro            String?
+  valorContratado   Decimal?  @map("valor_contratado") @db.Decimal(15, 2)
+  valorExecutado    Decimal?  @map("valor_executado") @db.Decimal(15, 2)
+  valorPago         Decimal?  @map("valor_pago") @db.Decimal(15, 2)
+  dataInicio        DateTime? @map("data_inicio") @db.Date
+  dataPrevista      DateTime? @map("data_prevista") @db.Date
+  motivoParalisacao String?   @map("motivo_paralisacao")
+  fonteOrigem       String?   @map("fonte_origem")
+  atualizadoEm      DateTime  @default(now()) @updatedAt @map("atualizado_em")
+  @@unique([tenantId, identificador])
+  @@index([tenantId, situacao])
+  @@map("transp_obras")
+}
+
+model TranspDividaAtiva {
+  id           String   @id @default(uuid()) @db.Uuid
+  tenantId     String   @map("tenant_id") @db.Uuid
+  exercicio    Int
+  inscricao    String
+  inscritoNome String?  @map("inscrito_nome")
+  inscritoDoc  String?  @map("inscrito_doc")
+  natureza     String?
+  valor        Decimal  @default(0) @db.Decimal(15, 2)
+  fonteOrigem  String?  @map("fonte_origem")
+  atualizadoEm DateTime @default(now()) @updatedAt @map("atualizado_em")
+  @@unique([tenantId, exercicio, inscricao])
+  @@index([tenantId, exercicio])
+  @@map("transp_divida_ativa")
+}
+
+model TranspTerceirizado {
+  id           String   @id @default(uuid()) @db.Uuid
+  tenantId     String   @map("tenant_id") @db.Uuid
+  exercicio    Int
+  mes          Int?
+  vinculo      String   @default("terceirizado")
+  registro     String
+  nome         String?
+  empresa      String?
+  cargo        String?
+  orgao        String?
+  remuneracao  Decimal  @default(0) @db.Decimal(15, 2)
+  fonteOrigem  String?  @map("fonte_origem")
+  atualizadoEm DateTime @default(now()) @updatedAt @map("atualizado_em")
+  @@unique([tenantId, exercicio, vinculo, registro])
+  @@index([tenantId, exercicio, vinculo])
+  @@map("transp_terceirizados")
+}
+
+model TranspConvenio {
+  id             String    @id @default(uuid()) @db.Uuid
+  tenantId       String    @map("tenant_id") @db.Uuid
+  exercicio      Int
+  numero         String
+  tipo           String    @default("recebido")
+  participe      String?
+  objeto         String?
+  valor          Decimal?  @db.Decimal(15, 2)
+  valorRepassado Decimal?  @map("valor_repassado") @db.Decimal(15, 2)
+  vigenciaInicio DateTime? @map("vigencia_inicio") @db.Date
+  vigenciaFim    DateTime? @map("vigencia_fim") @db.Date
+  fonteOrigem    String?   @map("fonte_origem")
+  atualizadoEm   DateTime  @default(now()) @updatedAt @map("atualizado_em")
+  @@unique([tenantId, exercicio, numero])
+  @@index([tenantId, exercicio, tipo])
+  @@map("transp_convenios")
+}
+
+model TranspLicitacao {
+  id            String    @id @default(uuid()) @db.Uuid
+  tenantId      String    @map("tenant_id") @db.Uuid
+  exercicio     Int
+  numero        String
+  modalidade    String?
+  objeto        String?
+  valorEstimado Decimal?  @map("valor_estimado") @db.Decimal(15, 2)
+  situacao      String?
+  dataAbertura  DateTime? @map("data_abertura") @db.Date
+  editalUrl     String?   @map("edital_url")
+  fonteOrigem   String?   @map("fonte_origem")
+  atualizadoEm  DateTime  @default(now()) @updatedAt @map("atualizado_em")
+  @@unique([tenantId, exercicio, numero])
+  @@index([tenantId, exercicio])
+  @@map("transp_licitacoes")
+}
+
+model TranspContrato {
+  id             String    @id @default(uuid()) @db.Uuid
+  tenantId       String    @map("tenant_id") @db.Uuid
+  exercicio      Int?
+  numero         String
+  fornecedorNome String?   @map("fornecedor_nome")
+  fornecedorDoc  String?   @map("fornecedor_doc")
+  objeto         String?
+  valor          Decimal?  @db.Decimal(15, 2)
+  vigenciaInicio DateTime? @map("vigencia_inicio") @db.Date
+  vigenciaFim    DateTime? @map("vigencia_fim") @db.Date
+  fonteOrigem    String?   @map("fonte_origem")
+  atualizadoEm   DateTime  @default(now()) @updatedAt @map("atualizado_em")
+  @@unique([tenantId, numero])
+  @@index([tenantId, exercicio])
+  @@map("transp_contratos")
+}
+
+model AuditLog {
+  id         BigInt   @id @default(autoincrement())
+  tenantId   String?  @map("tenant_id") @db.Uuid
+  atorId     String?  @map("ator_id") @db.Uuid
+  acao       String
+  entidade   String
+  entidadeId String?  @map("entidade_id")
+  dados      Json     @default("{}")
+  criadoEm   DateTime @default(now()) @map("criado_em")
+  @@map("audit_log")
+}
+
+// ---- Biblioteca de Mídia (migration 016_media_library.sql) ----
+
+enum MediaTipo {
+  imagem
+  documento
+  video
+  audio
+  outro
+  @@map("media_tipo")
+}
+
+enum MediaVisibilidade {
+  publico
+  restrito
+  @@map("media_visibilidade")
+}
+
+model MediaCategory {
+  id        String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId  String     @map("tenant_id") @db.Uuid
+  tipo      MediaTipo
+  nome      String
+  slug      String
+  descricao String?
+  criadoEm  DateTime   @default(now()) @map("criado_em") @db.Timestamptz(6)
+  assets    MediaAsset[]
+  @@unique([tenantId, tipo, slug])
+  @@map("media_categories")
+}
+
+model MediaAsset {
+  id           String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId     String            @map("tenant_id") @db.Uuid
+  tipo         MediaTipo
+  categoriaId  String            @map("categoria_id") @db.Uuid
+  visibilidade MediaVisibilidade @default(restrito)
+  nomeOriginal String            @map("nome_original")
+  hash         String
+  ext          String
+  mime         String
+  tamanhoBytes BigInt            @map("tamanho_bytes")
+  largura      Int?
+  altura       Int?
+  checksum     String?
+  altText      String?           @map("alt_text")
+  storageKey   String            @map("storage_key")
+  uploadedBy   String?           @map("uploaded_by") @db.Uuid
+  criadoEm     DateTime          @default(now()) @map("criado_em") @db.Timestamptz(6)
+  categoria    MediaCategory     @relation(fields: [categoriaId], references: [id])
+  @@unique([tenantId, hash])
+  @@unique([tenantId, tipo, categoriaId, hash])
+  @@map("media_assets")
+}
+
+// ---- Home: Banners, Notícias, Secretarias (migration 017_home_conteudo.sql) ----
+
+model Banner {
+  id           String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId     String    @map("tenant_id") @db.Uuid
+  titulo       String?
+  subtitulo    String?
+  imagemUrl    String?   @map("imagem_url")
+  linkUrl      String?   @map("link_url")
+  ctaLabel     String?   @map("cta_label")
+  conteudoHtml String?   @map("conteudo_html")
+  inicioEm     DateTime? @map("inicio_em")
+  fimEm        DateTime? @map("fim_em")
+  ordem        Int       @default(0)
+  ativo        Boolean   @default(true)
+  criadoEm     DateTime  @default(now()) @map("criado_em") @db.Timestamptz(6)
+  @@map("banners")
+}
+
+model Popup {
+  id              String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId        String    @map("tenant_id") @db.Uuid
+  titulo          String?
+  tipo            String    @default("imagem")
+  imagemUrl       String?   @map("imagem_url")
+  linkUrl         String?   @map("link_url")
+  youtube         String?
+  videoUrl        String?   @map("video_url")
+  conteudoHtml    String?   @map("conteudo_html")
+  pagina          String?
+  mostrarTitulo   Boolean   @default(true) @map("mostrar_titulo")
+  ativo           Boolean   @default(true)
+  inicioEm        DateTime? @map("inicio_em")
+  fimEm           DateTime? @map("fim_em")
+  frequenciaHoras Int       @default(24) @map("frequencia_horas")
+  ordem           Int       @default(0)
+  criadoEm        DateTime  @default(now()) @map("criado_em") @db.Timestamptz(6)
+  @@index([tenantId, ativo, ordem])
+  @@map("popups")
+}
+
+model Noticia {
+  id            String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId      String    @map("tenant_id") @db.Uuid
+  slug          String
+  titulo        String
+  resumo        String?
+  conteudo      String?
+  imagemUrl     String?   @map("imagem_url")
+  categoria     String?
+  autor         String?
+  fonte         String?
+  legenda       String?
+  credito       String?
+  encerraEm     DateTime? @map("encerra_em")
+  publicado     Boolean   @default(false)
+  publicadoEm   DateTime? @map("publicado_em") @db.Timestamptz(6)
+  visualizacoes Int       @default(0)
+  secretariaId  String?     @map("secretaria_id") @db.Uuid
+  criadoEm      DateTime  @default(now()) @map("criado_em") @db.Timestamptz(6)
+  atualizadoEm  DateTime  @default(now()) @updatedAt @map("atualizado_em") @db.Timestamptz(6)
+  secretaria    Secretaria? @relation(fields: [secretariaId], references: [id], onDelete: SetNull)
+  @@unique([tenantId, slug])
+  @@map("noticias")
+}
+
+model Secretaria {
+  id              String               @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId        String               @map("tenant_id") @db.Uuid
+  nome            String
+  tipo            String               @default("secretaria")
+  sigla           String?
+  email           String?
+  telefone        String?
+  responsavel     String?
+  fotoUrl         String?              @map("foto_url")
+  descricao       String?
+  sobre           String?
+  competencias    String?
+  secretarioBio   String?              @map("secretario_bio")
+  secretarioCargo String?              @map("secretario_cargo")
+  endereco        String?
+  cep             String?
+  horario         String?
+  slug            String?
+  ordem           Int                  @default(0)
+  ativo           Boolean              @default(true)
+  criadoEm        DateTime             @default(now()) @map("criado_em") @db.Timestamptz(6)
+  noticias        Noticia[]
+  documentos      Documento[]
+  galeria         GaleriaItem[]
+  trabalhos       SecretariaTrabalho[]
+  diarioMaterias  DiarioMateria[]
+  unidades        OrgaoUnidade[]
+  autoridades     GabineteAutoridade[]
+  @@map("secretarias")
+}
+
+model OrgaoUnidade {
+  id          String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId    String     @map("tenant_id") @db.Uuid
+  orgaoId     String     @map("orgao_id") @db.Uuid
+  nome        String
+  sigla       String?
+  responsavel String?
+  cargo       String?
+  telefone    String?
+  email       String?
+  ordem       Int        @default(0)
+  ativo       Boolean    @default(true)
+  criadoEm    DateTime   @default(now()) @map("criado_em") @db.Timestamptz(6)
+  orgao       Secretaria @relation(fields: [orgaoId], references: [id], onDelete: Cascade)
+  @@index([tenantId, orgaoId, ordem])
+  @@map("orgao_unidades")
+}
+
+model GabineteAutoridade {
+  id        String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId  String     @map("tenant_id") @db.Uuid
+  orgaoId   String     @map("orgao_id") @db.Uuid
+  cargo     String     @default("outro")
+  nome      String
+  fotoUrl   String?    @map("foto_url")
+  email     String?
+  telefone  String?
+  bio       String?
+  ordem     Int        @default(0)
+  criadoEm  DateTime   @default(now()) @map("criado_em") @db.Timestamptz(6)
+  orgao     Secretaria @relation(fields: [orgaoId], references: [id], onDelete: Cascade)
+  @@index([tenantId, orgaoId, ordem])
+  @@map("gabinete_autoridades")
+}
+
+model GaleriaItem {
+  id           String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId     String      @map("tenant_id") @db.Uuid
+  secretariaId String?     @map("secretaria_id") @db.Uuid
+  tipo         String      @default("foto")
+  fonte        String      @default("upload")
+  titulo       String?
+  url          String?
+  youtubeId    String?     @map("youtube_id")
+  storageKey   String?     @map("storage_key")
+  ordem        Int         @default(0)
+  criadoEm     DateTime    @default(now()) @map("criado_em") @db.Timestamptz(6)
+  secretaria   Secretaria? @relation(fields: [secretariaId], references: [id], onDelete: SetNull)
+  @@index([tenantId, tipo, ordem])
+  @@map("galeria_itens")
+}
+
+model SecretariaTrabalho {
+  id           String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId     String     @map("tenant_id") @db.Uuid
+  secretariaId String     @map("secretaria_id") @db.Uuid
+  titulo       String
+  descricao    String?
+  imagemUrl    String?    @map("imagem_url")
+  data         DateTime?  @db.Date
+  ordem        Int        @default(0)
+  criadoEm     DateTime   @default(now()) @map("criado_em") @db.Timestamptz(6)
+  secretaria   Secretaria @relation(fields: [secretariaId], references: [id], onDelete: Cascade)
+  @@index([tenantId, secretariaId, ordem])
+  @@map("secretaria_trabalhos")
+}
+
+// ---- Cadastro de Documentos (motor único, migration 028_documentos.sql) ----
+
+model DocCadastro {
+  id            String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId      String      @map("tenant_id") @db.Uuid
+  slug          String
+  nome          String
+  descricao     String?
+  icone         String?
+  ordem         Int         @default(0)
+  taxonomiaSeed String?     @map("taxonomia_seed")
+  visibilidade  String      @default("publico")
+  ativo         Boolean     @default(true)
+  criadoEm      DateTime    @default(now()) @map("criado_em") @db.Timestamptz(6)
+  atualizadoEm  DateTime    @default(now()) @updatedAt @map("atualizado_em") @db.Timestamptz(6)
+  tipos         DocTipo[]
+  documentos    Documento[]
+  grupos        DocCadastroGrupo[]
+  @@unique([tenantId, slug])
+  @@map("doc_cadastros")
+}
+
+model DocTipo {
+  id            String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId      String      @map("tenant_id") @db.Uuid
+  cadastroId    String      @map("cadastro_id") @db.Uuid
+  parentId      String?     @map("parent_id") @db.Uuid
+  codigo        String?
+  nome          String
+  slug          String
+  ordem         Int         @default(0)
+  meta          Json        @default("{}")
+  destacarMenu  Boolean     @default(false) @map("destacar_menu")
+  ativo         Boolean     @default(true)
+  criadoEm      DateTime    @default(now()) @map("criado_em") @db.Timestamptz(6)
+  cadastro      DocCadastro @relation(fields: [cadastroId], references: [id], onDelete: Cascade)
+  parent        DocTipo?    @relation("TipoHierarquia", fields: [parentId], references: [id], onDelete: SetNull)
+  filhos        DocTipo[]   @relation("TipoHierarquia")
+  documentos    Documento[]
+  @@unique([tenantId, cadastroId, slug])
+  @@index([parentId])
+  @@map("doc_tipos")
+}
+
+/// Grupos de acesso que podem ver um cadastro de documentos restrito (migration 047).
+model DocCadastroGrupo {
+  tenantId   String      @map("tenant_id") @db.Uuid
+  cadastroId String      @map("cadastro_id") @db.Uuid
+  grupoId    String      @map("grupo_id") @db.Uuid
+  criadoEm   DateTime    @default(now()) @map("criado_em") @db.Timestamptz(6)
+  cadastro   DocCadastro @relation(fields: [cadastroId], references: [id], onDelete: Cascade)
+  grupo      GrupoAcesso @relation(fields: [grupoId], references: [id], onDelete: Cascade)
+  @@id([cadastroId, grupoId])
+  @@index([grupoId])
+  @@index([tenantId])
+  @@map("doc_cadastro_grupos")
+}
+
+model Documento {
+  id            String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId      String      @map("tenant_id") @db.Uuid
+  cadastroId    String      @map("cadastro_id") @db.Uuid
+  tipoId        String?     @map("tipo_id") @db.Uuid
+  numero        String?
+  ano           Int?
+  dataDocumento DateTime?   @map("data_documento") @db.Date
+  titulo        String
+  ementa        String?
+  orgao         String?
+  situacao      String?
+  slug          String
+  arquivoUrl    String?     @map("arquivo_url")
+  storageKey    String?     @map("storage_key")
+  conteudoExtraido   String?  @map("conteudo_extraido")
+  conteudoIndexadoEm DateTime? @map("conteudo_indexado_em")
+  ocrMetodo          String?  @map("ocr_metodo")
+  ocrConfianca       Float?   @map("ocr_confianca")
+  ocrPaginas         Int?     @map("ocr_paginas")
+  tags          String[]
+  downloads     Int         @default(0)
+  ativo         Boolean     @default(true)
+  publicadoEm   DateTime    @default(now()) @map("publicado_em") @db.Timestamptz(6)
+  criadoEm      DateTime    @default(now()) @map("criado_em") @db.Timestamptz(6)
+  atualizadoEm  DateTime    @default(now()) @updatedAt @map("atualizado_em") @db.Timestamptz(6)
+  secretariaId  String?     @map("secretaria_id") @db.Uuid
+  cadastro      DocCadastro @relation(fields: [cadastroId], references: [id], onDelete: Cascade)
+  tipo          DocTipo?    @relation(fields: [tipoId], references: [id], onDelete: SetNull)
+  secretaria    Secretaria? @relation(fields: [secretariaId], references: [id], onDelete: SetNull)
+  @@unique([tenantId, cadastroId, slug])
+  @@index([tenantId, cadastroId, ano])
+  @@map("documentos")
+}
+
+// ---- Licitações / Processos Licitatórios (migration 029_licitacoes.sql) ----
+
+model LicitacaoModalidade {
+  id         String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId   String      @map("tenant_id") @db.Uuid
+  codigo     String?
+  nome       String
+  slug       String
+  lei8666    Boolean     @default(false) @map("lei_8666")
+  lei14133   Boolean     @default(false) @map("lei_14133")
+  ordem      Int         @default(0)
+  ativo      Boolean     @default(true)
+  licitacoes Licitacao[]
+  @@unique([tenantId, slug])
+  @@map("licitacao_modalidades")
+}
+
+model LicitacaoCriterio {
+  id         String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId   String      @map("tenant_id") @db.Uuid
+  codigo     String?
+  nome       String
+  slug       String
+  ordem      Int         @default(0)
+  ativo      Boolean     @default(true)
+  licitacoes Licitacao[]
+  @@unique([tenantId, slug])
+  @@map("licitacao_criterios")
+}
+
+model Licitacao {
+  id            String               @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId      String               @map("tenant_id") @db.Uuid
+  modalidadeId  String?              @map("modalidade_id") @db.Uuid
+  criterioId    String?              @map("criterio_id") @db.Uuid
+  numero        String?
+  ano           Int?
+  slug          String
+  objeto        String
+  situacao      String?
+  orgao         String?
+  dataAbertura  DateTime?            @map("data_abertura") @db.Timestamptz(6)
+  valorEstimado Decimal?             @map("valor_estimado") @db.Decimal(15, 2)
+  ativo         Boolean              @default(true)
+  criadoEm      DateTime             @default(now()) @map("criado_em") @db.Timestamptz(6)
+  atualizadoEm  DateTime             @default(now()) @updatedAt @map("atualizado_em") @db.Timestamptz(6)
+  modalidade    LicitacaoModalidade? @relation(fields: [modalidadeId], references: [id], onDelete: SetNull)
+  criterio      LicitacaoCriterio?   @relation(fields: [criterioId], references: [id], onDelete: SetNull)
+  documentos    LicitacaoDocumento[]
+  @@unique([tenantId, slug])
+  @@index([tenantId, ano])
+  @@map("licitacoes")
+}
+
+model LicitacaoDocumento {
+  id          String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId    String    @map("tenant_id") @db.Uuid
+  licitacaoId String    @map("licitacao_id") @db.Uuid
+  fase        String
+  titulo      String
+  arquivoUrl  String?   @map("arquivo_url")
+  storageKey  String?   @map("storage_key")
+  downloads   Int       @default(0)
+  ordem       Int       @default(0)
+  criadoEm    DateTime  @default(now()) @map("criado_em") @db.Timestamptz(6)
+  licitacao   Licitacao @relation(fields: [licitacaoId], references: [id], onDelete: Cascade)
+  @@index([tenantId, licitacaoId, ordem])
+  @@map("licitacao_documentos")
+}
+
+// ---- Conselhos Municipais (migration 030_conselhos.sql) ----
+
+model ConselhoTipo {
+  id          String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId    String     @map("tenant_id") @db.Uuid
+  codigo      String?
+  nome        String
+  slug        String
+  obrigatorio Boolean    @default(false)
+  ordem       Int        @default(0)
+  ativo       Boolean    @default(true)
+  conselhos   Conselho[]
+  @@unique([tenantId, slug])
+  @@map("conselho_tipos")
+}
+
+model Conselho {
+  id            String              @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId      String              @map("tenant_id") @db.Uuid
+  tipoId        String?             @map("tipo_id") @db.Uuid
+  nome          String
+  slug          String
+  sigla         String?
+  descricao     String?
+  leiCriacao    String?             @map("lei_criacao")
+  mandatoInicio DateTime?           @map("mandato_inicio") @db.Date
+  mandatoFim    DateTime?           @map("mandato_fim") @db.Date
+  email         String?
+  ativo         Boolean             @default(true)
+  criadoEm      DateTime            @default(now()) @map("criado_em") @db.Timestamptz(6)
+  atualizadoEm  DateTime            @default(now()) @updatedAt @map("atualizado_em") @db.Timestamptz(6)
+  tipo          ConselhoTipo?       @relation(fields: [tipoId], references: [id], onDelete: SetNull)
+  membros       ConselhoMembro[]
+  documentos    ConselhoDocumento[]
+  @@unique([tenantId, slug])
+  @@index([tenantId, ativo])
+  @@map("conselhos")
+}
+
+model ConselhoMembro {
+  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId   String   @map("tenant_id") @db.Uuid
+  conselhoId String   @map("conselho_id") @db.Uuid
+  nome       String
+  papel      String
+  segmento   String?
+  inicio     DateTime? @db.Date
+  fim        DateTime? @db.Date
+  ordem      Int      @default(0)
+  criadoEm   DateTime @default(now()) @map("criado_em") @db.Timestamptz(6)
+  conselho   Conselho @relation(fields: [conselhoId], references: [id], onDelete: Cascade)
+  @@index([tenantId, conselhoId, ordem])
+  @@map("conselho_membros")
+}
+
+model ConselhoDocumento {
+  id            String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId      String    @map("tenant_id") @db.Uuid
+  conselhoId    String    @map("conselho_id") @db.Uuid
+  categoria     String
+  titulo        String
+  dataDocumento DateTime? @map("data_documento") @db.Date
+  arquivoUrl    String?   @map("arquivo_url")
+  storageKey    String?   @map("storage_key")
+  downloads     Int       @default(0)
+  ordem         Int       @default(0)
+  criadoEm      DateTime  @default(now()) @map("criado_em") @db.Timestamptz(6)
+  conselho      Conselho  @relation(fields: [conselhoId], references: [id], onDelete: Cascade)
+  @@index([tenantId, conselhoId, ordem])
+  @@map("conselho_documentos")
+}
+
+// ---- Concursos e Processos Seletivos (migration 031_concursos.sql) ----
+
+model ConcursoTipo {
+  id        String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId  String     @map("tenant_id") @db.Uuid
+  codigo    String?
+  nome      String
+  slug      String
+  ordem     Int        @default(0)
+  ativo     Boolean    @default(true)
+  concursos Concurso[]
+  @@unique([tenantId, slug])
+  @@map("concurso_tipos")
+}
+
+model ConcursoDocTipo {
+  id          String               @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId    String               @map("tenant_id") @db.Uuid
+  codigo      String
+  nome        String
+  slug        String?
+  situacao    String?
+  obrigatorio Boolean              @default(false)
+  ordem       Int                  @default(0)
+  ativo       Boolean              @default(true)
+  documentos  ConcursoDocumento[]
+  @@unique([tenantId, codigo])
+  @@map("concurso_doc_tipos")
+}
+
+model Concurso {
+  id           String              @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId     String              @map("tenant_id") @db.Uuid
+  tipoId       String?             @map("tipo_id") @db.Uuid
+  numero       String?
+  ano          Int?
+  slug         String
+  objeto       String
+  situacao     String?
+  orgao        String?
+  banca        String?
+  ativo        Boolean             @default(true)
+  criadoEm     DateTime            @default(now()) @map("criado_em") @db.Timestamptz(6)
+  atualizadoEm DateTime            @default(now()) @updatedAt @map("atualizado_em") @db.Timestamptz(6)
+  tipo         ConcursoTipo?       @relation(fields: [tipoId], references: [id], onDelete: SetNull)
+  documentos   ConcursoDocumento[]
+  @@unique([tenantId, slug])
+  @@index([tenantId, ano])
+  @@map("concursos")
+}
+
+model ConcursoDocumento {
+  id            String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId      String           @map("tenant_id") @db.Uuid
+  concursoId    String           @map("concurso_id") @db.Uuid
+  docTipoId     String?          @map("doc_tipo_id") @db.Uuid
+  fase          String
+  titulo        String
+  dataDocumento DateTime?        @map("data_documento") @db.Date
+  arquivoUrl    String?          @map("arquivo_url")
+  storageKey    String?          @map("storage_key")
+  downloads     Int              @default(0)
+  ordem         Int              @default(0)
+  criadoEm      DateTime         @default(now()) @map("criado_em") @db.Timestamptz(6)
+  concurso      Concurso         @relation(fields: [concursoId], references: [id], onDelete: Cascade)
+  docTipo       ConcursoDocTipo? @relation(fields: [docTipoId], references: [id], onDelete: SetNull)
+  @@index([tenantId, concursoId, ordem])
+  @@map("concurso_documentos")
+}
+
+// ---- Contratos e Aditivos (migration 032_contratos.sql) ----
+
+model Contrato {
+  id             String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId       String           @map("tenant_id") @db.Uuid
+  licitacaoId    String?          @map("licitacao_id") @db.Uuid
+  numero         String?
+  ano            Int?
+  slug           String
+  objeto         String
+  contratado     String?
+  contratadoDoc  String?          @map("contratado_doc")
+  valor          Decimal?         @db.Decimal(15, 2)
+  dataAssinatura DateTime?        @map("data_assinatura") @db.Date
+  vigenciaInicio DateTime?        @map("vigencia_inicio") @db.Date
+  vigenciaFim    DateTime?        @map("vigencia_fim") @db.Date
+  situacao       String?
+  orgao          String?
+  fundamento     String?
+  arquivoUrl     String?          @map("arquivo_url")
+  storageKey     String?          @map("storage_key")
+  downloads      Int              @default(0)
+  ativo          Boolean          @default(true)
+  criadoEm       DateTime         @default(now()) @map("criado_em") @db.Timestamptz(6)
+  atualizadoEm   DateTime         @default(now()) @updatedAt @map("atualizado_em") @db.Timestamptz(6)
+  aditivos       ContratoAditivo[]
+  @@unique([tenantId, slug])
+  @@index([tenantId, ano])
+  @@map("contratos")
+}
+
+model ContratoAditivo {
+  id          String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId    String    @map("tenant_id") @db.Uuid
+  contratoId  String    @map("contrato_id") @db.Uuid
+  numero      String?
+  tipo        String?
+  objeto      String?
+  valor       Decimal?  @db.Decimal(15, 2)
+  data        DateTime? @db.Date
+  vigenciaFim DateTime? @map("vigencia_fim") @db.Date
+  arquivoUrl  String?   @map("arquivo_url")
+  storageKey  String?   @map("storage_key")
+  downloads   Int       @default(0)
+  ordem       Int       @default(0)
+  criadoEm    DateTime  @default(now()) @map("criado_em") @db.Timestamptz(6)
+  contrato    Contrato  @relation(fields: [contratoId], references: [id], onDelete: Cascade)
+  @@index([tenantId, contratoId, ordem])
+  @@map("contrato_aditivos")
+}
+
+// ---- Convênios e Transferências (migration 033_convenios.sql) ----
+
+model Convenio {
+  id             String              @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId       String              @map("tenant_id") @db.Uuid
+  numero         String?
+  ano            Int?
+  slug           String
+  objeto         String
+  concedente     String?
+  convenente     String?
+  valorRepasse   Decimal?            @map("valor_repasse") @db.Decimal(15, 2)
+  contrapartida  Decimal?            @db.Decimal(15, 2)
+  dataAssinatura DateTime?           @map("data_assinatura") @db.Date
+  vigenciaInicio DateTime?           @map("vigencia_inicio") @db.Date
+  vigenciaFim    DateTime?           @map("vigencia_fim") @db.Date
+  situacao       String?
+  orgao          String?
+  ativo          Boolean             @default(true)
+  criadoEm       DateTime            @default(now()) @map("criado_em") @db.Timestamptz(6)
+  atualizadoEm   DateTime            @default(now()) @updatedAt @map("atualizado_em") @db.Timestamptz(6)
+  documentos     ConvenioDocumento[]
+  @@unique([tenantId, slug])
+  @@index([tenantId, ano])
+  @@map("convenios")
+}
+
+model ConvenioDocumento {
+  id            String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId      String    @map("tenant_id") @db.Uuid
+  convenioId    String    @map("convenio_id") @db.Uuid
+  categoria     String
+  titulo        String
+  dataDocumento DateTime? @map("data_documento") @db.Date
+  arquivoUrl    String?   @map("arquivo_url")
+  storageKey    String?   @map("storage_key")
+  downloads     Int       @default(0)
+  ordem         Int       @default(0)
+  criadoEm      DateTime  @default(now()) @map("criado_em") @db.Timestamptz(6)
+  convenio      Convenio  @relation(fields: [convenioId], references: [id], onDelete: Cascade)
+  @@index([tenantId, convenioId, ordem])
+  @@map("convenio_documentos")
+}
+
+// ---- Menus dinâmicos por tenant (migration 018_menus.sql) ----
+
+enum MenuLocal {
+  cabecalho
+  rodape
+  @@map("menu_local")
+}
+
+enum MenuTipo {
+  interno
+  externo
+  grupo
+  @@map("menu_tipo")
+}
+
+model MenuItem {
+  id        String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId  String    @map("tenant_id") @db.Uuid
+  parentId  String?   @map("parent_id") @db.Uuid
+  local     MenuLocal @default(cabecalho)
+  label     String
+  tipo      MenuTipo  @default(interno)
+  href      String?
+  icone     String?
+  ordem     Int       @default(0)
+  ativo     Boolean   @default(true)
+  refTipo   String?   @map("ref_tipo")
+  refId     String?   @map("ref_id") @db.Uuid
+  criadoEm  DateTime  @default(now()) @map("criado_em") @db.Timestamptz(6)
+  parent    MenuItem?  @relation("MenuHierarchy", fields: [parentId], references: [id], onDelete: Cascade)
+  children  MenuItem[] @relation("MenuHierarchy")
+  @@index([tenantId, local, parentId, ordem])
+  @@map("menu_items")
+}
+
+model Servico {
+  id                String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId          String   @map("tenant_id") @db.Uuid
+  titulo            String
+  slug              String
+  descricao         String?
+  categoria         String?
+  orgaoResponsavel  String?  @map("orgao_responsavel")
+  publicoAlvo       String?  @map("publico_alvo")
+  requisitos        String?
+  etapas            Json     @default("[]")
+  canaisAtendimento String?  @map("canais_atendimento")
+  prazoAtendimento  String?  @map("prazo_atendimento")
+  custo             String?
+  urlExterna        String?  @map("url_externa")
+  publicado         Boolean  @default(false)
+  destaque          Boolean  @default(false)
+  avaliacaoSoma     Int      @default(0) @map("avaliacao_soma")
+  avaliacaoQtd      Int      @default(0) @map("avaliacao_qtd")
+  ordem             Int      @default(0)
+  criadoEm          DateTime @default(now()) @map("criado_em") @db.Timestamptz(6)
+  atualizadoEm      DateTime @default(now()) @updatedAt @map("atualizado_em") @db.Timestamptz(6)
+  avaliacoes        ServicoAvaliacao[]
+  @@unique([tenantId, slug])
+  @@map("servicos")
+}
+
+model ServicoAvaliacao {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId    String   @map("tenant_id") @db.Uuid
+  servicoId   String   @map("servico_id") @db.Uuid
+  nota        Int      @db.SmallInt
+  comentario  String?
+  votanteHash String   @map("votante_hash")
+  criadoEm    DateTime @default(now()) @map("criado_em") @db.Timestamptz(6)
+  servico     Servico  @relation(fields: [servicoId], references: [id], onDelete: Cascade)
+  @@unique([servicoId, votanteHash])
+  @@index([tenantId, servicoId])
+  @@map("servico_avaliacoes")
+}
+
+// ---- Grupos de acesso e sessões (migration 046_grupos_sessoes.sql) ----
+
+/// Grupos de permissão configuráveis pelo município. Cada grupo agrega chaves
+/// de permissão e pode ser atribuído a múltiplos usuários do tenant.
+model GrupoAcesso {
+  id           String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId     String         @map("tenant_id") @db.Uuid
+  nome         String
+  descricao    String?
+  /// Array de chaves de permissão concedidas (ex.: "noticias.gerenciar").
+  /// O catálogo canônico é definido no código da API.
+  permissoes   String[]       @map("permissoes")
+  ativo        Boolean        @default(true)
+  criadoEm     DateTime       @default(now()) @map("criado_em") @db.Timestamptz(6)
+  atualizadoEm DateTime       @default(now()) @map("atualizado_em") @db.Timestamptz(6)
+  membros      UsuarioGrupo[]
+  cadastrosRestritos DocCadastroGrupo[]
+  @@unique([tenantId, nome])
+  @@index([tenantId, ativo])
+  @@map("grupos_acesso")
+}
+
+/// Associação N:N usuário ↔ grupo de acesso (escopo de tenant).
+model UsuarioGrupo {
+  tenantId  String      @map("tenant_id") @db.Uuid
+  userId    String      @map("user_id") @db.Uuid
+  grupoId   String      @map("grupo_id") @db.Uuid
+  criadoEm  DateTime    @default(now()) @map("criado_em") @db.Timestamptz(6)
+  user      User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  grupo     GrupoAcesso @relation(fields: [grupoId], references: [id], onDelete: Cascade)
+  @@id([userId, grupoId])
+  @@index([grupoId])
+  @@index([tenantId])
+  @@map("usuario_grupos")
+}
+
+/// Registro durável de sessões JWT. Permite listar sessões ativas, exibir
+/// usuários online e revogar tokens server-side. O id corresponde ao jti do JWT.
+model UserSession {
+  id                 String    @id @db.Uuid
+  /// NULL para sessões de super_admin (escopo de plataforma).
+  tenantId           String?   @map("tenant_id") @db.Uuid
+  userId             String    @map("user_id") @db.Uuid
+  ip                 String?   @db.Inet
+  userAgent          String?   @map("user_agent")
+  criadoEm           DateTime  @default(now()) @map("criado_em") @db.Timestamptz(6)
+  ultimaAtividadeEm  DateTime  @default(now()) @map("ultima_atividade_em") @db.Timestamptz(6)
+  expiraEm           DateTime  @map("expira_em") @db.Timestamptz(6)
+  /// NULL = sessão ativa. Preenchido na revogação manual ou automática.
+  revogadoEm         DateTime? @map("revogado_em") @db.Timestamptz(6)
+  /// UUID de quem revogou (admin ou o próprio usuário). NULL para expiração automática.
+  revogadoPor        String?   @map("revogado_por") @db.Uuid
+  user               User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  revogadoPorUser    User?     @relation("SessionRevogadoPor", fields: [revogadoPor], references: [id], onDelete: SetNull)
+  @@index([tenantId, revogadoEm])
+  @@index([userId])
+  @@index([expiraEm])
+  @@map("user_sessions")
+}
+
+// ---- Buscador unificado — índice desnormalizado (migration 060_busca_unificada.sql) ----
+
+/// Índice full-text cross-módulo. Cada linha representa um item pesquisável
+/// (notícia, documento, serviço, etc.). Atualizado pelo BuscaSyncWorker;
+/// nunca escreva diretamente aqui — use BuscaSyncService.indexar().
+///
+/// `corpo_tsv` é tsvector (tipo não suportado nativamente pelo Prisma);
+/// todas as operações de busca e UPSERT usam $queryRaw/$executeRaw.
+/// Este model existe apenas para que o Prisma conheça a tabela no schema.
+model SearchIndex {
+  id          String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId    String    @map("tenant_id") @db.Uuid
+  tipo        String
+  refId       String    @map("ref_id")
+  titulo      String
+  subtitulo   String?
+  url         String
+  /// tsvector pré-computado pelo worker — tipo não suportado pelo Prisma Client;
+  /// consulte via $queryRaw.
+  corpoTsv    Unsupported("tsvector") @map("corpo_tsv")
+  snippetSrc  String?   @map("snippet_src")
+  peso        Float     @default(1.0) @db.Real
+  publicadoEm DateTime? @map("publicado_em") @db.Timestamptz(6)
+  atualizadoEm DateTime @default(now()) @map("atualizado_em") @db.Timestamptz(6)
+
+  @@unique([tenantId, tipo, refId])
+  @@index([tenantId, tipo, publicadoEm(sort: Desc)])
+  @@map("search_index")
+}
+
+/// Redirecionamentos 301/302 administráveis por tenant (migration 055).
+/// Permite migrar URLs legadas (Joomla, WordPress...) para novos slugs sem perder SEO.
+model Redirect {
+  id           String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId     String   @map("tenant_id") @db.Uuid
+  origem       String
+  destino      String
+  statusCode   Int      @default(301) @map("status_code") @db.SmallInt
+  ativo        Boolean  @default(true)
+  criadoEm     DateTime @default(now()) @map("criado_em") @db.Timestamptz(6)
+  atualizadoEm DateTime @default(now()) @updatedAt @map("atualizado_em") @db.Timestamptz(6)
+  @@unique([tenantId, origem])
+  @@index([tenantId, origem])
+  @@map("redirects")
+}

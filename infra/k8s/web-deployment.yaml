@@ -1,0 +1,56 @@
+# Deployment do portal web (Next.js SSR/ISR). Mesmo build serve todos os
+# tenants; o tema/conteúdo é resolvido por Host em runtime.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: portal-web
+  labels: { app: portal-web }
+spec:
+  replicas: 2
+  selector:
+    matchLabels: { app: portal-web }
+  template:
+    metadata:
+      labels: { app: portal-web }
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+      containers:
+        - name: web
+          image: portal-web:latest
+          ports:
+            - containerPort: 3000
+          env:
+            - name: API_URL
+              value: 'http://portal-api:3001'
+            - name: NODE_ENV
+              value: 'production'
+          resources:
+            requests: { cpu: '100m', memory: '256Mi' }
+            limits: { cpu: '500m', memory: '512Mi' }
+          readinessProbe:
+            httpGet: { path: /, port: 3000 }
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          livenessProbe:
+            httpGet: { path: /, port: 3000 }
+            initialDelaySeconds: 20
+            periodSeconds: 15
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: portal-web
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: portal-web
+  minReplicas: 2
+  maxReplicas: 10
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target: { type: Utilization, averageUtilization: 70 }

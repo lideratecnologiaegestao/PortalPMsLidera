@@ -1,0 +1,841 @@
+NOMETABELA;ORDEM;NOMECAMPO;CHAVE;OBRIGATORIO;TIPO;DESCRICAO;TABELAORIGEM;FORMATO;REGRAS
+AGENCIA;1;BCO_Codigo;SIM;SIM;Caractere(3);Cód. do banco;TI.BANCO;;
+AGENCIA;2;AGN_Codigo;SIM;SIM;Caractere(10);Cód. da agência;;;REGRA 1: O conteúdo do campo deverá conter o/um dos seguinte(s) formato(s): 99999999-9 OU 9999999-99 OU 99999999-X.
+AGENCIA;3;AGN_Nome;NÃO;SIM;Caractere(50);Nome;;;
+ALTERACAO_LDO;1;FN_Codigo;SIM;SIM;Caractere(2);Cód. da função;LDO;01...28|77, 99;REGRA 1: O conteúdo do campo deverá estar preenchido com "01...28|'77', '99'".
+ALTERACAO_LDO;2;SFN_Codigo;SIM;SIM;Caractere(3);Cód. da subfunção;LDO;;
+ALTERACAO_LDO;3;PRG_Codigo;SIM;SIM;Caractere(4);Cód. do programa;LDO;;
+ALTERACAO_LDO;4;PRAT_Numero;SIM;SIM;Caractere(5);Núm. do projeto/ atividade;LDO;;
+ALTERACAO_LDO;5;ALTLDO_Data;SIM;SIM;Caractere(10);Data da alteração;;;REGRA 1: O conteúdo do campo deverá conter uma DATA válida, a DATA será validada segundo o critério "COMPETÊNCIA DA CARGA" (ver regra d).
+ALTERACAO_LDO;6;ALTLDO_TipoMetaFisica;SIM;SIM;Caractere(1);Tipo da meta física;TI.TIPO_META_FISICA_FINANCEIRA;0...4;REGRA 1: O conteúdo do campo deverá estar preenchido com "0...4".
+ALTERACAO_LDO;7;ALTLDO_TipoMetaFinanceira;SIM;SIM;Caractere(1);Tipo da meta financeira;TI.TIPO_META_FISICA_FINANCEIRA;0...4;REGRA 1: O conteúdo do campo deverá estar preenchido com "0...4".
+ALTERACAO_LDO;8;ALTLDO_ValorMetaFisica;NÃO;COND;Caractere(14,2);Valor da meta física;;;REGRA 1: O conteúdo do campo deverá estar preenchido quando o conteúdo do campo "ALTLDO_TIPOMETAFISICA" for "'1', '2', '4'".
+ALTERACAO_LDO;9;ALTLDO_ValorMetaFinanceira;NÃO;COND;Caractere(14,2);Valor da meta financeira;;;REGRA 1: O conteúdo do campo deverá estar preenchido quando o conteúdo do campo "ALTLDO_TIPOMETAFINANCEIRA" for "'1', '2', '4'".
+ALTERACAO_LDO;10;LEI_Numero;NÃO;SIM;Caractere(10);Núm. da LDO;LEI;"99999/AAAA" (NRO/ANO);REGRA 1: O conteúdo do campo deverá conter um valor no formato "99999/AAAA" (NRO/ANO), o ANO será validado segundo o critério "<= EXERCÍCIO" (ver regra d).
+ALTERACAO_LOA;1;LOA_AnoExercicio;SIM;SIM;Caractere(4);Exercício da LOA;LOA;"9999" (NRO);REGRA 1: O conteúdo do campo deverá conter um MÊS ou ANO válido, o MÊS ou ANO será validado segundo o critério "= EXERCÍCIO" (ver regra d).
+ALTERACAO_LOA;2;ORG_Codigo;SIM;SIM;Caractere(2);Cód. do órgão;DOTACAO;;
+ALTERACAO_LOA;3;UNOR_Codigo;SIM;SIM;Caractere(3);Cód. da unidade orçamentária;DOTACAO;;
+ALTERACAO_LOA;4;FN_Codigo;SIM;SIM;Caractere(2);Cód. da função;DOTACAO;01...28|77, 99;REGRA 1: O conteúdo do campo deverá estar preenchido com "01...28|'77', '99'".
+ALTERACAO_LOA;5;SFN_Codigo;SIM;SIM;Caractere(3);Cód. da subfunção;DOTACAO;;
+ALTERACAO_LOA;6;PRG_Codigo;SIM;SIM;Caractere(4);Cód. do programa;DOTACAO;;
+ALTERACAO_LOA;7;PRAT_Numero;SIM;SIM;Caractere(5);Núm. do projeto/ atividade;DOTACAO;;
+ALTERACAO_LOA;8;CTEC_Codigo;SIM;SIM;Caractere(1);Cód. da categoria econômica;DOTACAO;1...4|9;REGRA 1: O conteúdo do campo deverá estar preenchido com "1...4|'9'".
+ALTERACAO_LOA;9;NDESP_Codigo;SIM;SIM;Caractere(1);Cód. do grupo da natureza de despesa;DOTACAO;1...6|9;REGRA 1: O conteúdo do campo deverá estar preenchido com "1...6|'9'".
+ALTERACAO_LOA;10;MDAP_Codigo;SIM;SIM;Caractere(2);Cód. da modalidade de aplicação;DOTACAO;20, 22, 30, 40, 42, 50, 60, 67, 70, 71, 72, 73, 74, 75, 76, 80, 90, 91, 92, 93, 94, 95, 96, 99;REGRA 1: O conteúdo do campo deverá estar preenchido com "'20', '22', '30', '40', '42', '50', '60', '67', '70', '71', '72', '73', '74', '75', '76', '80', '90', '91', '92', '93', '94', '95', '96', '99'".
+ALTERACAO_LOA;11;ELDE_Codigo;SIM;SIM;Caractere(2);Cód. do elemento de despesa;DOTACAO;00...99;REGRA 1: O conteúdo do campo deverá estar preenchido com "00...99".
+ALTERACAO_LOA;12;SELDE_Codigo;SIM;SIM;Caractere(2);Cód. do subelemento de despesa;DOTACAO;00...99;REGRA 1: O conteúdo do campo deverá estar preenchido com "00...99".
+ALTERACAO_LOA;13;DRGRP_Codigo;SIM;SIM;Caractere(1);Cód. do grupo da destinação de recurso;DOTACAO OU T.I. DESTINACAO_RECURSO_GRUPO;1, 2, 9;REGRA 1: O conteúdo do campo deverá estar preenchido com "'1', '2', '9'".
+ALTERACAO_LOA;14;DRESP_Codigo;SIM;SIM;Caractere(3);Cód. da especificação da destinação de recurso;DOTACAO;;
+ALTERACAO_LOA;15;DESTREC_Codigo;SIM;SIM;Caractere(7);Cód. da destinação de recurso;DOTACAO ou T.I. DESTINACAO_RECURSO;;
+ALTERACAO_LOA;16;AORC_Data;SIM;SIM;Caractere(10);Data da alteração;;;REGRA 1: O conteúdo do campo deverá conter uma DATA válida, a DATA será validada segundo o critério "COMPETÊNCIA DA CARGA" (ver regra d).
+ALTERACAO_LOA;17;LEI_Numero;SIM;SIM;Caractere(10);Núm. da lei da autorização;LEI ou DECRETO;"99999/AAAA" (NRO/ANO);REGRA 1: O conteúdo do campo deverá conter um valor no formato "99999/AAAA" (NRO/ANO), o ANO será validado segundo o critério "<= EXERCÍCIO" (ver regra d).
+ALTERACAO_LOA;18;DECR_Numero;SIM;SIM;Caractere(10);Núm. do decreto da autorização;DECRETO;"99999/AAAA" (NRO/ANO);REGRA 1: O conteúdo do campo deverá conter um valor no formato "99999/AAAA" (NRO/ANO), o ANO será validado segundo o critério "<= EXERCÍCIO ou ZERO" (ver regra d).
+ALTERACAO_LOA;19;ALTLOA_TipoAlteracao;SIM;SIM;Inteiro;Tipo da alteração;TI.TIPO_ALTERACAO_LOA;1...12;REGRA 1: O conteúdo do campo deverá estar preenchido com "1...12".
+ALTERACAO_LOA;20;ALTLOA_TipoRecursos;SIM;SIM;Caractere(1);Tipo do recurso;TI.TIPO_RECURSO_LOA;0...8;REGRA 1: O conteúdo do campo deverá estar preenchido com "0...8".
+ALTERACAO_LOA;21;ALTLOA_Valor;NÃO;SIM;Caractere(14,2);Valor;;;REGRA 1: O conteúdo do campo deverá conter o número ZERO ou POSITIVO quando obrigatório.
+ALTERACAO_PPA;1;PPA_Exercicio;SIM;SIM;Caractere(4);Exercício do PPA;PPA;"9999" (NRO);
+ALTERACAO_PPA;2;FN_Codigo;SIM;SIM;Caractere(2);Cód. da função;PPA;01...28|77, 99;REGRA 1: O conteúdo do campo deverá estar preenchido com "01...28|'77', '99'".
+ALTERACAO_PPA;3;SFN_Codigo;SIM;SIM;Caractere(3);Cód. da subfunção;PPA;;
+ALTERACAO_PPA;4;PRG_Codigo;SIM;SIM;Caractere(4);Cód. do programa;PPA;;
+ALTERACAO_PPA;5;PRAT_Numero;SIM;SIM;Caractere(5);Núm. do projeto/ atividade;PPA;;
+ALTERACAO_PPA;6;ALTPPA_Data;SIM;SIM;Caractere(10);Data da alteração;;;REGRA 1: O conteúdo do campo deverá conter uma DATA válida, a DATA será validada segundo o critério "COMPETÊNCIA DA CARGA" (ver regra d).
+ALTERACAO_PPA;7;ALTPPA_TipoMetaFisica;SIM;SIM;Caractere(1);Tipo da meta física;TI.TIPO_META_FISICA_FINANCEIRA;0...4;REGRA 1: O conteúdo do campo deverá estar preenchido com "0...4".
+ALTERACAO_PPA;8;ALTPPA_TipoMetaFinanceira;SIM;SIM;Caractere(1);Tipo da meta financeira;TI.TIPO_META_FISICA_FINANCEIRA;0...4;REGRA 1: O conteúdo do campo deverá estar preenchido com "0...4".
+ALTERACAO_PPA;9;ALTPPA_ValorMetaFisica;NÃO;SIM;Caractere(14,2);Valor da meta física;;;REGRA 1: O conteúdo do campo deverá conter o número ZERO ou POSITIVO quando obrigatório.
+ALTERACAO_PPA;10;ALTPPA_ValorMetaFinanceira;NÃO;SIM;Caractere(14,2);Valor da meta financeira;;;REGRA 1: O conteúdo do campo deverá conter o número ZERO ou POSITIVO quando obrigatório.
+ALTERACAO_PPA;11;LEI_Numero;NÃO;SIM;Caractere(10);Núm. da lei do PPA;LEI;"99999/AAAA" (NRO/ANO);REGRA 1: O conteúdo do campo deverá conter um valor no formato "99999/AAAA" (NRO/ANO), o ANO será validado segundo o critério "<= EXERCÍCIO" (ver regra d).
+ANULACAO_EMPENHO;1;ORG_Codigo;SIM;SIM;Caractere(2);Cód. do órgão;EMPENHO;;
+ANULACAO_EMPENHO;2;UNOR_Codigo;SIM;SIM;Caractere(3);Cód. da unidade orçamentária;EMPENHO;;
+ANULACAO_EMPENHO;3;EMP_Numero;SIM;SIM;Caractere(11);Núm. do empenho;EMPENHO;"999999/AAAA" (NRO/ANO);REGRA 1: O conteúdo do campo deverá conter um valor no formato "999999/AAAA" (NRO/ANO), o ANO será validado segundo o critério "= EXERCÍCIO" (ver regra d).
+ANULACAO_EMPENHO;4;ANUL_NumNotaAnulacao;SIM;SIM;Caractere(11);Núm. da nota de anulação;;"999999/AAAA" (NRO/ANO);REGRA 1: O conteúdo do campo deverá conter um valor no formato "999999/AAAA" (NRO/ANO), o ANO será validado segundo o critério "= EXERCÍCIO" (ver regra d).
+ANULACAO_EMPENHO;5;ANUL_Data;NÃO;SIM;Caractere(10);Data;;;REGRA 1: O conteúdo do campo deverá conter uma DATA válida, a DATA será validada segundo o critério "COMPETÊNCIA DA CARGA" (ver regra d).
+ANULACAO_EMPENHO;6;ANUL_Valor;NÃO;SIM;Caractere(14,2);Valor;;;REGRA 1: O conteúdo do campo deverá conter um número POSITIVO quando obrigatório.
+ANULACAO_EMPENHO;7;ANUL_CodigoMotivo;NÃO;SIM;Inteiro;Cód. do motivo;TI.MOTIVO_ANULACAO_EMPENHO;1...6;REGRA 1: O conteúdo do campo deverá estar preenchido com "1...6".
+ANULACAO_EMPENHO;8;ANUL_Motivo;NÃO;SIM;Caractere(120);Motivo;;;
+ANULACAO_EMPENHO;9;ANUL_NumProcessoTCE;NÃO;COND;Caractere(14);Núm. do processo TCE-MT;;"999999999/AAAA" (NRO/ANO);REGRA 1: O conteúdo do campo deverá estar preenchido quando o conteúdo do campo "ANUL_CodigoMotivo" for "'1'". REGRA 2: O conteúdo do campo deverá conter um valor no formato "999999999/AAAA" (NRO/ANO), o ANO será validado segundo o critério "<= EXERCÍCIO" (ver regra d).
+ANULACAO_ESTORNO_DESC_LIQ_PAGO;1;ORG_Codigo;SIM;SIM;Caractere(2);Cód. do órgão;DESCONTO_LIQUIDADO_PAGO;;
+ANULACAO_ESTORNO_DESC_LIQ_PAGO;2;UNOR_Codigo;SIM;SIM;Caractere(3);Cód. da unidade orçamentária;DESCONTO_LIQUIDADO_PAGO;;
+ANULACAO_ESTORNO_DESC_LIQ_PAGO;3;EMP_Numero;SIM;SIM;Caractere(11);Núm. do empenho;DESCONTO_LIQUIDADO_PAGO;"999999/AAAA" (NRO/ANO);REGRA 1: O conteúdo do campo deverá conter um valor no formato "999999/AAAA" (NRO/ANO), o ANO será validado segundo o critério "<= EXERCÍCIO" (ver regra d).
+ANULACAO_ESTORNO_DESC_LIQ_PAGO;4;LIQ_Numero;SIM;SIM;Caractere(11);Núm. da liquidação;DESCONTO_LIQUIDADO_PAGO;"999999/AAAA" (NRO/ANO);REGRA 1: O conteúdo do campo deverá conter um valor no formato "999999/AAAA" (NRO/ANO), o ANO será validado segundo o critério "<= EXERCÍCIO" (ver regra d).
+ANULACAO_ESTORNO_DESC_LIQ_PAGO;5;DLIQ_OrigemDesconto;SIM;SIM;Caractere(1);Origem do desconto;DESCONTO_LIQUIDADO_PAGO;1...5;REGRA 1: O conteúdo do campo deverá estar preenchido com "1...5".
+ANULACAO_ESTORNO_DESC_LIQ_PAGO;6;TDBG_Codigo;SIM;SIM;Inteiro;Cód. do tipo do desconto;DESCONTO_LIQUIDADO_PAGO;;REGRA 1: O conteúdo do campo deverá conter o número ZERO ou POSITIVO quando obrigatório.
+ANULACAO_ESTORNO_DESC_LIQ_PAGO;7;DLP_NumSequencial;SIM;SIM;Inteiro;Núm. sequencial do desconto liquidado pago;DESCONTO_LIQUIDADO_PAGO;;REGRA 1: O conteúdo do campo deverá conter um número POSITIVO quando obrigatório.
+ANULACAO_ESTORNO_DESC_LIQ_PAGO;8;AEDLP_Motivo;NÃO;SIM;Caractere(255);Motivo;;;
+ANULACAO_ESTORNO_DESC_LIQ_PAGO;9;AEDLP_Valor;NÃO;SIM;Caractere(14,2);Valor da anulação/estorno;;;REGRA 1: O conteúdo do campo deverá conter o número ZERO ou POSITIVO quando obrigatório.
+ANULACAO_ESTORNO_DESC_LIQUIDAD;1;ORG_Codigo;SIM;SIM;Caractere(2);Cód. do órgão;DESCONTO_LIQUIDADO;;
+ANULACAO_ESTORNO_DESC_LIQUIDAD;2;UNOR_Codigo;SIM;SIM;Caractere(3);Cód. da unidade orçamentária;DESCONTO_LIQUIDADO;;
+ANULACAO_ESTORNO_DESC_LIQUIDAD;3;EMP_Numero;SIM;SIM;Caractere(11);Núm. do empenho;DESCONTO_LIQUIDADO;"999999/AAAA" (NRO/ANO);REGRA 1: O conteúdo do campo deverá conter um valor no formato "999999/AAAA" (NRO/ANO), o ANO será validado segundo o critério "<= EXERCÍCIO" (ver regra d).
+ANULACAO_ESTORNO_DESC_LIQUIDAD;4;LIQ_Numero;SIM;SIM;Caractere(11);Núm. da liquidação;DESCONTO_LIQUIDADO;"999999/AAAA" (NRO/ANO);REGRA 1: O conteúdo do campo deverá conter um valor no formato "999999/AAAA" (NRO/ANO), o ANO será validado segundo o critério "<= EXERCÍCIO" (ver regra d).
+ANULACAO_ESTORNO_DESC_LIQUIDAD;5;DLIQ_OrigemDesconto;SIM;SIM;Caractere(1);Origem do desconto;DESCONTO_LIQUIDADO;1...5;REGRA 1: O conteúdo do campo deverá estar preenchido com "1...5".
+ANULACAO_ESTORNO_DESC_LIQUIDAD;6;TDBG_Codigo;SIM;SIM;Inteiro;Cód. do tipo do desconto;DESCONTO_LIQUIDADO;;REGRA 1: O conteúdo do campo deverá conter o número ZERO ou POSITIVO quando obrigatório.
+ANULACAO_ESTORNO_DESC_LIQUIDAD;7;AEDLIQ_Motivo;NÃO;SIM;Caractere(255);Motivo;;;
+ANULACAO_ESTORNO_DESC_LIQUIDAD;8;AEDLIQ_Valor;NÃO;SIM;Caractere(14,2);Valor da anulação/estorno;;;REGRA 1: O conteúdo do campo deverá conter o número ZERO ou POSITIVO quando obrigatório.
+ANULACAO_LIQUIDACAO_EMPENHO;1;ORG_Codigo;SIM;SIM;Caractere(2);Cód. do órgão;LIQUIDACAO_EMPENHO;;
+ANULACAO_LIQUIDACAO_EMPENHO;2;UNOR_Codigo;SIM;SIM;Caractere(3);Cód. da unidade orçamentária;LIQUIDACAO_EMPENHO;;
+ANULACAO_LIQUIDACAO_EMPENHO;3;EMP_Numero;SIM;SIM;Caractere(11);Núm. do empenho;LIQUIDACAO_EMPENHO;"999999/AAAA" (NRO/ANO);REGRA 1: O conteúdo do campo deverá conter um valor no formato "999999/AAAA" (NRO/ANO), o ANO será validado segundo o critério "= EXERCÍCIO" (ver regra d).
+ANULACAO_LIQUIDACAO_EMPENHO;4;LIQ_Numero;SIM;SIM;Caractere(11);Núm. da liquidação;LIQUIDACAO_EMPENHO;"999999/AAAA" (NRO/ANO);REGRA 1: O conteúdo do campo deverá conter um valor no formato "999999/AAAA" (NRO/ANO), o ANO será validado segundo o critério "<= EXERCÍCIO" (ver regra d).
+ANULACAO_LIQUIDACAO_EMPENHO;5;ANUL_NumNotaAnulacao;SIM;SIM;Caractere(11);Núm. da nota de anulação;;"999999/AAAA" (NRO/ANO);REGRA 1: O conteúdo do campo deverá conter um valor no formato "999999/AAAA" (NRO/ANO), o ANO será validado segundo o critério "= EXERCÍCIO" (ver regra d).
+ANULACAO_LIQUIDACAO_EMPENHO;6;ANUL_Data;NÃO;SIM;Caractere(10);Data da anulação;;;REGRA 1: O conteúdo do campo deverá conter uma DATA válida, a DATA será validada segundo o critério "COMPETÊNCIA DA CARGA" (ver regra d).
+ANULACAO_LIQUIDACAO_EMPENHO;7;ANUL_Motivo;NÃO;SIM;Caractere(120);Motivo;;;
+ANULACAO_LIQUIDACAO_EMPENHO;8;ANUL_Valor;NÃO;SIM;Caractere(14,2);Valor;;;REGRA 1: O conteúdo do campo deverá conter o número ZERO ou POSITIVO quando obrigatório.
+ANULACAO_PAGAMENTO_EMPENHO;1;PGTO_Numero;SIM;SIM;Caractere(16);Núm. do pagamento;PAGAMENTO_EMPENHO;"99999999999/AAAA" (NRO/ANO);REGRA 1: O conteúdo do campo deverá conter um valor no formato "99999999999/AAAA" (NRO/ANO), o ANO será validado segundo o critério "= EXERCÍCIO" (ver regra d).
+ANULACAO_PAGAMENTO_EMPENHO;2;ANUL_NumNotaAnulacao;SIM;SIM;Caractere(11);Núm. da nota de anulação;;"999999/AAAA" (NRO/ANO);REGRA 1: O conteúdo do campo deverá conter um valor no formato "999999/AAAA" (NRO/ANO), o ANO será validado segundo o critério "= EXERCÍCIO" (ver regra d).
+ANULACAO_PAGAMENTO_EMPENHO;3;ANUL_Data;NÃO;SIM;Caractere(10);Data da anulação;;;REGRA 1: O conteúdo do campo deverá conter uma DATA válida, a DATA será validada segundo o critério "COMPETÊNCIA DA CARGA" (ver regra d).
+ANULACAO_PAGAMENTO_EMPENHO;4;ANUL_Motivo;NÃO;SIM;Caractere(120);Motivo;;;
+ANULACAO_PAGAMENTO_EMPENHO;5;ANUL_Valor;NÃO;SIM;Caractere(14,2);Valor;;;REGRA 1: O conteúdo do campo deverá conter o número ZERO ou POSITIVO quando obrigatório.
+CADASTRO_GERAL;1;CG_Identificacao;SIM;SIM;Caractere(20);CPF, CNPJ, núm. do passaporte ou núm. de identificação da empresa;;;REGRA 1: O conteúdo do campo deverá conter um número de CPF ("999.999.999-99") ou CNPJ ("99.999.999/9999-99") válido quando o conteúdo do campo "CG_Nacionalidade" for "1".
+CADASTRO_GERAL;2;CG_TipoPessoa;NÃO;SIM;Caractere(1);Tipo da pessoa;;"1" para física "2" para jurídica;REGRA 1: O conteúdo do campo deverá estar preenchido com "1...2".
+CADASTRO_GERAL;3;CG_TipoEmpresa;NÃO;COND;Inteiro;Tipo da empresa;TI.TIPO_EMPRESA;1...11;REGRA 1: O conteúdo do campo deverá estar preenchido com "1...11", quando o conteúdo do campo "CG_TipoPessoa" for "'2'".
+CADASTRO_GERAL;4;CG_Nacionalidade;NÃO;SIM;Caractere(1);Nacionalidade ou origem;;"1" para brasileira "2" para estrangeira;REGRA 1: O conteúdo do campo deverá estar preenchido com "1...2".
+CADASTRO_GERAL;5;CG_Nome;NÃO;SIM;Caractere(60);Nome;;;REGRA 1: O conteúdo do campo não deverá conter palavras como "SEM INFORMACAO", "NAO USAR", etc., e suas variações com acentuação.
+CADASTRO_GERAL;6;CG_Endereco;NÃO;SIM;Caractere(50);Endereço;;;
+CADASTRO_GERAL;7;CG_Complemento;NÃO;NÃO;Caractere(20);Complemento;;;
+CADASTRO_GERAL;8;CG_Bairro;NÃO;SIM;Caractere(30);Bairro;;;
+CADASTRO_GERAL;9;CG_CEP;NÃO;SIM;Caractere(9);CEP;;"99999-999";REGRA 1: O conteúdo do campo deverá conter um número de CEP ("99999-999") válido.
+CADASTRO_GERAL;10;CG_CodMunicipio;NÃO;SIM;Caractere(6);Cód. do município;TI.MUNICIPIO;;
+CADASTRO_GERAL;11;CG_CelFone;NÃO;NÃO;Caractere(20);Núm. do celular;;;REGRA 1: O conteúdo do campo deverá conter um número de TELEFONE ou CELULAR válido nos formatos "(99)9999-9999", "(999)9999-9999", "(99)99999-9999", ou "(999)99999-9999".
+CADASTRO_GERAL;12;CG_Fone;NÃO;NÃO;Caractere(20);Núm. do telefone;;;REGRA 1: O conteúdo do campo deverá conter um número de TELEFONE ou CELULAR válido nos formatos "(99)9999-9999", "(999)9999-9999", "(99)99999-9999", ou "(999)99999-9999".
+CADASTRO_GERAL;13;CG_Email;NÃO;NÃO;Caractere(70);E-mail;;;REGRA 1: O conteúdo do campo deverá conter um e-mail válido, se o campo for opcional, deixar vazio, se houver mais de um e-mail separar por "/" (barra).
+CADASTRO_GERAL;14;CG_MicroPequenaEmpresa;NÃO;COND;Inteiro;Tipo da micro pequena empresa;TI.TIPO_MICRO_PEQUENA_EMPRESA;1...4;REGRA 1: O conteúdo do campo deverá estar preenchido com "1...4", quando o conteúdo do campo "CG_TipoEmpresa" for "'1', '2'".
+CADASTRO_GERAL;15;CG_OptanteSimplesNacional;NÃO;COND;Caractere(1);É optante pelo simples nacional?;;"S" para sim "N" para não;REGRA 1: O conteúdo do campo deverá estar preenchido com "'S', 'N'", quando o conteúdo do campo "CG_MicroPequenaEmpresa" for "'1', '2'".
+CADASTRO_GERAL;16;CG_InscricaoEstadual;NÃO;COND;Caractere(20);Núm. da inscrição estadual;;;REGRA 1: O conteúdo do campo deverá estar preenchido quando o conteúdo do campo "CG_TipoPessoa" for "'2'".
+CADASTRO_GERAL;17;CG_InscricaoMunicipal;NÃO;COND;Caractere(20);Núm. da inscrição municipal;;;REGRA 1: O conteúdo do campo deverá estar preenchido quando o conteúdo do campo "CG_TipoPessoa" for "'2'".
+CONCILIACAO_BANCARIA;1;CNBCO_Sequencial;SIM;SIM;Inteiro;Núm. sequencial;;;REGRA 1: O conteúdo do campo deverá conter um número POSITIVO quando obrigatório.
+CONCILIACAO_BANCARIA;2;CNBCO_Data;SIM;SIM;Caractere(10);Data da ocorrência;;;REGRA 1: O conteúdo do campo deverá conter uma DATA válida, a DATA será validada segundo o critério "<= EXERCÍCIO" (ver regra d).
+CONCILIACAO_BANCARIA;3;CNBCO_TipoOcorrencia;NÃO;SIM;Caractere(1);Tipo da ocorrência;TI.TIPO_OCORRENCIA_CONCILIACAO;1...6;REGRA 1: O conteúdo do campo deverá estar preenchido com "1...6".
+CONCILIACAO_BANCARIA;4;BCO_Codigo;NÃO;SIM;Caractere(3);Cód. do banco;CONTA_BANCARIA;;
+CONCILIACAO_BANCARIA;5;AGN_Codigo;NÃO;SIM;Caractere(10);Cód. da agência;CONTA_BANCARIA;;
+CONCILIACAO_BANCARIA;6;CCBCO_Numero;NÃO;SIM;Caractere(16);Núm. da conta corrente;CONTA_BANCARIA;;
+CONCILIACAO_BANCARIA;7;CCBCO_Tipo;NÃO;SIM;Caractere(1);Tipo da conta corrente;CONTA_BANCARIA;1...4;REGRA 1: O conteúdo do campo deverá estar preenchido com "1...4".
+CONCILIACAO_BANCARIA;8;CNBCO_Descricao;NÃO;SIM;Caractere(50);Descrição;;;
+CONCILIACAO_BANCARIA;9;CNBCO_TipoDocumento;NÃO;COND;Caractere(1);Tipo do documento;TI.TIPO_DOC_CONCILIACAO;1...5;REGRA 1: O conteúdo do campo deverá estar preenchido com "1...5", quando o conteúdo do campo "CNBCO_TipoOcorrencia" for "'2', '3', '4', '5'".
+CONCILIACAO_BANCARIA;10;CNBCO_NumeroDocumento;NÃO;COND;Caractere(20);Núm. do documento;;;REGRA 1: O conteúdo do campo deverá estar preenchido quando o conteúdo do campo "CNBCO_TipoOcorrencia" for "'2', '3', '4', '5'".
+CONCILIACAO_BANCARIA;11;CNBCO_Valor;NÃO;SIM;Caractere(14,2);Valor;;;
+CONCILIACAO_BANCARIA;12;CNBCO_NomeArqPDFExtrato;NÃO;COND;Caractere(22);Nome do arquivo PDF(extrato bancário);;;REGRA 1: A formatação do nome do arquivo PDF deverá estar de acordo com a regra "CNBCO_AAAAMM_99999.PDF".
+CONCILIACAO_BANCARIA;13;CNBCO_NomeArqPDFConciliacao;NÃO;COND;Caractere(22);Nome do arquivo PDF(conciliação);;;REGRA 1: A formatação do nome do arquivo PDF deverá estar de acordo com a regra "CNBCO_AAAAMM_99999.PDF".
+CONTA_BANCARIA;1;BCO_Codigo;SIM;SIM;Caractere(3);Cód. do banco;AGENCIA;;
+CONTA_BANCARIA;2;AGN_Codigo;SIM;SIM;Caractere(10);Cód. da agência;AGENCIA;;
+CONTA_BANCARIA;3;CCBCO_Numero;SIM;SIM;Caractere(16);Núm. da conta corrente;;;REGRA 1: O conteúdo do campo deverá conter somente os caracteres "0..9", "-" ou "X" e deverá estar formatado como "<números>-<número>" OU "<números>-X".
+CONTA_BANCARIA;4;CCBCO_Tipo;SIM;SIM;Caractere(1);Tipo da conta corrente;TI.TIPO_CONTA_BANCARIA;1...4;REGRA 1: O conteúdo do campo deverá estar preenchido com "1...4".
+CONTA_BANCARIA;5;CB_ContaUG;NÃO;SIM;Caractere(1);A conta é do fiscalizado?;;"S" para sim "N" para não;REGRA 1: O conteúdo do campo deverá estar preenchido com "'S', 'N'".
+CONTA_BANCARIA;6;CG_Identificacao;NÃO;SIM;Caractere(20);CNPJ do fiscalizado;CADASTRO_GERAL;;REGRA 1: O conteúdo do campo deverá conter um número de CPF ("999.999.999-99") ou CNPJ ("99.999.999/9999-99") válido.
+CONTA_BANCARIA;7;CCBCO_DataAbertura;NÃO;COND;Caractere(10);Data da abertura;;;REGRA 1: O conteúdo do campo deverá estar preenchido quando o conteúdo do campo "CB_ContaUG" for "'S'". REGRA 2: O conteúdo do campo deverá conter uma DATA válida, a DATA será validada segundo o critério "<= DATA ATUAL" (ver regra d).
+CONTA_BANCARIA;8;ECTCE_Codigo;NÃO;COND;Caractere(11);Cód. do elenco de contas;TI.ELENCO_CONTAS_TCEMT;;REGRA 1: O conteúdo do campo deverá estar preenchido quando o conteúdo do campo "CB_ContaUG" for "'S'".
+CONTA_BANCARIA_INAT_DOCUMENTO;1;BCO_Codigo;SIM;SIM;Caractere(3);Cód. do banco;CONTA_BANCARIA_INATIVA;;
+CONTA_BANCARIA_INAT_DOCUMENTO;2;AGN_Codigo;SIM;SIM;Caractere(10);Cód. da agência;CONTA_BANCARIA_INATIVA;;
+CONTA_BANCARIA_INAT_DOCUMENTO;3;CCBCO_Numero;SIM;SIM;Caractere(16);Núm. da conta corrente;CONTA_BANCARIA_INATIVA;;
+CONTA_BANCARIA_INAT_DOCUMENTO;4;CCBCO_Tipo;SIM;SIM;Caractere(1);Tipo da conta corrente;CONTA_BANCARIA_INATIVA;1...4;REGRA 1: O conteúdo do campo deverá estar preenchido com "1...4".
+CONTA_BANCARIA_INAT_DOCUMENTO;5;TDD_Codigo;SIM;SIM;Inteiro;Cód. do tipo do documento;TI.TIPO_DOCUMENTO_DIVERSO;131, 132, 133;REGRA 1: O conteúdo do campo deverá estar preenchido com "'131', '132', '133'".
+CONTA_BANCARIA_INAT_DOCUMENTO;6;CCBCOID_NomeArqPDF;NÃO;SIM;Caractere(24);Nome do arquivo PDF;;;REGRA 1: A formatação do nome do arquivo PDF deverá estar de acordo com a regra "CCBCOID_AAAAMM_99999.PDF".
+CONTA_BANCARIA_INATIVA;1;BCO_Codigo;SIM;SIM;Caractere(3);Cód. do banco;CONTA_BANCARIA;;
+CONTA_BANCARIA_INATIVA;2;AGN_Codigo;SIM;SIM;Caractere(10);Cód. da agência;CONTA_BANCARIA;;
+CONTA_BANCARIA_INATIVA;3;CCBCO_Numero;SIM;SIM;Caractere(16);Núm. da conta corrente;CONTA_BANCARIA;;
+CONTA_BANCARIA_INATIVA;4;CCBCO_Tipo;SIM;SIM;Caractere(1);Tipo da conta corrente;CONTA_BANCARIA;1...4;REGRA 1: O conteúdo do campo deverá estar preenchido com "1...4".
+CONTA_BANCARIA_INATIVA;5;CCBCOI_DataInativacao;SIM;SIM;Caractere(10);Data da inativação;;;REGRA 1: O conteúdo do campo deverá conter uma DATA válida, a DATA será validada segundo o critério "COMPETÊNCIA DA CARGA" (ver regra d).
+CONTA_BANCARIA_INATIVA;6;CCBCOI_MotivoInativacao;NÃO;SIM;Caractere(120);Motivo;;;
+CONTA_BANCARIA_INATIVA;7;MENC_Codigo;NÃO;SIM;Inteiro;Motivo de encerramento;TI.MOTIVO_ENCERRAMENTO;1;REGRA 1: O conteúdo do campo deverá estar preenchido com "'1'".
+CONTA_BANCARIA_REATIVADA;1;BCO_Codigo;SIM;SIM;Caractere(3);Cód. do banco;CONTA_BANCARIA_INATIVA;;
+CONTA_BANCARIA_REATIVADA;2;AGN_Codigo;SIM;SIM;Caractere(10);Cód. da agência;CONTA_BANCARIA_INATIVA;;
+CONTA_BANCARIA_REATIVADA;3;CCBCO_Numero;SIM;SIM;Caractere(16);Núm. da conta corrente;CONTA_BANCARIA_INATIVA;;
+CONTA_BANCARIA_REATIVADA;4;CCBCO_Tipo;SIM;SIM;Caractere(1);Tipo da conta corrente;CONTA_BANCARIA_INATIVA;1...4;REGRA 1: O conteúdo do campo deverá estar preenchido com "1...4".
+CONTA_BANCARIA_REATIVADA;5;CCBCOI_DataInativacao;SIM;SIM;Caractere(10);Data da inativação;CONTA_BANCARIA_INATIVA;;REGRA 1: O conteúdo do campo deverá conter uma DATA válida, a DATA será validada segundo o critério "NÃO SE APLICA" (ver regra d).
+CONTA_BANCARIA_REATIVADA;6;CCBCOR_DataReativacao;NÃO;SIM;Caractere(10);Data da reativação;;;REGRA 1: O conteúdo do campo deverá conter uma DATA válida, a DATA será validada segundo o critério "COMPETÊNCIA DA CARGA" (ver regra d).
+CONTA_BANCARIA_REATIVADA;7;CCBCOR_NomeArqPDF;NÃO;SIM;Caractere(23);Nome do arquivo PDF;;;REGRA 1: A formatação do nome do arquivo PDF deverá estar de acordo com a regra "CCBCOR_AAAAMM_99999.PDF".
+DECRETO;1;LEI_Numero;SIM;SIM;Caractere(10);Núm. da lei principal;LEI;"99999/AAAA" (NRO/ANO);REGRA 1: O conteúdo do campo deverá conter um valor no formato "99999/AAAA" (NRO/ANO), o ANO será validado segundo o critério "<= EXERCÍCIO" (ver regra d).
+DECRETO;2;DECR_Numero;SIM;SIM;Caractere(10);Núm. do decreto;;"99999/AAAA" (NRO/ANO);REGRA 1: O conteúdo do campo deverá conter um valor no formato "99999/AAAA" (NRO/ANO), o ANO será validado segundo o critério "<= EXERC_ATUAL" (ver regra d).
+DECRETO;3;DECR_Data;NÃO;SIM;Caractere(10);Data do decreto;;;REGRA 1: O conteúdo do campo deverá conter uma DATA válida, a DATA será validada segundo o critério "<= DATA ATUAL" (ver regra d).
+DECRETO;4;DECR_Tipo;NÃO;COND;Caractere(1);Tipo do decreto;;"1" para revogado "2" para alterado;REGRA 1: O conteúdo do campo deverá estar preenchido se o conteúdo do campo "DECR_NumeroAlterado" estiver preenchido, deixar em branco/vazio se o conteúdo do campo "DECR_NumeroAlterado" estiver em branco/vazio. REGRA 2: O conteúdo do campo deverá estar preenchido com "1...2", quando o conteúdo do campo "DECR_NumeroAlterado" for "NÃO SE APLICA".
+DECRETO;5;LEI_NumeroDecrAlterado;NÃO;COND;Caractere(10);Núm. da lei principal do decreto alterado ou revogado;DECRETO;"99999/AAAA" (NRO/ANO);REGRA 1: O conteúdo do campo deverá estar preenchido se o conteúdo do campo "DECR_NumeroAlterado" estiver preenchido, deixar em branco/vazio se o conteúdo do campo "DECR_NumeroAlterado" estiver em branco/vazio. REGRA 2: O conteúdo do campo deverá conter um valor no formato "99999/AAAA" (NRO/ANO), o ANO será validado segundo o critério "<= EXERCÍCIO" (ver regra d).
+DECRETO;6;DECR_NumeroAlterado;NÃO;COND;Caractere(10);Núm. do decreto alterado ou revogado;DECRETO;"99999/AAAA" (NRO/ANO);REGRA 1: O conteúdo do campo deverá estar preenchido se o conteúdo do campo "DECR_Tipo" estiver preenchido, deixar em branco/vazio se o conteúdo do campo "DECR_Tipo" estiver em branco/vazio. REGRA 2: O conteúdo do campo deverá conter um valor no formato "99999/AAAA" (NRO/ANO), o ANO será validado segundo o critério "<= EXERC_ATUAL" (ver regra d).
+DECRETO;7;DECR_DataPublicacao;NÃO;NÃO;Caractere(10);Data da publicação;;;REGRA 1: O conteúdo do campo deverá conter uma DATA válida, a DATA será validada segundo o critério "<= DATA ATUAL" (ver regra d).
+DECRETO;8;DECR_VeicComunicacao;NÃO;SIM;Caractere(255);Local da publicação;;;
+DECRETO;9;DECR_AdicionaCreditoOrcamento;NÃO;SIM;Caractere(1);Adiciona crédito ao orçamento?;;"S" para sim "N" para não;REGRA 1: O conteúdo do campo deverá estar preenchido com "'S', 'N'".
+DECRETO;10;DECR_ValorCreditoAdicional;NÃO;COND;Caractere(14,2);Valor do crédito adicional;;;REGRA 1: O conteúdo do campo deverá estar preenchido quando o conteúdo do campo "DECR_AdicionaCreditoOrcamento" for "'S'". REGRA 2: O conteúdo do campo deverá conter um número POSITIVO quando obrigatório.
+DECRETO;11;DECR_NomeArqPDF;NÃO;SIM;Caractere(21);Nome do arquivo PDF;;;REGRA 1: A formatação do nome do arquivo PDF deverá estar de acordo com a regra "DECR_AAAAMM_99999.PDF".
+DESCONTO_LIQUIDADO;1;ORG_Codigo;SIM;SIM;Caractere(2);Cód. do órgão;LIQUIDACAO_EMPENHO;;
+DESCONTO_LIQUIDADO;2;UNOR_Codigo;SIM;SIM;Caractere(3);Cód. da unidade orçamentária;LIQUIDACAO_EMPENHO;;
+DESCONTO_LIQUIDADO;3;EMP_Numero;SIM;SIM;Caractere(11);Núm. do empenho;LIQUIDACAO_EMPENHO;"999999/AAAA" (NRO/ANO);REGRA 1: O conteúdo do campo deverá conter um valor no formato "999999/AAAA" (NRO/ANO), o ANO será validado segundo o critério "<= EXERCÍCIO" (ver regra d).
+DESCONTO_LIQUIDADO;4;LIQ_Numero;SIM;SIM;Caractere(11);Núm. da liquidação;LIQUIDACAO_EMPENHO;"999999/AAAA" (NRO/ANO);REGRA 1: O conteúdo do campo deverá conter um valor no formato "999999/AAAA" (NRO/ANO), o ANO será validado segundo o critério "<= EXERCÍCIO" (ver regra d).
+DESCONTO_LIQUIDADO;5;TDBG_Codigo;SIM;SIM;Inteiro;Cód. do tipo do desconto;TI.TIPO_DESC_BENEF_GRATIF;;REGRA 1: O conteúdo do campo deverá conter o número ZERO ou POSITIVO quando obrigatório.
+DESCONTO_LIQUIDADO;6;DLIQ_OrigemDesconto;SIM;SIM;Caractere(1);Origem do desconto;TI.ORIGEM_DESCONTO_FOLHA_PAGTO;1...5;REGRA 1: O conteúdo do campo deverá estar preenchido com "1...5".
+DESCONTO_LIQUIDADO;7;TDBG_Outro;NÃO;COND;Caractere(255);Outro tipo de desconto;;;REGRA 1: O conteúdo do campo deverá estar preenchido quando o conteúdo do campo "TDBG_Codigo" for "'98', '99'".
+DESCONTO_LIQUIDADO;8;DLIQ_Valor;NÃO;SIM;Caractere(14,2);Valor total;;;REGRA 1: O conteúdo do campo deverá conter o número ZERO ou POSITIVO quando obrigatório.
+DESCONTO_LIQUIDADO_PAGO;1;ORG_Codigo;SIM;SIM;Caractere(2);Cód. do órgão;DESCONTO_LIQUIDADO;;
+DESCONTO_LIQUIDADO_PAGO;2;UNOR_Codigo;SIM;SIM;Caractere(3);Cód. da unidade orçamentária;DESCONTO_LIQUIDADO;;
+DESCONTO_LIQUIDADO_PAGO;3;EMP_Numero;SIM;SIM;Caractere(11);Núm. do empenho;DESCONTO_LIQUIDADO;"999999/AAAA" (NRO/ANO);REGRA 1: O conteúdo do campo deverá conter um valor no formato "999999/AAAA" (NRO/ANO), o ANO será validado segundo o critério "<= EXERCÍCIO" (ver regra d).
+DESCONTO_LIQUIDADO_PAGO;4;LIQ_Numero;SIM;SIM;Caractere(11);Núm. da liquidação;DESCONTO_LIQUIDADO;"999999/AAAA" (NRO/ANO);REGRA 1: O conteúdo do campo deverá conter um valor no formato "999999/AAAA" (NRO/ANO), o ANO será validado segundo o critério "<= EXERCÍCIO" (ver regra d).
+DESCONTO_LIQUIDADO_PAGO;5;TDBG_Codigo;SIM;SIM;Inteiro;Cód. do tipo do desconto;DESCONTO_LIQUIDADO;;REGRA 1: O conteúdo do campo deverá conter o número ZERO ou POSITIVO quando obrigatório.
+DESCONTO_LIQUIDADO_PAGO;6;DLIQ_OrigemDesconto;SIM;SIM;Caractere(1);Origem do desconto;DESCONTO_LIQUIDADO;1...5;REGRA 1: O conteúdo do campo deverá estar preenchido com "1...5".
+DESCONTO_LIQUIDADO_PAGO;7;DLP_NumSequencial;SIM;SIM;Inteiro;Núm. sequencial do desconto liquidado pago;;;REGRA 1: O conteúdo do campo deverá conter um número POSITIVO quando obrigatório.
+DESCONTO_LIQUIDADO_PAGO;8;DLP_Data;NÃO;SIM;Caractere(10);Data do pagamento;;;REGRA 1: O conteúdo do campo deverá conter uma DATA válida, a DATA será validada segundo o critério "COMPETÊNCIA DA CARGA" (ver regra d).
+DESCONTO_LIQUIDADO_PAGO;9;DLP_ExercicioReferencia;NÃO;SIM;Caractere(4);Exercício de referência;;"9999" (NRO);REGRA 1: O conteúdo do campo deverá conter um MÊS ou ANO válido, o MÊS ou ANO será validado segundo o critério "<= EXERCÍCIO" (ver regra d).
+DESCONTO_LIQUIDADO_PAGO;10;DLP_MesReferencia;NÃO;SIM;Caractere(2);Mês de referência;;"99" (NRO);REGRA 1: O conteúdo do campo deverá estar preenchido com "01...12".
+DESCONTO_LIQUIDADO_PAGO;11;DLP_TipoDocumento;NÃO;SIM;Caractere(1);Tipo do documento;TI.TIPO_DOC_DESC_LIQ_PAGO;1...5;REGRA 1: O conteúdo do campo deverá estar preenchido com "1...5".
+DESCONTO_LIQUIDADO_PAGO;12;BCO_Codigo;NÃO;COND;Caractere(3);Cód. do banco;CONTA_BANCARIA;;REGRA 1: O conteúdo do campo deverá estar preenchido quando o conteúdo do campo "DLP_TipoDocumento" for "'1', '2', '4', '5'".
+DESCONTO_LIQUIDADO_PAGO;13;AGN_Codigo;NÃO;COND;Caractere(10);Cód. da agência;CONTA_BANCARIA;;REGRA 1: O conteúdo do campo deverá estar preenchido quando o conteúdo do campo "DLP_TipoDocumento" for "'1', '2', '4', '5'".
+DESCONTO_LIQUIDADO_PAGO;14;CCBCO_Numero;NÃO;COND;Caractere(16);Núm. da conta corrente;CONTA_BANCARIA;;REGRA 1: O conteúdo do campo deverá estar preenchido quando o conteúdo do campo "DLP_TipoDocumento" for "'1', '2', '4', '5'".
+DESCONTO_LIQUIDADO_PAGO;15;CCBCO_Tipo;NÃO;COND;Caractere(1);Tipo da conta corrente;CONTA_BANCARIA;1...4;REGRA 1: O conteúdo do campo deverá estar preenchido com "1...4", quando o conteúdo do campo "DLP_TipoDocumento" for "'1', '2', '4', '5'".
+DESCONTO_LIQUIDADO_PAGO;16;DLP_Valor;NÃO;SIM;Caractere(14,2);Valor pago;;;REGRA 1: O conteúdo do campo deverá conter o número ZERO ou POSITIVO quando obrigatório.
+DESCONTO_RECIBO_PAGTO;1;ORG_Codigo;SIM;SIM;Caractere(2);Cód. do órgão;RECIBO_PAGTO;;
+DESCONTO_RECIBO_PAGTO;2;UNOR_Codigo;SIM;SIM;Caractere(3);Cód. da unidade orçamentária;RECIBO_PAGTO;;
+DESCONTO_RECIBO_PAGTO;3;EMP_Numero;SIM;SIM;Caractere(11);Núm. do empenho;RECIBO_PAGTO;"999999/AAAA" (NRO/ANO);REGRA 1: O conteúdo do campo deverá conter um valor no formato "999999/AAAA" (NRO/ANO), o ANO será validado segundo o critério "<= EXERCÍCIO" (ver regra d).
+DESCONTO_RECIBO_PAGTO;4;LIQ_Numero;SIM;SIM;Caractere(11);Núm. da liquidação;RECIBO_PAGTO;"999999/AAAA" (NRO/ANO);REGRA 1: O conteúdo do campo deverá conter um valor no formato "999999/AAAA" (NRO/ANO), o ANO será validado segundo o critério "<= EXERCÍCIO" (ver regra d).
+DESCONTO_RECIBO_PAGTO;5;TDBG_Codigo;SIM;SIM;Inteiro;Cód. do tipo do desconto, benefício ou gratificação;TI.TIPO_DESC_BENEF_GRATIF;;REGRA 1: O conteúdo do campo deverá conter o número ZERO ou POSITIVO quando obrigatório.
+DESCONTO_RECIBO_PAGTO;6;RCPGTO_Numero;SIM;SIM;Caractere(10);Núm. do recibo;RECIBO_PAGTO;"99999/AAAA" (NRO/ANO);REGRA 1: O conteúdo do campo deverá conter um valor no formato "99999/AAAA" (NRO/ANO), o ANO será validado segundo o critério "<= EXERCÍCIO" (ver regra d).
+DESCONTO_RECIBO_PAGTO;7;TDBG_Outro;NÃO;COND;Caractere(50);Outro tipo de desconto, benefício ou gratificação;TI.TIPO_DESC_BENEF_GRATIF;;REGRA 1: O conteúdo do campo deverá estar preenchido quando o conteúdo do campo "TDBG_Codigo" for "'98', '99'".
+DESCONTO_RECIBO_PAGTO;8;DRCPGTO_Valor;NÃO;SIM;Caractere(14,2);Valor do desconto, benefício ou gratificação;;;REGRA 1: O conteúdo do campo deverá conter o número ZERO ou POSITIVO quando obrigatório.
+DESCONTO_RECIBO_PAGTO_EVENTUAL;1;CG_Identificacao;SIM;SIM;Caractere(20);CPF/CNPJ do credor;RECIBO_PAGTO_EVENTUAL;;REGRA 1: O conteúdo do campo deverá conter um número de CPF ("999.999.999-99") ou CNPJ ("99.999.999/9999-99") válido.
+DESCONTO_RECIBO_PAGTO_EVENTUAL;2;RPGPS_Numero;SIM;SIM;Caractere(10);Núm. do recibo de pagamento;RECIBO_PAGTO_EVENTUAL;;
+DESCONTO_RECIBO_PAGTO_EVENTUAL;3;TDBG_Codigo;SIM;SIM;Inteiro;Cód. do tipo do desconto, benefício ou gratificação;TI.TIPO_DESC_BENEF_GRATIF;;REGRA 1: O conteúdo do campo deverá conter o número ZERO ou POSITIVO quando obrigatório.
+DESCONTO_RECIBO_PAGTO_EVENTUAL;4;TDBG_Outro;NÃO;COND;Caractere(50);Outro tipo de desconto, benefício ou gratificação;;;REGRA 1: O conteúdo do campo deverá estar preenchido quando o conteúdo do campo "TDBG_Codigo" for "'98', '99'".
+DESCONTO_RECIBO_PAGTO_EVENTUAL;5;DRPGPS_Valor;NÃO;SIM;Caractere(14,2);Valor total;;;REGRA 1: O conteúdo do campo deverá conter o número ZERO ou POSITIVO quando obrigatório.
+DIVIDA_PUBLICA;1;DVPB_NumSequencial;SIM;SIM;Inteiro;Núm. sequencial da dívida pública;;;REGRA 1: O conteúdo do campo deverá conter um número POSITIVO quando obrigatório.
+DIVIDA_PUBLICA;2;TDVPB_Codigo;NÃO;SIM;Inteiro;Cód. do tipo da dívida pública;TI.TIPO_DIVIDA_PUBLICA;6...17|1, 2, 3, 99;REGRA 1: O conteúdo do campo deverá estar preenchido com "6...17|'1', '2', '3', '99'".
+DIVIDA_PUBLICA;3;DVPB_Data;NÃO;SIM;Caractere(10);Data da inscrição ou liberação;;;REGRA 1: O conteúdo do campo deverá conter uma DATA válida, a DATA será validada segundo o critério "<= EXERCÍCIO" (ver regra d).
+DIVIDA_PUBLICA;4;DVPB_DataPrimeiraParcela;NÃO;SIM;Caractere(10);Data da primeira parcela;;;REGRA 1: O conteúdo do campo deverá conter um valor MAIOR ou IGUAL ao conteúdo do campo "DVPB_Data".
+DIVIDA_PUBLICA;5;DVPB_QtdeParcela;NÃO;SIM;Inteiro;Quantidade de parcelas;;;REGRA 1: O conteúdo do campo deverá conter um número POSITIVO quando obrigatório.
+DIVIDA_PUBLICA;6;TMO_Codigo;NÃO;SIM;Caractere(1);Cód. do tipo da moeda;TI.TIPO_MOEDA;1...2|9;REGRA 1: O conteúdo do campo deverá estar preenchido com "1...2|'9'".
+DIVIDA_PUBLICA;7;DVPB_ValorContratado;NÃO;SIM;Caractere(14,2);Valor contratado;;;REGRA 1: O conteúdo do campo deverá conter o número ZERO ou POSITIVO quando obrigatório.
+DIVIDA_PUBLICA;8;DVPB_ValorParcela;NÃO;SIM;Caractere(14,2);Valor da parcela;;;REGRA 1: O conteúdo do campo deverá conter o número ZERO ou POSITIVO quando obrigatório.
+DIVIDA_PUBLICA;9;DVPB_ValorAutorizadoLei;NÃO;COND;Caractere(14,2);Valor autorizado por lei;;;REGRA 1: O conteúdo do campo deverá estar preenchido quando o conteúdo do campo "TDVPB_Codigo" for "'1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '12', '13', '14', '15', '16', '17', '99'". REGRA 2: O conteúdo do campo deverá conter o número ZERO ou POSITIVO quando obrigatório.
+DIVIDA_PUBLICA;10;DVPB_NumDocumento;NÃO;COND;Caractere(20);Núm. do termo de confissão;;;REGRA 1: O conteúdo do campo deverá estar preenchido quando o conteúdo do campo "TDVPB_Codigo" for "'1', '6', '7', '8', '9', '10', '11', '12'".
+DIVIDA_PUBLICA;11;DVPB_SeqInscricao;NÃO;COND;Inteiro;Núm. sequencial da inscrição do precatório;;;REGRA 1: O conteúdo do campo deverá estar preenchido quando o conteúdo do campo "TDVPB_Codigo" for "'11'". REGRA 2: O conteúdo do campo deverá conter um número POSITIVO quando obrigatório.
+DIVIDA_PUBLICA;12;DVPB_ContratoTitulo;NÃO;NÃO;Caractere(1);Contrato ou título;;"1" para contrato "2" para título da dívida pública ou letra do Tesouro;REGRA 1: O conteúdo do campo deverá estar preenchido com "1...2".
+DIVIDA_PUBLICA;13;CONT_Tipo;NÃO;COND;Inteiro;Tipo do contrato;CONTRATO;1...33|35, 36, 37;REGRA 1: O conteúdo do campo deverá estar preenchido com "1...33|'35', '36', '37'", quando o conteúdo do campo "DVPB_ContratoTitulo" for "'1'".
+DIVIDA_PUBLICA;14;CONT_Numero;NÃO;COND;Caractere(16);Núm. do contrato;CONTRATO;"99999999999/AAAA" (NRO/ANO);REGRA 1: O conteúdo do campo deverá estar preenchido quando o conteúdo do campo "DVPB_ContratoTitulo" for "'1'". REGRA 2: O conteúdo do campo deverá conter um valor no formato "99999999999/AAAA" (NRO/ANO), o ANO será validado segundo o critério "<= EXERCÍCIO" (ver regra d).
+DIVIDA_PUBLICA;15;CONT_NumAditivo;NÃO;COND;Caractere(16);Núm. do aditivo do contrato;CONTRATO;"99999999999/AAAA" (NRO/ANO);REGRA 1: O conteúdo do campo deverá estar preenchido quando o conteúdo do campo "DVPB_ContratoTitulo" for "'1'". REGRA 2: O conteúdo do campo deverá conter um valor no formato "99999999999/AAAA" (NRO/ANO), o ANO será validado segundo o critério "<= EXERCÍCIO" (ver regra d).
+DIVIDA_PUBLICA;16;BCO_Codigo;NÃO;COND;Caractere(3);Cód. do banco;TI.BANCO;;REGRA 1: O conteúdo do campo deverá estar preenchido quando o conteúdo do campo "TDVPB_Codigo" for "'1', '8', '9'".
+DIVIDA_PUBLICA;17;CG_Identificacao;NÃO;COND;Caractere(20);CPF/CNPJ da empresa/ beneficiado;CADASTRO_GERAL;;REGRA 1: O conteúdo do campo deverá estar preenchido quando o conteúdo do campo "TDVPB_Codigo" for "'2', '16', '17', '11'". REGRA 2: O conteúdo do campo deverá conter um número de CPF ("999.999.999-99") ou CNPJ ("99.999.999/9999-99") válido.
+DIVIDA_PUBLICA;18;LEI_Numero;NÃO;COND;Caractere(10);Núm. da lei da autorização;LEI;"99999/AAAA" (NRO/ANO);REGRA 1: O conteúdo do campo deverá estar preenchido quando o conteúdo do campo "TDVPB_Codigo" for "'1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '12', '13', '14', '15', '16', '17', '99'". REGRA 2: O conteúdo do campo deverá conter um valor no formato "99999/AAAA" (NRO/ANO), o ANO será validado segundo o critério "<= EXERCÍCIO" (ver regra d).
+DIVIDA_PUBLICA;19;TDVPB_Outro;NÃO;COND;Caractere(50);Outro tipo de dívida pública;;;REGRA 1: O conteúdo do campo deverá estar preenchido quando o conteúdo do campo "TDVPB_Codigo" for "'99'".
+DIVIDA_PUBLICA_SALDO;1;DVPB_NumSequencial;SIM;SIM;Inteiro;Núm. sequencial da dívida pública;DIVIDA_PUBLICA;;REGRA 1: O conteúdo do campo deverá conter um número POSITIVO quando obrigatório.
+DIVIDA_PUBLICA_SALDO;2;DVPBS_QtdeParcelasRestantes;NÃO;SIM;Inteiro;Quantidade de parcelas restantes;;;REGRA 1: O conteúdo do campo deverá conter um número POSITIVO quando obrigatório.
+DIVIDA_PUBLICA_SALDO;3;DVPBS_Saldo;NÃO;SIM;Caractere(14,2);Saldo;;;REGRA 1: O conteúdo do campo deverá conter o número ZERO ou POSITIVO quando obrigatório.
+DOCUMENTO_DIVERSO;1;DD_Exercicio;SIM;SIM;Caractere(4);Exercício da aplicação/ execução do documento;;"9999" (NRO);REGRA 1: O conteúdo do campo deverá conter um MÊS ou ANO válido, o MÊS ou ANO será validado segundo o critério ">= EXERCÍCIO" (ver regra d).
+DOCUMENTO_DIVERSO;2;DD_MesCompetencia;SIM;SIM;Inteiro;Mês de competência;;"99" (NRO);REGRA 1: O conteúdo do campo deverá estar preenchido com "1...13|'20', '21', '22', '23', '24', '99'". REGRA 2: O conteúdo do campo deverá conter um valor de bimestre (de "1" a "6"), de quadrimestre (de "1" a "3") ou de semestre (de "1" a "2") válido quando o conteúdo do campo "TDD_Codigo" for "'107', '108', '109', '124'" (anexos da LRF e audiências públicas). REGRA 3: O conteúdo do campo deverá conter um MÊS ou ANO válido, o MÊS ou ANO será validado segundo o critério "CARGA ESPECIAL" (ver regra d).
+DOCUMENTO_DIVERSO;3;DD_Numero;SIM;SIM;Caractere(16);Núm. do documento;;"99999999999/AAAA" (NRO/ANO);REGRA 1: O conteúdo do campo deverá conter um valor no formato "99999999999/AAAA" (NRO/ANO), o ANO será validado segundo o critério "= EXERCÍCIO" (ver regra d).
+DOCUMENTO_DIVERSO;4;TDD_Codigo;NÃO;SIM;Inteiro;Cód. do tipo do documento;TI.TIPO_DOCUMENTO_DIVERSO;1...186;REGRA 1: O conteúdo do campo deverá estar preenchido com "1...186".
+DOCUMENTO_DIVERSO;5;DD_TipoPeriodo;NÃO;COND;Inteiro;Tipo do período;;"1" para quadrimestral "2" para semestral;REGRA 1: O conteúdo do campo deverá estar preenchido com "1...2", quando o conteúdo do campo "TDD_Codigo" for "'108', '124'".
+DOCUMENTO_DIVERSO;6;DD_NomeArqPDF;NÃO;SIM;Caractere(19);Nome do arquivo PDF;;;REGRA 1: A formatação do nome do arquivo PDF deverá estar de acordo com a regra "DD_AAAAMM_99999.PDF".
+DOCUMENTO_DIVERSO_PUBLICACAO;1;DD_Exercicio;SIM;SIM;Caractere(4);Exercício da competência;DOCUMENTO_DIVERSO;"9999" (NRO);REGRA 1: O conteúdo do campo deverá conter um MÊS ou ANO válido, o MÊS ou ANO será validado segundo o critério ">= EXERCÍCIO" (ver regra d).
+DOCUMENTO_DIVERSO_PUBLICACAO;2;DD_MesCompetencia;SIM;SIM;Inteiro;Mês de competência;DOCUMENTO_DIVERSO;;
+DOCUMENTO_DIVERSO_PUBLICACAO;3;DD_Numero;SIM;SIM;Caractere(16);Núm. do documento;DOCUMENTO_DIVERSO;"99999999999/AAAA" (NRO/ANO);
+DOCUMENTO_DIVERSO_PUBLICACAO;4;LCPUBL_Codigo;SIM;SIM;Inteiro;Cód. do local de publicação;TI.LOCAL_PUBLICACAO;1...4|9;REGRA 1: O conteúdo do campo deverá estar preenchido com "1...4|'9'".
+DOCUMENTO_DIVERSO_PUBLICACAO;5;DDP_TipoPublicacao;SIM;SIM;Inteiro;Tipo da publicação;TI.TIPO_PUBLICACAO_DOCUMENTO;;REGRA 1: O conteúdo do campo deverá conter "0" (zero) quando o conteúdo do campo "LCPUBL_Codigo" for diferente de "'3'" ou um dos valores "'1', '2', '3', '4', '5', '6', '7'" quando o conteúdo do campo "LCPUBL_Codigo" for igual a "'3'".
+DOCUMENTO_DIVERSO_PUBLICACAO;6;DDP_DataPublicacao;NÃO;SIM;Caractere(10);Data;;;REGRA 1: O conteúdo do campo deverá conter uma DATA válida, a DATA será validada segundo o critério "<= DATA ATUAL" (ver regra d).
+DOCUMENTO_DIVERSO_PUBLICACAO;7;DDP_LocalPublicacao;NÃO;SIM;Caractere(255);Local;;;
+DOCUMENTO_DIVERSO_PUBLICACAO;8;DDP_NumDiario;NÃO;COND;Caractere(10);Núm. do diário/jornal;;;REGRA 1: O conteúdo do campo deverá estar preenchido quando o conteúdo do campo "LCPUBL_Codigo" for "'3'".
+DOCUMENTO_DIVERSO_PUBLICACAO;9;DDP_Pagina;NÃO;COND;Inteiro;Núm. da página inicial no diário/jornal;;;REGRA 1: O conteúdo do campo deverá estar preenchido quando o conteúdo do campo "LCPUBL_Codigo" for "'3'".
+DOCUMENTO_DIVERSO_PUBLICACAO;10;DDP_PaginaFinal;NÃO;COND;Inteiro;Núm. da página final no diário/jornal;;;REGRA 1: O conteúdo do campo deverá estar preenchido quando o conteúdo do campo "LCPUBL_Codigo" for "'3'".
+DOCUMENTO_DIVERSO_PUBLICACAO;11;DDP_NomeArqPDF;NÃO;COND;Caractere(20);Nome do arquivo PDF;;;REGRA 1: A formatação do nome do arquivo PDF deverá estar de acordo com a regra "DDP_AAAAMM_99999.PDF".
+DOTACAO;1;ORG_Codigo;SIM;SIM;Caractere(2);Cód. do órgão;UNIDADE_ORCAMENTARIA;;
+DOTACAO;2;UNOR_Codigo;SIM;SIM;Caractere(3);Cód. da unidade orçamentária;UNIDADE_ORCAMENTARIA;;
+DOTACAO;3;FN_Codigo;SIM;SIM;Caractere(2);Cód. da função;TI.FUNCAO;01...28|77, 99;REGRA 1: O conteúdo do campo deverá estar preenchido com "01...28|'77', '99'".
+DOTACAO;4;SFN_Codigo;SIM;SIM;Caractere(3);Cód. da subfunção;TI.SUBFUNCAO;;
+DOTACAO;5;PRG_Codigo;SIM;SIM;Caractere(4);Cód. do programa;PROJETO_ATIVIDADE;;
+DOTACAO;6;PRAT_Numero;SIM;SIM;Caractere(5);Núm. do projeto/ atividade;PROJETO_ATIVIDADE;;
+DOTACAO;7;CTEC_Codigo;SIM;SIM;Caractere(1);Cód. da categoria econômica;TI.ESPECIFICACAO_DESPESA;1...4|9;REGRA 1: O conteúdo do campo deverá estar preenchido com "1...4|'9'".
+DOTACAO;8;NDESP_Codigo;SIM;SIM;Caractere(1);Cód. do grupo da natureza de despesa;TI.ESPECIFICACAO_DESPESA;1...6|9;REGRA 1: O conteúdo do campo deverá estar preenchido com "1...6|'9'".
+DOTACAO;9;MDAP_Codigo;SIM;SIM;Caractere(2);Cód. da modalidade de aplicação;TI.ESPECIFICACAO_DESPESA;20, 22, 30, 40, 42, 50, 60, 67, 70, 71, 72, 73, 74, 75, 76, 80, 90, 91, 92, 93, 94, 95, 96, 99;REGRA 1: O conteúdo do campo deverá estar preenchido com "'20', '22', '30', '40', '42', '50', '60', '67', '70', '71', '72', '73', '74', '75', '76', '80', '90', '91', '92', '93', '94', '95', '96', '99'".
+DOTACAO;10;ELDE_Codigo;SIM;SIM;Caractere(2);Cód. do elemento de despesa;TI.ESPECIFICACAO_DESPESA;00, 01...99;REGRA 1: O conteúdo do campo deverá estar preenchido com "01...99", quando o conteúdo do campo "DOT_NivelDetalhamento" for diferente de "'1'", caso contrário deverá conter o valor "00" (zeros).
+DOTACAO;11;SELDE_Codigo;SIM;SIM;Caractere(2);Cód. do subelemento de despesa;TI.SUBELEMENTO_DESPESA;00, 01...99;REGRA 1: O conteúdo do campo deverá estar preenchido com "01...99", quando o conteúdo do campo "DOT_NivelDetalhamento" for diferente de "'1', '2'", caso contrário deverá conter o valor "00" (zeros).
+DOTACAO;12;DRGRP_Codigo;SIM;SIM;Caractere(1);Cód. do grupo da destinação de recurso;TI.DESTINACAO_RECURSO_GRUPO;1, 2, 9;REGRA 1: O conteúdo do campo deverá estar preenchido com "'1', '2', '9'".
+DOTACAO;13;DRESP_Codigo;SIM;SIM;Caractere(3);Cód. da especificação da destinação de recurso;TI.DESTINACAO_RECURSO_ESPECIFIC;;
+DOTACAO;14;DESTREC_Codigo;SIM;SIM;Caractere(7);Cód. da destinação de recurso;TI.DESTINACAO_RECURSO;;
+DOTACAO;15;DOT_MesCriacao;NÃO;SIM;Caractere(2);Mês da criação;;"99" (NRO);REGRA 1: O conteúdo do campo deverá estar preenchido com "00...12". REGRA 2: O conteúdo do campo deverá conter um MÊS ou ANO válido, o MÊS ou ANO será validado segundo o critério "<= MÊS" (ver regra d).
+DOTACAO;16;DOT_NivelDetalhamento;NÃO;SIM;Inteiro;Nível de detalhamento;TI.NIVEL_DETALHAMENTO_DOTACAO;1...3;REGRA 1: O conteúdo do campo deverá estar preenchido com "1...3".
+DOTACAO;17;DOT_ValorOrcado;NÃO;SIM;Caractere(14,2);Valor orçado;;;REGRA 1: O conteúdo do campo deverá conter "0.00" (zero) para as dotações referentes aos créditos especiais e extraordinários e diferente de "0.00" (zero) para os demais casos.
+DOTACAO;18;DOT_CodigoResumido;NÃO;SIM;Caractere(51);Cód. resumido da dotação;;;REGRA 1: O conteúdo do campo deverá conter a concatenação dos campos chaves da tabela "DOTACAO" até "DESTREC_Codigo". Favor observar a ORDEM dos campos. REGRA 2: O conteúdo do campo deverá conter um valor no formato "99.999.99.999.9999.99999.9.9.99.99.99.9.9.99.999999" (até 2021) ou "99.999.99.999.9999.99999.9.9.99.99.99.9.999.9999999" (a partir de 2022)
+EMPENHO;1;ORG_Codigo;SIM;SIM;Caractere(2);Cód. do órgão;DOTACAO;;
+EMPENHO;2;UNOR_Codigo;SIM;SIM;Caractere(3);Cód. da unidade orçamentária;DOTACAO;;
+EMPENHO;3;EMP_Numero;SIM;SIM;Caractere(11);Núm. do empenho;;"999999/AAAA" (NRO/ANO);REGRA 1: O conteúdo do campo deverá conter um valor no formato "999999/AAAA" (NRO/ANO), o ANO será validado segundo o critério "= EXERCÍCIO" (ver regra d).
+EMPENHO;4;FN_Codigo;NÃO;SIM;Caractere(2);Cód. da função;DOTACAO;01...28|77, 99;REGRA 1: O conteúdo do campo deverá estar preenchido com "01...28|'77', '99'".
+EMPENHO;5;SFN_Codigo;NÃO;SIM;Caractere(3);Cód. da subfunção;DOTACAO;;
+EMPENHO;6;PRG_Codigo;NÃO;SIM;Caractere(4);Cód. do programa;DOTACAO;;
+EMPENHO;7;PRAT_Numero;NÃO;SIM;Caractere(5);Núm. do projeto/ atividade;DOTACAO;;
+EMPENHO;8;CTEC_Codigo;NÃO;SIM;Caractere(1);Cód. da categoria econômica;DOTACAO;1...4|9;REGRA 1: O conteúdo do campo deverá estar preenchido com "1...4|'9'".
+EMPENHO;9;NDESP_Codigo;NÃO;SIM;Caractere(1);Cód. do grupo da natureza de despesa;DOTACAO;1...6|9;REGRA 1: O conteúdo do campo deverá estar preenchido com "1...6|'9'".
+EMPENHO;10;MDAP_Codigo;NÃO;SIM;Caractere(2);Cód. da modalidade de aplicação;DOTACAO;20, 22, 30, 40, 42, 50, 60, 67, 70, 71, 72, 73, 74, 75, 76, 80, 90, 91, 92, 93, 94, 95, 96, 99;REGRA 1: O conteúdo do campo deverá estar preenchido com "'20', '22', '30', '40', '42', '50', '60', '67', '70', '71', '72', '73', '74', '75', '76', '80', '90', '91', '92', '93', '94', '95', '96', '99'".
+EMPENHO;11;ELDE_Codigo;NÃO;SIM;Caractere(2);Cód. do elemento de despesa;DOTACAO;01...99;REGRA 1: O conteúdo do campo deverá estar preenchido com "01...99".
+EMPENHO;12;SELDE_Codigo;NÃO;SIM;Caractere(2);Cód. do subelemento de despesa;T.I. SUBELEMENTO_DESPESA;00...99;REGRA 1: O conteúdo do campo deverá estar preenchido com "00...99".
+EMPENHO;13;DRGRP_Codigo;NÃO;SIM;Caractere(1);Cód. do grupo da destinação de recurso;DOTACAO;1, 2;REGRA 1: O conteúdo do campo deverá estar preenchido com "'1', '2'".
+EMPENHO;14;DRESP_Codigo;NÃO;SIM;Caractere(3);Cód. da especificação da destinação de recurso;DOTACAO;;
+EMPENHO;15;DESTREC_Codigo;NÃO;SIM;Caractere(7);Cód. da destinação de recurso;T.I. DESTINACAO_RECURSO;;
+EMPENHO;16;CG_Identificacao;NÃO;SIM;Caractere(20);Identificação do credor;CADASTRO_GERAL;;
+EMPENHO;17;EMP_Data;NÃO;SIM;Caractere(10);Data do empenho;;;REGRA 1: O conteúdo do campo deverá conter uma DATA válida, a DATA será validada segundo o critério "COMPETÊNCIA DA CARGA" (ver regra d).
+EMPENHO;18;EMP_Descricao;NÃO;SIM;Caractere(255);Descrição;;;
+EMPENHO;19;EMP_Tipo;NÃO;SIM;Caractere(1);Tipo;;"1" para estimativo "2" para global "3" para ordinário;REGRA 1: O conteúdo do campo deverá estar preenchido com "1...3".
+EMPENHO;20;EMP_Valor;NÃO;SIM;Caractere(14,2);Valor empenho;;;REGRA 1: O conteúdo do campo deverá conter um número POSITIVO quando obrigatório.
+EMPENHO;21;EMP_BenefAssistenciaSocial;NÃO;COND;Caractere(1);Tipo benefício da Assistência Social;TI.TIPO_BENEF_ASSISTENCIA_SOCIAL;1...3;REGRA 1: O conteúdo do campo deverá estar preenchido com "1...3", quando o conteúdo do campo "FN_Codigo" for "'08'".
+EMPENHO;22;EMP_InstrumentoContrato;NÃO;SIM;Inteiro;Instrumento do contrato;TI.TIPO_INSTRUMENTO_CONTRATO;1...6;REGRA 1: O conteúdo do campo deverá estar preenchido com "1...6".
+EMPENHO;23;EMP_TipoServicoEngenharia;NÃO;COND;Inteiro;Tipo do serviço de engenharia;TI.TIPO_SERVICO_ENGENHARIA;;REGRA 1: O conteúdo do campo deverá estar preenchido quando: a) o "ELDE_Codigo" for "51", independentemente do conteúdo de "SELDE_Codigo", b) o "ELDE_Codigo" for "36" e o "SELDE_Codigo" for "'06', '22'", c) o "ELDE_Codigo" for "39" e "SELDE_Codigo" for "'05', '16', '21'". O conteúdo "4" só poderá ser informado quando: a) "ELDE_Codigo" for "36" e o "SELDE_Codigo" for "22", b) o "ELDE_Codigo" for "39" e o "SELDE_Codigo" for "16".
+EMPENHO;24;EMP_TipoDespesaRPPS;NÃO;COND;Inteiro;Tipo da despesa RPPS;TI.TIPO_DESPESA_RPPS;1...11;REGRA 1: O conteúdo do campo deverá estar preenchido com "1...11".
+EMPENHO;25;EMP_FundamentoCompraDireta;NÃO;SIM;Inteiro;Fundamentação para compra direta;TI.FUNDAMENTO_COMPRA_DIRETA;1...31|40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93, 94, 95, 96, 97, 98, 99, 100, 101, 102, 103, 104, 105, 106, 107;REGRA 1: O conteúdo do campo deverá estar preenchido com "1...31|'40', '41', '42', '43', '44', '45', '46', '47', '48', '49', '50', '51', '52', '53', '54', '55', '56', '57', '58', '59', '60', '61', '62', '63', '64', '65', '66', '67', '68', '69', '70', '71', '72', '73', '74', '75', '76', '77', '78', '79', '80', '81', '82', '83', '84', '85', '86', '87', '88', '89', '90', '91',92', '93', '94', '95', '96', '97', '98', '99', '100', '101', '102', '103', '104', '105', '106', '107'".
+EMPENHO;26;EMP_CompraDiretaProcesso;NÃO;COND;Caractere(1);É compra direta?;;"S" para sim "N" para não;REGRA 1: O conteúdo do campo deverá estar preenchido com "'S', 'N'", quando o conteúdo do campo "EMP_FundamentoCompraDireta" for "'3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13', '14', '15', '16', '17', '18', '19', '20', '21', '22', '23', '30', '31', '40', '41', '42', '43', '44', '45', '46', '47', '48', '49', '50', '51', '52', '53', '54', '55', '56', '57', '58', '59', '60', '61', '62', '63', '64', '65', '66', '67', '68', '69', '70', '71', '72', '73', '74', '75', '76', '77', '78', '79', '80', '81', '82', '83', '84', '85'".
+EMPENHO;27;PLIC_Numero;NÃO;NÃO;Caractere(16);Núm. de controle do processo licitatório no Aplic;PROCESSO_LICITATORIO;"99999999999/AAAA" (NRO/ANO);REGRA 1: O conteúdo do campo deverá conter um valor no formato "99999999999/AAAA" (NRO/ANO), o ANO será validado segundo o critério "<= EXERCÍCIO" (ver regra d).
+EMPENHO;28;MLIC_Codigo;NÃO;NÃO;Caractere(2);Cód. da modalidade da licitação;PROCESSO_LICITATORIO;19...72|01, 02, 03, 04, 05, 06, 07, 08, 09, 10, 12, 13, 14, 15, 17;REGRA 1: O conteúdo do campo deverá estar preenchido com "19...72|'01', '02', '03', '04', '05', '06', '07', '08', '09', '10', '12', '13', '14', '15', '17'".
+EMPENHO;29;CONV_Numero;NÃO;NÃO;Caractere(16);Núm. do convênio;CONVENIO;"99999999999/AAAA" (NRO/ANO);REGRA 1: O conteúdo do campo deverá conter um valor no formato "99999999999/AAAA" (NRO/ANO), o ANO será validado segundo o critério "<= EXERCÍCIO" (ver regra d).
+EMPENHO;30;CONV_NumAditivo;NÃO;NÃO;Caractere(16);Núm. do aditivo do convênio;CONVENIO;"99999999999/AAAA" (NRO/ANO);REGRA 1: O conteúdo do campo deverá conter um valor no formato "99999999999/AAAA" (NRO/ANO), o ANO será validado segundo o critério "<= EXERCÍCIO" (ver regra d).
+EMPENHO_OBRA_PROJETO;1;ORG_Codigo;SIM;SIM;Caractere(2);Cód. do órgão;EMPENHO;;
+EMPENHO_OBRA_PROJETO;2;UNOR_Codigo;SIM;SIM;Caractere(3);Cód. da unidade orçamentária;EMPENHO;;
+EMPENHO_OBRA_PROJETO;3;EMP_Numero;SIM;SIM;Caractere(11);Núm. do empenho;EMPENHO;"999999/AAAA" (NRO/ANO);REGRA 1: O conteúdo do campo deverá conter um valor no formato "999999/AAAA" (NRO/ANO), o ANO será validado segundo o critério "<= EXERCÍCIO" (ver regra d).
+EMPENHO_OBRA_PROJETO;4;EMPOP_Tipo;SIM;SIM;Inteiro;Tipo;;"1" para obra "2" para projeto;REGRA 1: O conteúdo do campo deverá estar preenchido com "1...2".
+EMPENHO_OBRA_PROJETO;5;EMPOP_Codigo;SIM;SIM;Caractere(20);Cód. da obra/projeto cadastrado no GEOOBRAS;;00,;REGRA 1: O conteúdo do campo deverá conter apenas caracteres numéricos ("0" a "9").
+EXECUCAO_DIV_ATIVA_NAO_TRIBUT;1;CG_Identificacao;SIM;SIM;Caractere(20);CPF/CNPJ do devedor;INSCRICAO_DIV_ATIVA_NAO_TRIBUT;;REGRA 1: O conteúdo do campo deverá conter um número de CPF ("999.999.999-99") ou CNPJ ("99.999.999/9999-99") válido.
+EXECUCAO_DIV_ATIVA_NAO_TRIBUT;2;ESPRC_Codigo;SIM;SIM;Caractere(23);Cód. da especificação da receita;INSCRICAO_DIV_ATIVA_NAO_TRIBUT;"9.9.9.9.99.9.9.99.99.99" (NRO);REGRA 1: O conteúdo do campo deverá conter o/um dos seguinte(s) formato(s): 9.9.9.9.99.9.9.99.99.99.
+EXECUCAO_DIV_ATIVA_NAO_TRIBUT;3;TOPR_Codigo;SIM;SIM;Caractere(2);Cód. do tipo de operação da receita;INSCRICAO_DIV_ATIVA_NAO_TRIBUT;00...05|10, 11, 19, 99;REGRA 1: O conteúdo do campo deverá estar preenchido com "00...05|'10', '11', '19', '99'".
+EXECUCAO_DIV_ATIVA_NAO_TRIBUT;4;IDVATN_AnoInscricao;SIM;SIM;Caractere(4);Ano da inscrição;INSCRICAO_DIV_ATIVA_NAO_TRIBUT;"9999" (NRO);REGRA 1: O conteúdo do campo deverá conter um MÊS ou ANO válido, o MÊS ou ANO será validado segundo o critério "<= EXERCÍCIO" (ver regra d).
+EXECUCAO_DIV_ATIVA_NAO_TRIBUT;5;IDVATN_AnoReferencia;SIM;SIM;Caractere(4);Ano de referência;INSCRICAO_DIV_ATIVA_NAO_TRIBUT;"9999" (NRO);REGRA 1: O conteúdo do campo deverá conter um MÊS ou ANO válido, o MÊS ou ANO será validado segundo o critério "<= EXERCÍCIO" (ver regra d).
+EXECUCAO_DIV_ATIVA_NAO_TRIBUT;6;IDVATN_MesInscricao;SIM;SIM;Caractere(2);Mês da inscrição;INSCRICAO_DIV_ATIVA_NAO_TRIBUT;01...12;REGRA 1: O conteúdo do campo deverá estar preenchido com "01...12".
+EXECUCAO_DIV_ATIVA_NAO_TRIBUT;7;IDVATN_NumSequencial;SIM;SIM;Inteiro;Núm. sequencial da dívida;INSCRICAO_DIV_ATIVA_NAO_TRIBUT;;REGRA 1: O conteúdo do campo deverá conter um número POSITIVO quando obrigatório.
+EXECUCAO_DIV_ATIVA_NAO_TRIBUT;8;EDANT_NumProtocolo;SIM;SIM;Caractere(16);Núm. do protocolo;;"99999999999/AAAA" (NRO/ANO);REGRA 1: O conteúdo do campo deverá conter um valor no formato "99999999999/AAAA" (NRO/ANO), o ANO será validado segundo o critério "<= EXERCÍCIO" (ver regra d).
+EXECUCAO_DIV_ATIVA_NAO_TRIBUT;9;EDANT_Data;NÃO;SIM;Caractere(10);Data da execução;;;REGRA 1: O conteúdo do campo deverá conter uma DATA válida, a DATA será validada segundo o critério "<= DATA ATUAL" (ver regra d).
+EXECUCAO_DIV_ATIVA_NAO_TRIBUT;10;EDANT_Situacao;NÃO;SIM;Caractere(1);Situação;;"1" para judicial "2" para extrajudicial;REGRA 1: O conteúdo do campo deverá estar preenchido com "1...2".
+EXECUCAO_DIV_ATIVA_NAO_TRIBUT;11;EDANT_Valor;NÃO;SIM;Caractere(14,2);Valor;;;REGRA 1: O conteúdo do campo deverá conter o número ZERO ou POSITIVO quando obrigatório.
+EXECUCAO_DIV_ATIVA_TRIBUTARIA;1;ESPRC_Codigo;SIM;SIM;Caractere(23);Cód. da especificação da receita;INSCRICAO_DIV_ATIVA_TRIBUT;"9.9.9.9.99.9.9.99.99.99" (NRO);REGRA 1: O conteúdo do campo deverá conter o/um dos seguinte(s) formato(s): 9.9.9.9.99.9.9.99.99.99.
+EXECUCAO_DIV_ATIVA_TRIBUTARIA;2;TOPR_Codigo;SIM;SIM;Caractere(2);Cód. do tipo de operação da receita;INSCRICAO_DIV_ATIVA_TRIBUT;00...05|10, 11, 19, 99;REGRA 1: O conteúdo do campo deverá estar preenchido com "00...05|'10', '11', '19', '99'".
+EXECUCAO_DIV_ATIVA_TRIBUTARIA;3;IDVAT_AnoInscricao;SIM;SIM;Caractere(4);Ano da inscrição;INSCRICAO_DIV_ATIVA_TRIBUT;"9999" (NRO);REGRA 1: O conteúdo do campo deverá conter um MÊS ou ANO válido, o MÊS ou ANO será validado segundo o critério "<= EXERCÍCIO" (ver regra d).
+EXECUCAO_DIV_ATIVA_TRIBUTARIA;4;IDVAT_AnoReferencia;SIM;SIM;Caractere(4);Ano de referência;INSCRICAO_DIV_ATIVA_TRIBUT;"9999" (NRO);REGRA 1: O conteúdo do campo deverá conter um MÊS ou ANO válido, o MÊS ou ANO será validado segundo o critério "<= EXERCÍCIO" (ver regra d).
+EXECUCAO_DIV_ATIVA_TRIBUTARIA;5;IDVAT_MesInscricao;SIM;SIM;Caractere(2);Mês da inscrição;INSCRICAO_DIV_ATIVA_TRIBUT;01...12;REGRA 1: O conteúdo do campo deverá estar preenchido com "01...12".
+EXECUCAO_DIV_ATIVA_TRIBUTARIA;6;IDVAT_TipoInscricao;SIM;SIM;Caractere(1);Tipo da inscrição;INSCRICAO_DIV_ATIVA_TRIBUT;1...4;REGRA 1: O conteúdo do campo deverá estar preenchido com "1...4".
+EXECUCAO_DIV_ATIVA_TRIBUTARIA;7;CG_Identificacao;SIM;SIM;Caractere(20);CPF/CNPJ do devedor;CADASTRO_GERAL;;REGRA 1: O conteúdo do campo deverá conter um número de CPF ("999.999.999-99") ou CNPJ ("99.999.999/9999-99") válido.
+EXECUCAO_DIV_ATIVA_TRIBUTARIA;8;EDAT_NumProtocolo;SIM;SIM;Caractere(16);Núm. do protocolo;;"99999999999/AAAA" (NRO/ANO);REGRA 1: O conteúdo do campo deverá conter um valor no formato "99999999999/AAAA" (NRO/ANO), o ANO será validado segundo o critério "<= EXERCÍCIO" (ver regra d).
+EXECUCAO_DIV_ATIVA_TRIBUTARIA;9;EDAT_Data;NÃO;SIM;Caractere(10);Data da execução;;;REGRA 1: O conteúdo do campo deverá conter uma DATA válida, a DATA será validada segundo o critério "<= DATA ATUAL" (ver regra d).
+EXECUCAO_DIV_ATIVA_TRIBUTARIA;10;EDAT_Situacao;NÃO;SIM;Caractere(1);Situação;;"1" para judicial "2" para extrajudicial;REGRA 1: O conteúdo do campo deverá estar preenchido com "1...2".
+EXECUCAO_DIV_ATIVA_TRIBUTARIA;11;EDAT_Valor;NÃO;SIM;Caractere(14,2);Valor;;;REGRA 1: O conteúdo do campo deverá conter o número ZERO ou POSITIVO quando obrigatório.
+INICIATIVA_PROJETO_ATIVIDADE;1;INIC_Codigo;SIM;SIM;Caractere(4);Cód. da iniciativa;PLANO_ESTRATEGICO_INICIATIVA;;
+INICIATIVA_PROJETO_ATIVIDADE;2;OBJ_Codigo;SIM;SIM;Caractere(4);Cód. do objetivo;PLANO_ESTRATEGICO_INICIATIVA;;
+INICIATIVA_PROJETO_ATIVIDADE;3;PRAT_Numero;SIM;SIM;Caractere(5);Núm. do projeto/ atividade;PROJETO_ATIVIDADE;;
+INICIATIVA_PROJETO_ATIVIDADE;4;PRG_Codigo;SIM;SIM;Caractere(4);Cód. do programa;PROJETO_ATIVIDADE;;
+INSCRICAO_DIV_ATIVA_NAO_TRIBUT;1;CG_Identificacao;SIM;SIM;Caractere(20);CPF/CNPJ do devedor;CADASTRO_GERAL;;REGRA 1: O conteúdo do campo deverá conter um número de CPF ("999.999.999-99") ou CNPJ ("99.999.999/9999-99") válido.
+INSCRICAO_DIV_ATIVA_NAO_TRIBUT;2;ESPRC_Codigo;SIM;SIM;Caractere(23);Cód. da especificação da receita;TI.ESPECIFICACAO_RECEITA;"9.9.9.9.99.9.9.99.99.99" (NRO);REGRA 1: O conteúdo do campo deverá conter o/um dos seguinte(s) formato(s): 9.9.9.9.99.9.9.99.99.99.
+INSCRICAO_DIV_ATIVA_NAO_TRIBUT;3;TOPR_Codigo;SIM;SIM;Caractere(2);Cód. do tipo de operação da receita;TI.TIPO_OPERACAO_RECEITA;00...05|10, 11, 19, 99;REGRA 1: O conteúdo do campo deverá estar preenchido com "00...05|'10', '11', '19', '99'".
+INSCRICAO_DIV_ATIVA_NAO_TRIBUT;4;IDVATN_AnoInscricao;SIM;SIM;Caractere(4);Ano da inscrição;;"9999" (NRO);REGRA 1: O conteúdo do campo deverá conter um MÊS ou ANO válido, o MÊS ou ANO será validado segundo o critério "<= EXERCÍCIO" (ver regra d).
+INSCRICAO_DIV_ATIVA_NAO_TRIBUT;5;IDVATN_AnoReferencia;SIM;SIM;Caractere(4);Ano de referência;;"9999" (NRO);REGRA 1: O conteúdo do campo deverá conter um MÊS ou ANO válido, o MÊS ou ANO será validado segundo o critério "<= EXERCÍCIO" (ver regra d).
+INSCRICAO_DIV_ATIVA_NAO_TRIBUT;6;IDVATN_MesInscricao;SIM;SIM;Caractere(2);Mês da inscrição;;01...12;REGRA 1: O conteúdo do campo deverá estar preenchido com "01...12".
+INSCRICAO_DIV_ATIVA_NAO_TRIBUT;7;IDVATN_NumSequencial;SIM;SIM;Inteiro;Núm. sequencial da dívida;;;REGRA 1: O conteúdo do campo deverá conter um número POSITIVO quando obrigatório.
+INSCRICAO_DIV_ATIVA_NAO_TRIBUT;8;IDVATN_Descricao;NÃO;NÃO;Caractere(100);Descrição resumida do crédito inscrito em dívida ativa;;;
+INSCRICAO_DIV_ATIVA_NAO_TRIBUT;9;IDVATN_NumProcessoTCE;NÃO;COND;Caractere(14);Núm. do processo TCE-MT;;"999999999/AAAA" (NRO/ANO);REGRA 1: O conteúdo do campo deverá estar preenchido quando o conteúdo do campo "ESPRC_Codigo" for "'1.9.2.1.06.51.00', '1.9.3.2.99.51.01'". REGRA 2: O conteúdo do campo deverá conter um valor no formato "999999999/AAAA" (NRO/ANO), o ANO será validado segundo o critério "<= EXERCÍCIO" (ver regra d).
+INSCRICAO_DIV_ATIVA_NAO_TRIBUT;10;IDVATN_Valor;NÃO;SIM;Caractere(14,2);Valor inscrito;;;REGRA 1: O conteúdo do campo deverá conter o número ZERO ou POSITIVO quando obrigatório.
+INSCRICAO_DIV_ATIVA_TRIBUT;1;ESPRC_Codigo;SIM;SIM;Caractere(23);Cód. da especificação da receita;TI.ESPECIFICACAO_RECEITA;"9.9.9.9.99.9.9.99.99.99" (NRO);REGRA 1: O conteúdo do campo deverá conter o/um dos seguinte(s) formato(s): 9.9.9.9.99.9.9.99.99.99.
+INSCRICAO_DIV_ATIVA_TRIBUT;2;TOPR_Codigo;SIM;SIM;Caractere(2);Cód. do tipo de operação da receita;TI.TIPO_OPERACAO_RECEITA;00...05|10, 11, 19, 99;REGRA 1: O conteúdo do campo deverá estar preenchido com "00...05|'10', '11', '19', '99'".
+INSCRICAO_DIV_ATIVA_TRIBUT;3;IDVAT_AnoInscricao;SIM;SIM;Caractere(4);Ano da inscrição;;"9999" (NRO);REGRA 1: O conteúdo do campo deverá conter um MÊS ou ANO válido, o MÊS ou ANO será validado segundo o critério "<= EXERCÍCIO" (ver regra d).
+INSCRICAO_DIV_ATIVA_TRIBUT;4;IDVAT_AnoReferencia;SIM;SIM;Caractere(4);Ano de referência;;"9999" (NRO);REGRA 1: O conteúdo do campo deverá conter um MÊS ou ANO válido, o MÊS ou ANO será validado segundo o critério "<= EXERCÍCIO" (ver regra d).
+INSCRICAO_DIV_ATIVA_TRIBUT;5;IDVAT_MesInscricao;SIM;SIM;Caractere(2);Mês da inscrição;;01...12;REGRA 1: O conteúdo do campo deverá estar preenchido com "01...12".
+INSCRICAO_DIV_ATIVA_TRIBUT;6;IDVAT_TipoInscricao;SIM;SIM;Caractere(1);Tipo da inscrição;TI.TIPO_INSCRICAO_DIVIDA_ATIVA;1...4;REGRA 1: O conteúdo do campo deverá estar preenchido com "1...4".
+INSCRICAO_DIV_ATIVA_TRIBUT;7;IDVAT_Valor;NÃO;SIM;Caractere(14,2);Valor inscrito;;;REGRA 1: O conteúdo do campo deverá conter o número ZERO ou POSITIVO quando obrigatório.
+INSCRICAO_RESTO_PAGAR;1;ORG_Codigo;SIM;SIM;Caractere(2);Cód. do órgão;EMPENHO;;
+INSCRICAO_RESTO_PAGAR;2;UNOR_Codigo;SIM;SIM;Caractere(3);Cód. da unidade orçamentária;EMPENHO;;
+INSCRICAO_RESTO_PAGAR;3;EMP_Numero;SIM;SIM;Caractere(11);Núm. do empenho;EMPENHO;"999999/AAAA" (NRO/ANO);REGRA 1: O conteúdo do campo deverá conter um valor no formato "999999/AAAA" (NRO/ANO), o ANO será validado segundo o critério "<= EXERCÍCIO" (ver regra d).
+INSCRICAO_RESTO_PAGAR;4;IRP_Tipo;SIM;SIM;Caractere(1);Tipo da inscrição;;"1" para não processado "2" para processado;REGRA 1: O conteúdo do campo deverá estar preenchido com "1...2".
+INSCRICAO_RESTO_PAGAR;5;CG_Identificacao;NÃO;SIM;Caractere(20);Identificação do credor;CADASTRO_GERAL;;
+INSCRICAO_RESTO_PAGAR;6;FN_Codigo;NÃO;SIM;Caractere(2);Cód. da função;TI.FUNCAO;01...28|77, 99;REGRA 1: O conteúdo do campo deverá estar preenchido com "01...28|'77', '99'".
+INSCRICAO_RESTO_PAGAR;7;SFN_Codigo;NÃO;SIM;Caractere(3);Cód. da subfunção;TI.SUBFUNCAO;;
+INSCRICAO_RESTO_PAGAR;8;CTEC_Codigo;NÃO;SIM;Caractere(1);Cód. da categoria econômica;TI.CATEGORIA_ECONOMICA;1...4|9;REGRA 1: O conteúdo do campo deverá estar preenchido com "1...4|'9'".
+INSCRICAO_RESTO_PAGAR;9;NDESP_Codigo;NÃO;SIM;Caractere(1);Cód. do grupo da natureza de despesa;TI.NATUREZA_DESPESA;1...6|9;REGRA 1: O conteúdo do campo deverá estar preenchido com "1...6|'9'".
+INSCRICAO_RESTO_PAGAR;10;MDAP_Codigo;NÃO;SIM;Caractere(2);Cód. da modalidade de aplicação;TI.MODALIDADE_APLICACAO;20, 22, 30, 40, 42, 50, 60, 67, 70, 71, 72, 73, 74, 75, 76, 80, 90, 91, 92, 93, 94, 95, 96, 99;REGRA 1: O conteúdo do campo deverá estar preenchido com "'20', '22', '30', '40', '42', '50', '60', '67', '70', '71', '72', '73', '74', '75', '76', '80', '90', '91', '92', '93', '94', '95', '96', '99'".
+INSCRICAO_RESTO_PAGAR;11;ELDE_Codigo;NÃO;SIM;Caractere(2);Cód. do elemento de despesa;TI.ELEMENTO_DESPESA;01...99;REGRA 1: O conteúdo do campo deverá estar preenchido com "01...99".
+INSCRICAO_RESTO_PAGAR;12;SELDE_Codigo;NÃO;SIM;Caractere(2);Cód. do subelemento de despesa;TI.SUBELEMENTO_DESPESA;;
+INSCRICAO_RESTO_PAGAR;13;DRGRP_Codigo;NÃO;SIM;Caractere(1);Cód. do grupo da destinação de recurso;TI.DESTINACAO_RECURSO_GRUPO;1, 2;REGRA 1: O conteúdo do campo deverá estar preenchido com "'1', '2'".
+INSCRICAO_RESTO_PAGAR;14;DRESP_Codigo;NÃO;SIM;Caractere(3);Cód. da especificação da destinação de recurso;TI.DESTINACAO_RECURSO_ESPECIFIC;;
+INSCRICAO_RESTO_PAGAR;15;DESTREC_Codigo;NÃO;SIM;Caractere(7);Cód. da destinação de recurso;TI.DESTINACAO_RECURSO;;
+INSCRICAO_RESTO_PAGAR;16;IRP_Data;NÃO;SIM;Caractere(10);Data da inscrição;;;REGRA 1: O conteúdo do campo deverá conter uma DATA válida, a DATA será validada segundo o critério "<= DATA ATUAL" (ver regra d).
+INSCRICAO_RESTO_PAGAR;17;IRP_DataExigibilidade;NÃO;COND;Caractere(10);Data da exigibilidade;;;REGRA 1: O conteúdo do campo deverá estar preenchido quando o conteúdo do campo "IRP_Tipo" for "'2'".
+INSCRICAO_RESTO_PAGAR;18;IRP_Valor;NÃO;SIM;Caractere(14,2);Valor inscrito;;;REGRA 1: O conteúdo do campo deverá conter o número ZERO ou POSITIVO quando obrigatório.
+INSCRICAO_RESTO_PAGAR;19;IRP_DescricaoEmpenho;NÃO;NÃO;Caractere(255);Descrição do empenho do ano anterior;;;
+INSCRICAO_RESTO_PAGAR;20;CONV_Numero;NÃO;NÃO;Caractere(16);Núm. do convênio;CONVENIO;"99999999999/AAAA" (NRO/ANO);REGRA 1: O conteúdo do campo deverá conter um valor no formato "99999999999/AAAA" (NRO/ANO), o ANO será validado segundo o critério "<= EXERCÍCIO" (ver regra d).
+INSCRICAO_RESTO_PAGAR;21;CONV_NumAditivo;NÃO;NÃO;Caractere(16);Núm. do aditivo do convênio;CONVENIO;"99999999999/AAAA" (NRO/ANO);REGRA 1: O conteúdo do campo deverá conter um valor no formato "99999999999/AAAA" (NRO/ANO), o ANO será validado segundo o critério "<= EXERCÍCIO" (ver regra d).
+ITEM_LIQUIDACAO_EMPENHO;1;ORG_Codigo;SIM;SIM;Caractere(2);Cód. do órgão;LIQUIDACAO_EMPENHO;;
+ITEM_LIQUIDACAO_EMPENHO;2;UNOR_Codigo;SIM;SIM;Caractere(3);Cód. da unidade orçamentária;LIQUIDACAO_EMPENHO;;
+ITEM_LIQUIDACAO_EMPENHO;3;EMP_Numero;SIM;SIM;Caractere(11);Núm. do empenho;LIQUIDACAO_EMPENHO;"999999/AAAA" (NRO/ANO);REGRA 1: O conteúdo do campo deverá conter um valor no formato "999999/AAAA" (NRO/ANO), o ANO será validado segundo o critério "<= EXERCÍCIO" (ver regra d).
+ITEM_LIQUIDACAO_EMPENHO;4;LIQ_Numero;SIM;SIM;Caractere(11);Núm. da liquidação;LIQUIDACAO_EMPENHO;"999999/AAAA" (NRO/ANO);REGRA 1: O conteúdo do campo deverá conter um valor no formato "999999/AAAA" (NRO/ANO), o ANO será validado segundo o critério "<= EXERCÍCIO" (ver regra d).
+ITEM_LIQUIDACAO_EMPENHO;5;ELDE_Codigo;SIM;SIM;Caractere(2);Cód. do elemento de despesa;TI.DESDOBRAMENTO_DESPESA;;
+ITEM_LIQUIDACAO_EMPENHO;6;SELDE_Codigo;SIM;SIM;Caractere(2);Cód. do subelemento de despesa;TI.DESDOBRAMENTO_DESPESA;;
+ITEM_LIQUIDACAO_EMPENHO;7;DELDE_Codigo;SIM;SIM;Caractere(2);Cód. do desdobramento da despesa;TI.DESDOBRAMENTO_DESPESA;;
+ITEM_LIQUIDACAO_EMPENHO;8;ILIQ_Data;SIM;SIM;Caractere(10);Data do lançamento/ estorno;;;REGRA 1: O conteúdo do campo deverá conter uma DATA válida, a DATA será validada segundo o critério "COMPETÊNCIA DA CARGA" (ver regra d).
+ITEM_LIQUIDACAO_EMPENHO;9;ILIQ_TipoLancamento;SIM;SIM;Caractere(1);Tipo;;"1" para estorno do lançamento "2" para lançamento;REGRA 1: O conteúdo do campo deverá estar preenchido com "1...2".
+ITEM_LIQUIDACAO_EMPENHO;10;ILIQ_Quantidade;NÃO;COND;Caractere(10,2);Quantidade do item;;;REGRA 1: O conteúdo do campo deverá estar preenchido para o conteúdo do "DELDE_Codigo" diferente de "00" (zero).
+ITEM_LIQUIDACAO_EMPENHO;11;ILIQ_UnidadeMedida;NÃO;SIM;Caractere(2);Unidade de medida do item;TI.UNIDADE_MEDIDA;01...28|99;REGRA 1: O conteúdo do campo deverá estar preenchido com "01...28|'99'".
+ITEM_LIQUIDACAO_EMPENHO;12;ILIQ_TipoServicoEngenharia;NÃO;COND;Inteiro;Tipo do serviço de engenharia;TI.TIPO_SERVICO_ENGENHARIA;;REGRA 1: O conteúdo do campo deverá estar preenchido quando: a) o "ELDE_Codigo" for "51", independentemente do conteúdo de "SELDE_Codigo", b) o "ELDE_Codigo" for "36" e o "SELDE_Codigo" for "'06', '22'", c) o "ELDE_Codigo" for "39" e "SELDE_Codigo" for "'05', '16', '21'". O conteúdo "4" só poderá ser informado quando: a) "ELDE_Codigo" for "36" e o "SELDE_Codigo" for "22", b) o "ELDE_Codigo" for "39" e o "SELDE_Codigo" for "16".
+ITEM_LIQUIDACAO_EMPENHO;13;ILIQ_Valor;NÃO;SIM;Caractere(14,2);Valor do item;;;REGRA 1: O conteúdo do campo deverá conter o número ZERO ou POSITIVO quando obrigatório.
+ITEM_LIQUIDACAO_PROC_LICIT;1;ORG_Codigo;SIM;SIM;Caractere(2);Cód. do órgão;ITEM_LIQUIDACAO_EMPENHO;;
+ITEM_LIQUIDACAO_PROC_LICIT;2;UNOR_Codigo;SIM;SIM;Caractere(3);Cód. da unidade orçamentária;ITEM_LIQUIDACAO_EMPENHO;;
+ITEM_LIQUIDACAO_PROC_LICIT;3;EMP_Numero;SIM;SIM;Caractere(11);Núm. do empenho;ITEM_LIQUIDACAO_EMPENHO;"999999/AAAA" (NRO/ANO);REGRA 1: O conteúdo do campo deverá conter um valor no formato "999999/AAAA" (NRO/ANO), o ANO será validado segundo o critério "<= EXERCÍCIO" (ver regra d).
+ITEM_LIQUIDACAO_PROC_LICIT;4;LIQ_Numero;SIM;SIM;Caractere(11);Núm. da liquidação;ITEM_LIQUIDACAO_EMPENHO;"999999/AAAA" (NRO/ANO);REGRA 1: O conteúdo do campo deverá conter um valor no formato "999999/AAAA" (NRO/ANO), o ANO será validado segundo o critério "<= EXERCÍCIO" (ver regra d).
+ITEM_LIQUIDACAO_PROC_LICIT;5;ELDE_Codigo;SIM;SIM;Caractere(2);Cód. do elemento de despesa;ITEM_LIQUIDACAO_EMPENHO;;
+ITEM_LIQUIDACAO_PROC_LICIT;6;SELDE_Codigo;SIM;SIM;Caractere(2);Cód. do subelemento de despesa;ITEM_LIQUIDACAO_EMPENHO;;
+ITEM_LIQUIDACAO_PROC_LICIT;7;DELDE_Codigo;SIM;SIM;Caractere(2);Cód. do desdobramento da despesa;ITEM_LIQUIDACAO_EMPENHO;;
+ITEM_LIQUIDACAO_PROC_LICIT;8;ILIQ_Data;SIM;SIM;Caractere(10);Data do lançamento/ estorno;ITEM_LIQUIDACAO_EMPENHO;;REGRA 1: O conteúdo do campo deverá conter uma DATA válida, a DATA será validada segundo o critério "COMPETÊNCIA DA CARGA" (ver regra d).
+ITEM_LIQUIDACAO_PROC_LICIT;9;ILIQ_TipoLancamento;SIM;SIM;Caractere(1);Tipo;ITEM_LIQUIDACAO_EMPENHO;"2" para lançamento;REGRA 1: O conteúdo do campo deverá estar preenchido com "'2'".
+ITEM_LIQUIDACAO_PROC_LICIT;10;ILIQPLIC_NumSequencial;SIM;SIM;Inteiro;Núm. sequencial por liquidação;;;REGRA 1: O conteúdo do campo deverá conter um número POSITIVO quando obrigatório.
+ITEM_LIQUIDACAO_PROC_LICIT;11;PLIC_Numero;SIM;SIM;Caractere(16);Núm. de controle do processo licitatório no Aplic;EMPENHO;"99999999999/AAAA" (NRO/ANO);REGRA 1: O conteúdo do campo deverá conter um valor no formato "99999999999/AAAA" (NRO/ANO), o ANO será validado segundo o critério "<= EXERCÍCIO" (ver regra d).
+ITEM_LIQUIDACAO_PROC_LICIT;12;MLIC_Codigo;SIM;SIM;Caractere(2);Cód. da modalidade da licitação;EMPENHO;19...72|01, 02, 03, 04, 05, 06, 07, 08, 09, 10, 12, 13, 14, 15, 17;REGRA 1: O conteúdo do campo deverá estar preenchido com "19...72|'01', '02', '03', '04', '05', '06', '07', '08', '09', '10', '12', '13', '14', '15', '17'".
+ITEM_LIQUIDACAO_PROC_LICIT;13;PLICLOTE_NumeroLote;SIM;SIM;Inteiro;Núm. do lote;PARTICIPACAO_PROC_LICIT_ITEM ou PARTICIP_ATA_REG_PRECO_ITEM ou PROC_LICIT_LOTE_ITEM_HOMOLOG;;REGRA 1: O conteúdo do campo deverá conter o número ZERO ou POSITIVO quando obrigatório.
+ITEM_LIQUIDACAO_PROC_LICIT;14;IPLIC_NumeroItem;SIM;SIM;Inteiro;Núm. do item;PARTICIPACAO_PROC_LICIT_ITEM ou PARTICIP_ATA_REG_PRECO_ITEM ou PROC_LICIT_LOTE_ITEM_HOMOLOG ou ITEM_PROC_LICIT_ADESAO;;REGRA 1: O conteúdo do campo deverá conter o número ZERO ou POSITIVO quando obrigatório.
+ITEM_LIQUIDACAO_PROC_LICIT;15;TIPL_Codigo;SIM;SIM;Caractere(12);Cód. do tipo do item;TI.TIPO_ITEM_PROC_LICIT;;
+ITEM_LIQUIDACAO_PROC_LICIT;16;UNDFRN_Codigo;SIM;SIM;Inteiro;Cód. da unidade de fornecimento;TI.UND_FORNECIMENTO;;
+ITEM_LIQUIDACAO_PROC_LICIT;17;ILIQPLIC_Quantidade;NÃO;SIM;Caractere(10,4);Quantidade;;;REGRA 1: O conteúdo do campo deverá conter um número POSITIVO quando obrigatório.
+ITEM_LIQUIDACAO_PROC_LICIT;18;ILIQPLIC_ValorUnitario;NÃO;SIM;Caractere(14,4);Valor unitário;;;REGRA 1: O conteúdo do campo deverá conter um número POSITIVO quando obrigatório.
+ITEM_LIQUIDACAO_PROC_LICIT;19;ILIQPLIC_ValorTotal;NÃO;SIM;Caractere(14,2);Valor total;;;REGRA 1: O conteúdo do campo deverá conter um número POSITIVO quando obrigatório. REGRA 2: O conteúdo do campo deverá conter o resultado do produto dos campos "ILIQPLIC_Quantidade" e "ILIQPLIC_ValorUnitario".
+ITEM_RESTO_PAGAR_NAO_PROCESSAD;1;ORG_Codigo;SIM;SIM;Caractere(2);Cód. do órgão;MOVIMENTO_RESTO_PAGAR;;
+ITEM_RESTO_PAGAR_NAO_PROCESSAD;2;UNOR_Codigo;SIM;SIM;Caractere(3);Cód. da unidade orçamentária;MOVIMENTO_RESTO_PAGAR;;
+ITEM_RESTO_PAGAR_NAO_PROCESSAD;3;EMP_Numero;SIM;SIM;Caractere(11);Núm. do empenho;MOVIMENTO_RESTO_PAGAR;"999999/AAAA" (NRO/ANO);REGRA 1: O conteúdo do campo deverá conter um valor no formato "999999/AAAA" (NRO/ANO), o ANO será validado segundo o critério "<= EXERCÍCIO" (ver regra d).
+ITEM_RESTO_PAGAR_NAO_PROCESSAD;4;IRP_Tipo;SIM;SIM;Caractere(1);Tipo da inscrição;MOVIMENTO_RESTO_PAGAR;1...2;REGRA 1: O conteúdo do campo deverá estar preenchido com "1...2".
+ITEM_RESTO_PAGAR_NAO_PROCESSAD;5;MOVRP_Data;SIM;SIM;Caractere(10);Data do movimento;MOVIMENTO_RESTO_PAGAR;;REGRA 1: O conteúdo do campo deverá conter uma DATA válida, a DATA será validada segundo o critério "COMPETÊNCIA DA CARGA" (ver regra d).
+ITEM_RESTO_PAGAR_NAO_PROCESSAD;6;TMOVRP_ModalidadeMovimento;SIM;SIM;Inteiro;Modalidade do movimento;MOVIMENTO_RESTO_PAGAR;4;REGRA 1: O conteúdo do campo deverá estar preenchido com "'4'".
+ITEM_RESTO_PAGAR_NAO_PROCESSAD;7;ELDE_Codigo;SIM;SIM;Caractere(2);Cód. do elemento de despesa;TI.DESDOBRAMENTO_DESPESA;;
+ITEM_RESTO_PAGAR_NAO_PROCESSAD;8;SELDE_Codigo;SIM;SIM;Caractere(2);Cód. do subelemento de despesa;TI.DESDOBRAMENTO_DESPESA;;
+ITEM_RESTO_PAGAR_NAO_PROCESSAD;9;DELDE_Codigo;SIM;SIM;Caractere(2);Cód. do desdobramento da despesa;TI.DESDOBRAMENTO_DESPESA;;
+ITEM_RESTO_PAGAR_NAO_PROCESSAD;10;IRP_Quantidade;NÃO;COND;Caractere(10,2);Quantidade do item;;;REGRA 1: O conteúdo do campo deverá estar preenchido para o conteúdo do "DELDE_Codigo" diferente de "00" (zero).
+ITEM_RESTO_PAGAR_NAO_PROCESSAD;11;IRP_UnidadeMedida;NÃO;SIM;Caractere(2);Unidade de medida do item;TI.UNIDADE_MEDIDA;01...28|99;REGRA 1: O conteúdo do campo deverá estar preenchido com "01...28|'99'".
+ITEM_RESTO_PAGAR_NAO_PROCESSAD;12;IRP_Valor;NÃO;SIM;Caractere(14,2);Valor total do item;;;REGRA 1: O conteúdo do campo deverá conter o número ZERO ou POSITIVO quando obrigatório.
+LANCAMENTO_CONTABIL_DIARIO_TCE;1;ECTCE_Codigo;SIM;SIM;Caractere(11);Cód. do elenco de contas;MOVIMENTO_CONTA_CONTABIL_TCEMT;;
+LANCAMENTO_CONTABIL_DIARIO_TCE;2;MCC_Data;SIM;SIM;Caractere(10);Data da movimentação;MOVIMENTO_CONTA_CONTABIL_TCEMT;;REGRA 1: O conteúdo do campo deverá conter uma DATA válida, a DATA será validada segundo o critério "= DATA MOVIMENTO" (ver regra d).
+LANCAMENTO_CONTABIL_DIARIO_TCE;3;TMC_Codigo;SIM;SIM;Caractere(1);Cód. do tipo do movimento contábil;MOVIMENTO_CONTA_CONTABIL_TCEMT;;REGRA 1: O conteúdo do campo deverá estar preenchido para as cargas das peças de planejamento e inicial com "'1'" e para as cargas mensais com "'2','3','4','6'".
+LANCAMENTO_CONTABIL_DIARIO_TCE;4;LCDTCE_NumLancamento;SIM;SIM;Inteiro;Núm. do lançamento;;;REGRA 1: O conteúdo do campo deverá conter um número POSITIVO quando obrigatório.
+LANCAMENTO_CONTABIL_DIARIO_TCE;5;LCDTCE_NumSequencial;SIM;SIM;Inteiro;Núm. sequencial do lançamento;;;REGRA 1: O conteúdo do campo deverá conter um número POSITIVO quando obrigatório.
+LANCAMENTO_CONTABIL_DIARIO_TCE;6;LCDTCE_Historico;NÃO;SIM;Caractere(255);Descrição do evento que gerou o lançamento;;;
+LANCAMENTO_CONTABIL_DIARIO_TCE;7;LCDTCE_ContaCorrente;NÃO;NÃO;Caractere(255);Conta corrente;;;
+LANCAMENTO_CONTABIL_DIARIO_TCE;8;LCDTCE_ValorDebito;NÃO;SIM;Caractere(14,2);Valor do débito diário;;;REGRA 1: O conteúdo do campo deverá conter o número ZERO ou POSITIVO quando obrigatório.
+LANCAMENTO_CONTABIL_DIARIO_TCE;9;LCDTCE_ValorCredito;NÃO;SIM;Caractere(14,2);Valor do crédito diário;;;REGRA 1: O conteúdo do campo deverá conter o número ZERO ou POSITIVO quando obrigatório.
+LDO;1;PRAT_Numero;SIM;SIM;Caractere(5);Núm. do projeto/ atividade;PROJETO_ATIVIDADE;;
+LDO;2;PRG_Codigo;SIM;SIM;Caractere(4);Cód. do programa;PROJETO_ATIVIDADE;;
+LDO;3;FN_Codigo;SIM;SIM;Caractere(2);Cód. da função;TI.FUNCAO;01...28|77, 99;REGRA 1: O conteúdo do campo deverá estar preenchido com "01...28|'77', '99'".
+LDO;4;SFN_Codigo;SIM;SIM;Caractere(3);Cód. da subfunção;TI.SUBFUNCAO;;
+LDO;5;LEI_Numero;NÃO;SIM;Caractere(10);Núm. da LDO;LEI;"99999/AAAA" (NRO/ANO);REGRA 1: O conteúdo do campo deverá conter um valor no formato "99999/AAAA" (NRO/ANO), o ANO será validado segundo o critério "<= EXERCÍCIO" (ver regra d).
+LDO;6;LDO_ValorMetaFisica;NÃO;SIM;Caractere(14,2);Valor da meta física;;;REGRA 1: O conteúdo do campo deverá conter "0.00" (zero) para as cargas mensais e diferente de "0.00" (zero) para a carga das Peças do Planejamento.
+LDO;7;LDO_ValorMetaFinanceira;NÃO;SIM;Caractere(14,2);Valor da meta financeira;;;REGRA 1: O conteúdo do campo deverá conter "0.00" (zero) para as cargas mensais e diferente de "0.00" (zero) para a carga das Peças do Planejamento.
+LEI;1;LEI_Numero;SIM;SIM;Caractere(10);Núm. da lei;LEI;"99999/AAAA" (NRO/ANO);REGRA 1: O conteúdo do campo deverá conter um valor no formato "99999/AAAA" (NRO/ANO), o ANO será validado segundo o critério "<= EXERCÍCIO" (ver regra d).
+LEI;2;LEI_EsferaOrigem;NÃO;SIM;Caractere(1);Tipo da esfera de governo da origem da lei;TI.TIPO_ESFERA_GOVERNO;1...3;REGRA 1: O conteúdo do campo deverá estar preenchido com "1...3".
+LEI;3;LEI_Natureza;NÃO;COND;Inteiro;Natureza;TI.NATUREZA_LEI;1...31|33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83;REGRA 1: O conteúdo do campo deverá estar preenchido quando o conteúdo do campo "LEI_EsferaOrigem" for o mesmo da esfera de governo do fiscalizado.
+LEI;4;LEI_Altera;NÃO;COND;Caractere(1);Esta lei altera uma anterior?;;"S" para sim "N" para não;REGRA 1: O conteúdo do campo deverá estar preenchido quando o conteúdo do campo "LEI_EsferaOrigem" for o mesmo da esfera de governo do fiscalizado.
+LEI;5;LEI_DataAprovacao;NÃO;COND;Caractere(10);Data da aprovação;;;REGRA 1: O conteúdo do campo deverá estar preenchido quando o conteúdo do campo "LEI_EsferaOrigem" for o mesmo da esfera de governo do fiscalizado.
+LEI;6;LEI_DataPublicacao;NÃO;COND;Caractere(10);Data da publicação;;;REGRA 1: O conteúdo do campo deverá estar preenchido quando o conteúdo do campo "LEI_EsferaOrigem" for o mesmo da esfera de governo do fiscalizado.
+LEI;7;LEI_VeicComunicacao;NÃO;COND;Caractere(255);Local da publicação;;;REGRA 1: O conteúdo do campo deverá estar preenchido quando o conteúdo do campo "LEI_EsferaOrigem" for o mesmo da esfera de governo do fiscalizado.
+LEI;8;LEI_NomeArqPDF;NÃO;COND;Caractere(20);Nome do arquivo PDF;;;REGRA 1: O conteúdo do campo deverá estar preenchido quando o conteúdo do campo "LEI_EsferaOrigem" for o mesmo da esfera de governo do fiscalizado. REGRA 2: A formatação do nome do arquivo PDF deverá estar de acordo com a regra "LEI_AAAAMM_99999.PDF".
+LEI_ALTERADA;1;LEI_Numero;SIM;SIM;Caractere(10);Núm. da lei que está sendo revogada ou alterada;LEI;"99999/AAAA" (NRO/ANO);REGRA 1: O conteúdo do campo deverá conter um valor no formato "99999/AAAA" (NRO/ANO), o ANO será validado segundo o critério "<= EXERCÍCIO" (ver regra d).
+LEI_ALTERADA;2;LEI_NumeroAltera;SIM;SIM;Caractere(10);Núm. da lei que revoga ou altera a anterior;LEI;"99999/AAAA" (NRO/ANO);REGRA 1: O conteúdo do campo deverá conter um valor no formato "99999/AAAA" (NRO/ANO), o ANO será validado segundo o critério "<= EXERCÍCIO" (ver regra d).
+LEI_ALTERADA;3;LEI_Tipo;NÃO;SIM;Caractere(1);Tipo da lei;;"1" para revogada "2" para alterada;REGRA 1: O conteúdo do campo deverá estar preenchido com "1...2".
+LIQUIDACAO_EMPENHO;1;ORG_Codigo;SIM;SIM;Caractere(2);Cód. do órgão;EMPENHO;;
+LIQUIDACAO_EMPENHO;2;UNOR_Codigo;SIM;SIM;Caractere(3);Cód. da unidade orçamentária;EMPENHO;;
+LIQUIDACAO_EMPENHO;3;EMP_Numero;SIM;SIM;Caractere(11);Núm. do empenho;EMPENHO;"999999/AAAA" (NRO/ANO);REGRA 1: O conteúdo do campo deverá conter um valor no formato "999999/AAAA" (NRO/ANO), o ANO será validado segundo o critério "= EXERCÍCIO" (ver regra d).
+LIQUIDACAO_EMPENHO;4;LIQ_Numero;SIM;SIM;Caractere(11);Núm. da liquidação;;"999999/AAAA" (NRO/ANO);REGRA 1: O conteúdo do campo deverá conter um valor no formato "999999/AAAA" (NRO/ANO), o ANO será validado segundo o critério "<= EXERCÍCIO" (ver regra d).
+LIQUIDACAO_EMPENHO;5;LIQ_Data;NÃO;SIM;Caractere(10);Data da liquidação;;;REGRA 1: O conteúdo do campo deverá conter uma DATA válida, a DATA será validada segundo o critério "COMPETÊNCIA DA CARGA" (ver regra d).
+LIQUIDACAO_EMPENHO;6;PESS_Matricula;NÃO;SIM;Caractere(10);Núm. da matrícula do responsável pela liquidação;PESSOAL;"9999999999" (NRO);REGRA 1: O conteúdo do campo não deverá conter espaços em branco (" ") quando obrigatório.
+LIQUIDACAO_EMPENHO;7;LIQ_DataAtesto;NÃO;SIM;Caractere(10);Data do atesto;;;REGRA 1: O conteúdo do campo deverá conter uma DATA válida, a DATA será validada segundo o critério "<= DATA ATUAL" (ver regra d).
+LIQUIDACAO_EMPENHO;8;PESS_MatriculaRespAtesto;NÃO;SIM;Caractere(10);Núm. da matrícula do responsável pelo atesto;PESSOAL;"9999999999" (NRO);REGRA 1: O conteúdo do campo não deverá conter espaços em branco (" ") quando obrigatório.
+LIQUIDACAO_EMPENHO;9;LIQ_DataExigibilidade;NÃO;NÃO;Caractere(10);Data da exigibilidade;;;
+LIQUIDACAO_EMPENHO;10;LIQ_TipoDocumentoHabil;NÃO;NÃO;Inteiro;Tipo do documento;TI.TIPO_DOCUMENTO_HABIL;1...4;REGRA 1: O conteúdo do campo deverá estar preenchido com "1...4".
+LIQUIDACAO_EMPENHO;11;LIQ_Valor;NÃO;SIM;Caractere(14,2);Valor liquidado;;;REGRA 1: O conteúdo do campo deverá conter um número POSITIVO quando obrigatório.
+LIQUIDACAO_EMPENHO;12;CONV_Numero;NÃO;NÃO;Caractere(16);Núm. do convênio;CONVENIO;"99999999999/AAAA" (NRO/ANO);REGRA 1: O conteúdo do campo deverá conter um valor no formato "99999999999/AAAA" (NRO/ANO), o ANO será validado segundo o critério "<= EXERCÍCIO" (ver regra d).
+LIQUIDACAO_EMPENHO;13;CONV_NumAditivo;NÃO;NÃO;Caractere(16);Núm. do aditivo do convênio;CONVENIO;"99999999999/AAAA" (NRO/ANO);REGRA 1: O conteúdo do campo deverá conter um valor no formato "99999999999/AAAA" (NRO/ANO), o ANO será validado segundo o critério "<= EXERCÍCIO" (ver regra d).
+LRF_CRONOGRAMA_DESEMBOLSO;1;ORG_Codigo;SIM;SIM;Caractere(2);Cód. do órgão;DOTACAO;;
+LRF_CRONOGRAMA_DESEMBOLSO;2;UNOR_Codigo;SIM;SIM;Caractere(3);Cód. da unidade orçamentária;DOTACAO;;
+LRF_CRONOGRAMA_DESEMBOLSO;3;FN_Codigo;SIM;SIM;Caractere(2);Cód. da função;DOTACAO;01...28|77, 99;REGRA 1: O conteúdo do campo deverá estar preenchido com "01...28|'77', '99'".
+LRF_CRONOGRAMA_DESEMBOLSO;4;SFN_Codigo;SIM;SIM;Caractere(3);Cód. da subfunção;DOTACAO;;
+LRF_CRONOGRAMA_DESEMBOLSO;5;PRG_Codigo;SIM;SIM;Caractere(4);Cód. do programa;DOTACAO;;
+LRF_CRONOGRAMA_DESEMBOLSO;6;PRAT_Numero;SIM;SIM;Caractere(5);Núm. do projeto/ atividade;DOTACAO;;
+LRF_CRONOGRAMA_DESEMBOLSO;7;CTEC_Codigo;SIM;SIM;Caractere(1);Cód. da categoria econômica;DOTACAO;1...4|9;REGRA 1: O conteúdo do campo deverá estar preenchido com "1...4|'9'".
+LRF_CRONOGRAMA_DESEMBOLSO;8;NDESP_Codigo;SIM;SIM;Caractere(1);Cód. do grupo da natureza de despesa;DOTACAO;1...6|9;REGRA 1: O conteúdo do campo deverá estar preenchido com "1...6|'9'".
+LRF_CRONOGRAMA_DESEMBOLSO;9;MDAP_Codigo;SIM;SIM;Caractere(2);Cód. da modalidade de aplicação;DOTACAO;20, 22, 30, 40, 42, 50, 60, 67, 70, 71, 72, 73, 74, 75, 76, 80, 90, 91, 92, 93, 94, 95, 96, 99;REGRA 1: O conteúdo do campo deverá estar preenchido com "'20', '22', '30', '40', '42', '50', '60', '67', '70', '71', '72', '73', '74', '75', '76', '80', '90', '91', '92', '93', '94', '95', '96', '99'".
+LRF_CRONOGRAMA_DESEMBOLSO;10;ELDE_Codigo;SIM;SIM;Caractere(2);Cód. do elemento de despesa;DOTACAO;00...99;REGRA 1: O conteúdo do campo deverá estar preenchido com "00...99".
+LRF_CRONOGRAMA_DESEMBOLSO;11;SELDE_Codigo;SIM;SIM;Caractere(2);Cód. do subelemento de despesa;DOTACAO;00...99;REGRA 1: O conteúdo do campo deverá estar preenchido com "00...99".
+LRF_CRONOGRAMA_DESEMBOLSO;12;DRGRP_Codigo;SIM;SIM;Caractere(1);Cód. do grupo da destinação de recurso;DOTACAO;1, 2;REGRA 1: O conteúdo do campo deverá estar preenchido com "'1', '2'".
+LRF_CRONOGRAMA_DESEMBOLSO;13;DRESP_Codigo;SIM;SIM;Caractere(3);Cód. da especificação da destinação de recurso;DOTACAO;;
+LRF_CRONOGRAMA_DESEMBOLSO;14;DESTREC_Codigo;SIM;SIM;Caractere(7);Cód. da destinação de recurso;DOTACAO;;
+LRF_CRONOGRAMA_DESEMBOLSO;15;LRFCD_MesReferencia;SIM;SIM;Caractere(2);Mês de referência;;01...12;REGRA 1: O conteúdo do campo deverá estar preenchido com "01...12".
+LRF_CRONOGRAMA_DESEMBOLSO;16;LRFCD_Valor;NÃO;SIM;Caractere(14,2);Valor;;;REGRA 1: O conteúdo do campo deverá conter o número ZERO ou POSITIVO quando obrigatório.
+LRF_ESTIMATIVA_IMPACTO;1;LRFEI_NumSequencial;SIM;SIM;Inteiro;Núm. sequencial da estimativa de impacto orçamentário-financeiro;;;REGRA 1: O conteúdo do campo deverá conter um número POSITIVO quando obrigatório.
+LRF_ESTIMATIVA_IMPACTO;2;TIMPLRF_Codigo;NÃO;SIM;Inteiro;Cód. do tipo do impacto;TI.TIPO_IMPACTO_LRF;1...4|10;REGRA 1: O conteúdo do campo deverá estar preenchido com "1...4|10".
+LRF_ESTIMATIVA_IMPACTO;3;LRFEI_Data;NÃO;SIM;Caractere(10);Data da realização/ conclusão da estimativa de impacto;;;REGRA 1: O conteúdo do campo deverá conter uma DATA válida, a DATA será validada segundo o critério "<= DATA ATUAL" (ver regra d).
+LRF_ESTIMATIVA_IMPACTO;4;LRFEI_Ato;NÃO;SIM;Caractere(255);Ato administrativo;;;
+LRF_ESTIMATIVA_IMPACTO;5;LRFEI_ExisteDeclaracao;NÃO;SIM;Caractere(1);Existe declaração do ordenador da despesa?;;"S" para sim "N" para não;REGRA 1: O conteúdo do campo deverá estar preenchido com "'S', 'N'".
+LRF_ESTIMATIVA_IMPACTO;6;LRFEI_NomeArqPDF;NÃO;SIM;Caractere(22);Nome do arquivo PDF;;;REGRA 1: A formatação do nome do arquivo PDF deverá estar de acordo com a regra "LRFEI_AAAAMM_99999.PDF".
+LRF_META_ARRECADACAO;1;ESPRC_Codigo;SIM;SIM;Caractere(23);Cód. da especificação da receita;PREVISAO_RECEITA;"9.9.9.9.99.9.9.99.99.99" (NRO);REGRA 1: O conteúdo do campo deverá conter o/um dos seguinte(s) formato(s): 9.9.9.9.99.9.9.99.99.99.
+LRF_META_ARRECADACAO;2;TOPR_Codigo;SIM;SIM;Caractere(2);Cód. do tipo de operação da receita;PREVISAO_RECEITA;00...05|10, 11, 19, 99;REGRA 1: O conteúdo do campo deverá estar preenchido com "00...05|'10', '11', '19', '99'".
+LRF_META_ARRECADACAO;3;PVRC_MesReferencia;SIM;SIM;Caractere(2);Mês de referência;PREVISAO_RECEITA;"99" (NRO);REGRA 1: O conteúdo do campo deverá estar preenchido com "00...12". REGRA 2: O conteúdo do campo deverá conter um MÊS ou ANO válido, o MÊS ou ANO será validado segundo o critério "<= MÊS" (ver regra d).
+LRF_META_ARRECADACAO;4;DRGRP_Codigo;SIM;SIM;Caractere(1);Cód. do grupo da destinação de recurso;PREVISAO_RECEITA;1, 2;REGRA 1: O conteúdo do campo deverá estar preenchido com "'1', '2'".
+LRF_META_ARRECADACAO;5;DRESP_Codigo;SIM;SIM;Caractere(3);Cód. da especificação da destinação de recurso;PREVISAO_RECEITA;;
+LRF_META_ARRECADACAO;6;DESTREC_Codigo;SIM;SIM;Caractere(7);Cód. da destinação de recurso;T.I. DESTINACAO_RECURSO;;
+LRF_META_ARRECADACAO;7;LRFMA_BimestreReferencia;SIM;SIM;Inteiro;Bimestre que se refere a meta de arrecadação;;1...6;REGRA 1: O conteúdo do campo deverá estar preenchido com "1...6".
+LRF_META_ARRECADACAO;8;LRFMA_Valor;NÃO;SIM;Caractere(14,2);Valor da meta de arrecadação;;;REGRA 1: O conteúdo do campo deverá conter o número ZERO ou POSITIVO quando obrigatório.
+MOVIMENTO_CONTA_CONTABIL_TCEMT;1;ECTCE_Codigo;SIM;SIM;Caractere(11);Cód. do elenco de contas;TI.ELENCO_CONTAS_TCEMT;;
+MOVIMENTO_CONTA_CONTABIL_TCEMT;2;TMC_Codigo;SIM;SIM;Caractere(1);Cód. do tipo do movimento contábil;TI.TIPO_MOVIMENTO_CONTA_CONTABIL;;REGRA 1: O conteúdo do campo deverá estar preenchido para as cargas das peças de planejamento e inicial com "'1'" e para as cargas mensais com "'2','3','4','6'".
+MOVIMENTO_CONTA_CONTABIL_TCEMT;3;MCC_Data;SIM;SIM;Caractere(10);Data da movimentação;;;REGRA 1: O conteúdo do campo deverá conter uma DATA válida, a DATA será validada segundo o critério "= DATA MOVIMENTO" (ver regra d).
+MOVIMENTO_CONTA_CONTABIL_TCEMT;4;MCC_ValorDebito;NÃO;SIM;Caractere(14,2);Valor do débito;;;REGRA 1: O conteúdo do campo deverá conter o número ZERO ou POSITIVO quando obrigatório.
+MOVIMENTO_CONTA_CONTABIL_TCEMT;5;MCC_ValorCredito;NÃO;SIM;Caractere(14,2);Valor do crédito;;;REGRA 1: O conteúdo do campo deverá conter o número ZERO ou POSITIVO quando obrigatório.
+MOVIMENTO_DIVIDA_PUBLICA;1;DVPB_NumSequencial;SIM;SIM;Inteiro;Núm. sequencial da dívida pública;DIVIDA_PUBLICA;;REGRA 1: O conteúdo do campo deverá conter um número POSITIVO quando obrigatório.
+MOVIMENTO_DIVIDA_PUBLICA;2;MDVPB_Tipo;SIM;SIM;Inteiro;Tipo do movimento;TI.TIPO_MOVIMENTO_DIVIDA_PUBLICA;1...10;REGRA 1: O conteúdo do campo deverá estar preenchido com "1...10".
+MOVIMENTO_DIVIDA_PUBLICA;3;MDVPB_Data;SIM;SIM;Caractere(10);Data da movimentação;;;REGRA 1: O conteúdo do campo deverá conter uma DATA válida, a DATA será validada segundo o critério "COMPETÊNCIA DA CARGA" (ver regra d).
+MOVIMENTO_DIVIDA_PUBLICA;4;MDVPB_NumSequencial;SIM;SIM;Inteiro;Núm. sequencial da movimentação;;;REGRA 1: O conteúdo do campo deverá conter um número POSITIVO quando obrigatório.
+MOVIMENTO_DIVIDA_PUBLICA;5;MDVPB_DataVencimento;NÃO;COND;Caractere(10);Data do vencimento;;;REGRA 1: O conteúdo do campo deverá estar preenchido quando o conteúdo do campo "MDVPB_Tipo" for "'4'".
+MOVIMENTO_DIVIDA_PUBLICA;6;MDVPB_NumParcela;NÃO;COND;Inteiro;Núm. da parcela;;;REGRA 1: O conteúdo do campo deverá estar preenchido quando o conteúdo do campo "MDVPB_Tipo" for "'4'".
+MOVIMENTO_DIVIDA_PUBLICA;7;MDVPB_Valor;NÃO;SIM;Caractere(14,2);Valor da movimentação;;;REGRA 1: O conteúdo do campo deverá conter o número ZERO ou POSITIVO quando obrigatório.
+MOVIMENTO_DIVIDA_PUBLICA;8;ORG_Codigo;NÃO;COND;Caractere(2);Cód. do órgão;EMPENHO;;REGRA 1: O conteúdo do campo deverá estar preenchido quando o conteúdo do campo "MDVPB_Tipo" for "'4'".
+MOVIMENTO_DIVIDA_PUBLICA;9;UNOR_Codigo;NÃO;COND;Caractere(3);Cód. da unidade orçamentária;EMPENHO;;REGRA 1: O conteúdo do campo deverá estar preenchido quando o conteúdo do campo "MDVPB_Tipo" for "'4'".
+MOVIMENTO_DIVIDA_PUBLICA;10;EMP_Numero;NÃO;COND;Caractere(11);Núm. do empenho;EMPENHO;"999999/AAAA" (NRO/ANO);REGRA 1: O conteúdo do campo deverá estar preenchido quando o conteúdo do campo "MDVPB_Tipo" for "'4'". REGRA 2: O conteúdo do campo deverá conter um valor no formato "999999/AAAA" (NRO/ANO), o ANO será validado segundo o critério "<= EXERCÍCIO" (ver regra d).
+MOVIMENTO_RESTO_PAGAR;1;ORG_Codigo;SIM;SIM;Caractere(2);Cód. do órgão;INSCRICAO_RESTO_PAGAR;;
+MOVIMENTO_RESTO_PAGAR;2;UNOR_Codigo;SIM;SIM;Caractere(3);Cód. da unidade orçamentária;INSCRICAO_RESTO_PAGAR;;
+MOVIMENTO_RESTO_PAGAR;3;EMP_Numero;SIM;SIM;Caractere(11);Núm. do empenho;INSCRICAO_RESTO_PAGAR;"999999/AAAA" (NRO/ANO);REGRA 1: O conteúdo do campo deverá conter um valor no formato "999999/AAAA" (NRO/ANO), o ANO será validado segundo o critério "<= EXERCÍCIO" (ver regra d).
+MOVIMENTO_RESTO_PAGAR;4;IRP_Tipo;SIM;SIM;Caractere(1);Tipo da inscrição;INSCRICAO_RESTO_PAGAR;1...2;REGRA 1: O conteúdo do campo deverá estar preenchido com "1...2".
+MOVIMENTO_RESTO_PAGAR;5;TMOVRP_ModalidadeMovimento;SIM;SIM;Inteiro;Modalidade da movimentação;TI.MODALIDADE_RESTO_PAGAR;1...11;REGRA 1: O conteúdo do campo deverá estar preenchido com "1...11".
+MOVIMENTO_RESTO_PAGAR;6;MOVRP_Data;SIM;SIM;Caractere(10);Data;;;REGRA 1: O conteúdo do campo deverá conter uma DATA válida, a DATA será validada segundo o critério "COMPETÊNCIA DA CARGA" (ver regra d).
+MOVIMENTO_RESTO_PAGAR;7;MOVRP_Valor;NÃO;SIM;Caractere(14,2);Valor total;;;REGRA 1: O conteúdo do campo deverá conter o número ZERO ou POSITIVO quando obrigatório.
+MOVIMENTO_RESTO_PAGAR;8;MOVRP_JustificativaForaOrdem;NÃO;COND;Caractere(255);Justificativa de fora da ordem;;;REGRA 1: O conteúdo do campo deverá estar preenchido quando o conteúdo do campo "TMOVRP_ModalidadeMovimento" for "'2', '3'".
+MOVIMENTO_RESTO_PAGAR;9;MOVRP_MotivoCancelamento;NÃO;COND;Caractere(120);Motivo do cancelamento;;;REGRA 1: O conteúdo do campo deverá estar preenchido quando o conteúdo do campo "TMOVRP_ModalidadeMovimento" for "'1'".
+MOVIMENTO_RESTO_PAGAR;10;LEI_Numero;NÃO;NÃO;Caractere(10);Núm. da lei da autorização;DECRETO;"99999/AAAA" (NRO/ANO);REGRA 1: O conteúdo do campo deverá conter um valor no formato "99999/AAAA" (NRO/ANO), o ANO será validado segundo o critério "<= EXERCÍCIO" (ver regra d).
+MOVIMENTO_RESTO_PAGAR;11;DECR_Numero;NÃO;NÃO;Caractere(10);Núm. do decreto da autorização;DECRETO;"99999/AAAA" (NRO/ANO);REGRA 1: O conteúdo do campo deverá conter um valor no formato "99999/AAAA" (NRO/ANO), o ANO será validado segundo o critério "<= EXERC_ATUAL" (ver regra d).
+NOTA_FISCAL;1;CG_Identificacao;SIM;SIM;Caractere(20);CPF/CNPJ do emitente;CADASTRO_GERAL;;REGRA 1: O conteúdo do campo deverá conter um número de CPF ("999.999.999-99") ou CNPJ ("99.999.999/9999-99") válido.
+NOTA_FISCAL;2;ORG_Codigo;SIM;SIM;Caractere(2);Cód. do órgão;LIQUIDACAO_EMPENHO;;
+NOTA_FISCAL;3;UNOR_Codigo;SIM;SIM;Caractere(3);Cód. da unidade orçamentária;LIQUIDACAO_EMPENHO;;
+NOTA_FISCAL;4;EMP_Numero;SIM;SIM;Caractere(11);Núm. do empenho;LIQUIDACAO_EMPENHO;"999999/AAAA" (NRO/ANO);REGRA 1: O conteúdo do campo deverá conter um valor no formato "999999/AAAA" (NRO/ANO), o ANO será validado segundo o critério "<= EXERCÍCIO" (ver regra d).
+NOTA_FISCAL;5;LIQ_Numero;SIM;SIM;Caractere(11);Núm. da liquidação;LIQUIDACAO_EMPENHO;"999999/AAAA" (NRO/ANO);REGRA 1: O conteúdo do campo deverá conter um valor no formato "999999/AAAA" (NRO/ANO), o ANO será validado segundo o critério "<= EXERCÍCIO" (ver regra d).
+NOTA_FISCAL;6;NTFSC_Numero;SIM;SIM;Caractere(13);Núm. da nota fiscal;;;
+NOTA_FISCAL;7;NTFSC_Serie;SIM;SIM;Caractere(3);Série da nota fiscal;;;
+NOTA_FISCAL;8;NTFSC_Modelo;NÃO;SIM;Inteiro;Modelo da nota fiscal;TI.MODELO_NOTA_FISCAL;1, 2, 55;REGRA 1: O conteúdo do campo deverá estar preenchido com "'1', '2', '55'".
+NOTA_FISCAL;9;NTFSC_NumeroNFE;NÃO;COND;Caractere(44);Chave de acesso da NF-e do ICMS;;;REGRA 1: O conteúdo do campo deverá estar preenchido quando o conteúdo do campo "NTFSC_Modelo" for "'55'". REGRA 2: O conteúdo do campo deverá conter um número de NF-e válido segundo regra da SEFAZ/MT, ou seja, número e dígito verificador.
+NOTA_FISCAL;10;NTFSC_NumComprovanteSEFAZMT;NÃO;NÃO;Caractere(9);Núm. do comprovante;;;
+NOTA_FISCAL;11;NTFSC_CodVerificacaoNFISS;NÃO;NÃO;Caractere(20);Cód. da verificação de autenticidade;;;
+NOTA_FISCAL;12;NTFSC_DataNota;NÃO;SIM;Caractere(10);Data da nota fiscal;;;REGRA 1: O conteúdo do campo deverá conter uma DATA válida, a DATA será validada segundo o critério "<= EXERCÍCIO" (ver regra d).
+NOTA_FISCAL;13;NTFSC_Objeto;NÃO;SIM;Caractere(255);Objeto;;;
+NOTA_FISCAL;14;NTFSC_ValorDesconto;NÃO;SIM;Caractere(14,2);Valor total dos descontos;;;REGRA 1: O conteúdo do campo deverá conter o número ZERO ou POSITIVO quando obrigatório.
+NOTA_FISCAL;15;NTFSC_ValorNota;NÃO;SIM;Caractere(14,2);Valor total dos produtos;;;REGRA 1: O conteúdo do campo deverá conter o número ZERO ou POSITIVO quando obrigatório.
+NOTA_FISCAL;16;NTFSC_ValorLiquido;NÃO;SIM;Caractere(14,2);Valor total da NF-e;;;REGRA 1: O conteúdo do campo deverá conter o número ZERO ou POSITIVO quando obrigatório.
+NOTA_FISCAL;17;NTFSC_NomeArqPDF;NÃO;COND;Caractere(22);Nome do arquivo PDF;;;REGRA 1: O conteúdo do campo deverá estar preenchido quando o conteúdo do campo "NTFSC_Modelo" for "'1', '2'". REGRA 2: A formatação do nome do arquivo PDF deverá estar de acordo com a regra "NTFSC_AAAAMM_99999.PDF".
+ORGAO;1;ORG_Codigo;SIM;SIM;Caractere(2);Cód. do órgão;;;
+ORGAO;2;ORG_Nome;NÃO;SIM;Caractere(120);Nome;;;REGRA 1: O conteúdo do campo deverá estar preenchido com "RESERVA DE CONTINGENCIA" quando o conteúdo do campo "ORG_Codigo" for um dos valores "99".
+ORGAO_TIPO;1;ORG_Codigo;SIM;SIM;Caractere(2);Cód. do órgão;ORGAO;;
+ORGAO_TIPO;2;ORG_Tipo;SIM;SIM;Inteiro;Tipo do órgão;TI.TIPO_ORGAO;1...39;REGRA 1: O conteúdo do campo deverá estar preenchido com "1...39".
+PAGAMENTO_EMPENHO;1;PGTO_Numero;SIM;SIM;Caractere(16);Núm. do pagamento;;"99999999999/AAAA" (NRO/ANO);REGRA 1: O conteúdo do campo deverá conter um valor no formato "99999999999/AAAA" (NRO/ANO), o ANO será validado segundo o critério "= EXERCÍCIO" (ver regra d).
+PAGAMENTO_EMPENHO;2;PGTO_Data;NÃO;SIM;Caractere(10);Data do pagamento;;;REGRA 1: O conteúdo do campo deverá conter uma DATA válida, a DATA será validada segundo o critério "COMPETÊNCIA DA CARGA" (ver regra d).
+PAGAMENTO_EMPENHO;3;PGTO_Valor;NÃO;SIM;Caractere(14,2);Valor do pagamento;;;REGRA 1: O conteúdo do campo deverá conter o número ZERO ou POSITIVO quando obrigatório.
+PAGAMENTO_EMPENHO;4;CONV_Numero;NÃO;NÃO;Caractere(16);Núm. do convênio;CONVENIO;"99999999999/AAAA" (NRO/ANO);REGRA 1: O conteúdo do campo deverá conter um valor no formato "99999999999/AAAA" (NRO/ANO), o ANO será validado segundo o critério "<= EXERCÍCIO" (ver regra d).
+PAGAMENTO_EMPENHO;5;CONV_NumAditivo;NÃO;NÃO;Caractere(16);Núm. do aditivo do convênio;CONVENIO;"99999999999/AAAA" (NRO/ANO);REGRA 1: O conteúdo do campo deverá conter um valor no formato "99999999999/AAAA" (NRO/ANO), o ANO será validado segundo o critério "<= EXERCÍCIO" (ver regra d).
+PAGAMENTO_EMPENHO_DOCUMENTO;1;PGTO_Numero;SIM;SIM;Caractere(16);Núm. do pagamento;PAGAMENTO_EMPENHO;"99999999999/AAAA" (NRO/ANO);REGRA 1: O conteúdo do campo deverá conter um valor no formato "99999999999/AAAA" (NRO/ANO), o ANO será validado segundo o critério "= EXERCÍCIO" (ver regra d).
+PAGAMENTO_EMPENHO_DOCUMENTO;2;PGTODOC_TipoDocumento;SIM;SIM;Caractere(1);Tipo do documento;TI.TIPO_DOC_PAGTO_EMPENHO;1...6;REGRA 1: O conteúdo do campo deverá estar preenchido com "1...6".
+PAGAMENTO_EMPENHO_DOCUMENTO;3;PGTODOC_NumDocumento;SIM;SIM;Caractere(20);Núm. do documento;;;REGRA 1: O conteúdo do campo deverá conter o número do documento de pagamento ou a palavra "DINHEIRO" (quando o pagamento for em dinheiro). REGRA 2: O conteúdo do campo não deverá conter o(s) seguinte(s) caractere(s) especial/especiais: "|".
+PAGAMENTO_EMPENHO_DOCUMENTO;4;PGTODOC_Valor;NÃO;SIM;Caractere(14,2);Valor;;;REGRA 1: O conteúdo do campo deverá conter o número ZERO ou POSITIVO quando obrigatório.
+PAGAMENTO_EMPENHO_DOCUMENTO;5;BCO_Codigo;NÃO;COND;Caractere(3);Cód. do banco;CONTA_BANCARIA;;REGRA 1: O conteúdo do campo deverá estar preenchido quando o conteúdo do campo "PGTODOC_TipoDocumento" for "'1', '2', '4', '5'".
+PAGAMENTO_EMPENHO_DOCUMENTO;6;AGN_Codigo;NÃO;COND;Caractere(10);Cód. da agência;CONTA_BANCARIA;;REGRA 1: O conteúdo do campo deverá estar preenchido quando o conteúdo do campo "PGTODOC_TipoDocumento" for "'1', '2', '4', '5'".
+PAGAMENTO_EMPENHO_DOCUMENTO;7;CCBCO_Numero;NÃO;COND;Caractere(16);Núm. da conta corrente;CONTA_BANCARIA;;REGRA 1: O conteúdo do campo deverá estar preenchido quando o conteúdo do campo "PGTODOC_TipoDocumento" for "'1', '2', '4', '5'".
+PAGAMENTO_EMPENHO_DOCUMENTO;8;CCBCO_Tipo;NÃO;COND;Caractere(1);Tipo da conta corrente;CONTA_BANCARIA;1...4;REGRA 1: O conteúdo do campo deverá estar preenchido com "1...4", quando o conteúdo do campo "PGTODOC_TipoDocumento" for "'1', '2', '4', '5'".
+PAGAMENTO_EMPENHO_DOCUMENTO;9;BCO_CodigoCredor;NÃO;COND;Caractere(3);Cód. do banco credor;CONTA_BANCARIA;;REGRA 1: O conteúdo do campo deverá estar preenchido quando o conteúdo do campo "PGTODOC_TipoDocumento" for "'4'".
+PAGAMENTO_EMPENHO_DOCUMENTO;10;AGN_CodigoCredor;NÃO;COND;Caractere(10);Cód. da agência credora;CONTA_BANCARIA;;REGRA 1: O conteúdo do campo deverá estar preenchido quando o conteúdo do campo "PGTODOC_TipoDocumento" for "'4'".
+PAGAMENTO_EMPENHO_DOCUMENTO;11;CCBCO_NumeroCredor;NÃO;COND;Caractere(16);Núm. da conta corrente credora;CONTA_BANCARIA;;REGRA 1: O conteúdo do campo deverá estar preenchido quando o conteúdo do campo "PGTODOC_TipoDocumento" for "'4'".
+PAGAMENTO_EMPENHO_DOCUMENTO;12;CCBCO_TipoCredor;NÃO;COND;Caractere(1);Tipo da conta corrente credora;CONTA_BANCARIA;1...4;REGRA 1: O conteúdo do campo deverá estar preenchido com "1...4", quando o conteúdo do campo "PGTODOC_TipoDocumento" for "'4'".
+PAGAMENTO_EMPENHO_LIQUIDACAO;1;ORG_Codigo;SIM;SIM;Caractere(2);Cód. do órgão;LIQUIDACAO_EMPENHO;;
+PAGAMENTO_EMPENHO_LIQUIDACAO;2;UNOR_Codigo;SIM;SIM;Caractere(3);Cód. da unidade orçamentária;LIQUIDACAO_EMPENHO;;
+PAGAMENTO_EMPENHO_LIQUIDACAO;3;EMP_Numero;SIM;SIM;Caractere(11);Núm. do empenho;LIQUIDACAO_EMPENHO;"999999/AAAA" (NRO/ANO);REGRA 1: O conteúdo do campo deverá conter um valor no formato "999999/AAAA" (NRO/ANO), o ANO será validado segundo o critério "<= EXERCÍCIO" (ver regra d).
+PAGAMENTO_EMPENHO_LIQUIDACAO;4;LIQ_Numero;SIM;SIM;Caractere(11);Núm. da liquidação;LIQUIDACAO_EMPENHO;"999999/AAAA" (NRO/ANO);REGRA 1: O conteúdo do campo deverá conter um valor no formato "999999/AAAA" (NRO/ANO), o ANO será validado segundo o critério "<= EXERCÍCIO" (ver regra d).
+PAGAMENTO_EMPENHO_LIQUIDACAO;5;PGTO_Numero;SIM;SIM;Caractere(16);Núm. do pagamento;PAGAMENTO_EMPENHO;"99999999999/AAAA" (NRO/ANO);REGRA 1: O conteúdo do campo deverá conter um valor no formato "99999999999/AAAA" (NRO/ANO), o ANO será validado segundo o critério "<= EXERCÍCIO" (ver regra d).
+PAGAMENTO_EMPENHO_LIQUIDACAO;6;PGTO_JustificativaForaOrdem;NÃO;NÃO;Caractere(255);Justificativa de fora da ordem;;;
+PESSOAL;1;PESS_Matricula;SIM;SIM;Caractere(10);Núm. da matrícula do servidor;;"9999999999" (NRO);REGRA 1: O conteúdo do campo não deverá conter espaços em branco (" ") quando obrigatório.
+PESSOAL;2;PESS_Nome;NÃO;SIM;Caractere(60);Nome;;;REGRA 1: O conteúdo do campo não deverá conter palavras como "SEM INFORMACAO", "NAO USAR", etc., e suas variações com acentuação.
+PESSOAL;3;PESS_CPF;NÃO;SIM;Caractere(14);CPF;;"999.999.999-99";REGRA 1: O conteúdo do campo deverá conter um número de CPF ("999.999.999-99") válido.
+PESSOAL;4;PESS_DataNascimento;NÃO;SIM;Caractere(10);Data de nascimento;;;REGRA 1: O conteúdo do campo deverá conter uma DATA válida, a DATA será validada segundo o critério "<= DATA ATUAL" (ver regra d).
+PESSOAL;5;PESS_Sexo;NÃO;SIM;Caractere(1);Sexo;;"1" para masculino "2" para feminino;REGRA 1: O conteúdo do campo deverá estar preenchido com "1...2".
+PESSOAL;6;PESS_EstadoCivil;NÃO;SIM;Caractere(1);Estado civil;TI.ESTADO_CIVIL;1...6;REGRA 1: O conteúdo do campo deverá estar preenchido com "1...6".
+PESSOAL;7;PESS_NomeConjuge;NÃO;COND;Caractere(60);Nome do(a) cônjuge;;;REGRA 1: O conteúdo do campo deverá estar preenchido quando o conteúdo do campo "PESS_EstadoCivil" for "'2', '6'".
+PESSOAL;8;PESS_CPFConjuge;NÃO;COND;Caractere(14);CPF do(a) cônjuge;;"999.999.999-99";REGRA 1: O conteúdo do campo deverá estar preenchido se o conteúdo do campo "PESS_EstadoCivil" for "'2', '6'". REGRA 2: O conteúdo do campo deverá conter um número de CPF ("999.999.999-99") válido.
+PESSOAL;9;PESS_NomeMae;NÃO;SIM;Caractere(60);Nome da mãe;;;REGRA 1: O conteúdo do campo não deverá conter palavras como "SEM INFORMACAO", "NAO USAR", etc., e suas variações com acentuação.
+PESSOAL;10;PESS_CPFMae;NÃO;COND;Caractere(14);CPF da mãe;;"999.999.999-99";REGRA 1: O conteúdo do campo deverá conter um número de CPF ("999.999.999-99") válido.
+PESSOAL;11;PESS_NomePai;NÃO;COND;Caractere(60);Nome do pai;;;
+PESSOAL;12;PESS_CPFPai;NÃO;COND;Caractere(14);CPF do pai;;"999.999.999-99";REGRA 1: O conteúdo do campo deverá conter um número de CPF ("999.999.999-99") válido caso o conteúdo do campo "PESS_NomePai" seja diferente de "NÃO CONSTA".
+PESSOAL;13;TESC_Codigo;NÃO;SIM;Inteiro;Cód. do tipo da escolaridade;TI.TIPO_ESCOLARIDADE;1...8;REGRA 1: O conteúdo do campo deverá estar preenchido com "1...8".
+PESSOAL;14;PESS_NumeroPISPASEP;NÃO;SIM;Caractere(14);Núm. do PIS/PASEP;;;
+PESSOAL;15;PESS_PNE;NÃO;SIM;Caractere(1);É pessoa com deficiência (PCD)?;;"S" para sim "N" para não;REGRA 1: O conteúdo do campo deverá estar preenchido com "'S', 'N'".
+PESSOAL;16;PESS_CelFone;NÃO;NÃO;Caractere(20);Núm. do celular;;;REGRA 1: O conteúdo do campo deverá conter um número de TELEFONE ou CELULAR válido nos formatos "(99)9999-9999", "(999)9999-9999", "(99)99999-9999", ou "(999)99999-9999".
+PESSOAL;17;PESS_Email;NÃO;NÃO;Caractere(70);E-mail;;;REGRA 1: O conteúdo do campo deverá conter um e-mail válido, se o campo for opcional, deixar vazio, se houver mais de um e-mail separar por "/" (barra).
+PLANO_ESTRAT_INDIC_ACOMPANHAM;1;PRG_Codigo;SIM;SIM;Caractere(4);Cód. do programa;PLANO_ESTRATEGICO_INDICADOR;;
+PLANO_ESTRAT_INDIC_ACOMPANHAM;2;IND_Codigo;SIM;SIM;Caractere(4);Cód. do indicador;PLANO_ESTRATEGICO_INDICADOR;;
+PLANO_ESTRAT_INDIC_ACOMPANHAM;3;PEIA_MesCompetencia;SIM;SIM;Inteiro;Mês de competência;;12;REGRA 1: O conteúdo do campo deverá estar preenchido com "'12'".
+PLANO_ESTRAT_INDIC_ACOMPANHAM;4;PEIA_IndiceAtual;NÃO;SIM;Caractere(14,2);Índice no mês;;;REGRA 1: O conteúdo do campo deverá conter um número POSITIVO quando obrigatório.
+PLANO_ESTRAT_INDIC_INIC;1;PRG_Codigo;SIM;SIM;Caractere(4);Cód. do programa;PLANO_ESTRATEGICO_INDICADOR;;
+PLANO_ESTRAT_INDIC_INIC;2;IND_Codigo;SIM;SIM;Caractere(4);Cód. do indicador;PLANO_ESTRATEGICO_INDICADOR;;
+PLANO_ESTRAT_INDIC_INIC;3;OBJ_Codigo;SIM;SIM;Caractere(4);Cód. do objetivo;PLANO_ESTRATEGICO_INICIATIVA;;
+PLANO_ESTRAT_INDIC_INIC;4;INIC_Codigo;SIM;SIM;Caractere(4);Cód. da iniciativa;PLANO_ESTRATEGICO_INICIATIVA;;
+PLANO_ESTRAT_META_ACOMPANHAM;1;OBJ_Codigo;SIM;SIM;Caractere(4);Cód. do objetivo;PLANO_ESTRATEGICO_META;;
+PLANO_ESTRAT_META_ACOMPANHAM;2;META_Codigo;SIM;SIM;Caractere(4);Cód. da meta;PLANO_ESTRATEGICO_META;;
+PLANO_ESTRAT_META_ACOMPANHAM;3;PEMA_MesCompetencia;SIM;SIM;Inteiro;Mês de competência;;12;REGRA 1: O conteúdo do campo deverá estar preenchido com "'12'".
+PLANO_ESTRAT_META_ACOMPANHAM;4;PEMA_QtdeAtual;NÃO;SIM;Caractere(14,2);Quantidade no mês;;;REGRA 1: O conteúdo do campo deverá conter um número POSITIVO quando obrigatório.
+PLANO_ESTRAT_OBJET_ACOMPANHAM;1;OBJ_Codigo;SIM;SIM;Caractere(4);Cód. do objetivo;PLANO_ESTRATEGICO_OBJETIVO;;
+PLANO_ESTRAT_OBJET_ACOMPANHAM;2;PEOA_MesCompetencia;SIM;SIM;Inteiro;Mês de competência;;12;REGRA 1: O conteúdo do campo deverá estar preenchido com "'12'".
+PLANO_ESTRAT_OBJET_ACOMPANHAM;3;PEOA_NomeArqPDF;NÃO;SIM;Caractere(21);Nome do arquivo PDF;;;REGRA 1: A formatação do nome do arquivo PDF deverá estar de acordo com a regra "PEOA_AAAAMM_99999.PDF".
+PLANO_ESTRAT_OBJET_ORGAO;1;OBJ_Codigo;SIM;SIM;Caractere(4);Cód. do objetivo;PLANO_ESTRATEGICO_OBJETIVO;;
+PLANO_ESTRAT_OBJET_ORGAO;2;ORG_Codigo;SIM;SIM;Caractere(2);Cód. do órgão responsável pelo objetivo;ORGAO;;
+PLANO_ESTRATEGICO_INDICADOR;1;PRG_Codigo;SIM;SIM;Caractere(4);Cód. do programa;PROGRAMA;;
+PLANO_ESTRATEGICO_INDICADOR;2;IND_Codigo;SIM;SIM;Caractere(4);Cód. do indicador;;;
+PLANO_ESTRATEGICO_INDICADOR;3;IND_Descricao;NÃO;SIM;Caractere(255);Descrição;;;
+PLANO_ESTRATEGICO_INDICADOR;4;IND_IndiceInicial;NÃO;SIM;Caractere(14,2);Índice inicial;;;REGRA 1: O conteúdo do campo deverá conter o número ZERO ou POSITIVO quando obrigatório.
+PLANO_ESTRATEGICO_INDICADOR;5;IND_IndiceDesejado;NÃO;SIM;Caractere(14,2);Índice desejado;;;REGRA 1: O conteúdo do campo deverá conter o número ZERO ou POSITIVO quando obrigatório.
+PLANO_ESTRATEGICO_INDICADOR;6;IND_UnidadeMedida;NÃO;SIM;Caractere(60);Unidade de medida;;;
+PLANO_ESTRATEGICO_INICIATIVA;1;OBJ_Codigo;SIM;SIM;Caractere(4);Cód. do objetivo;PLANO_ESTRATEGICO_OBJETIVO;;
+PLANO_ESTRATEGICO_INICIATIVA;2;INIC_Codigo;SIM;SIM;Caractere(4);Cód. da iniciativa;;;
+PLANO_ESTRATEGICO_INICIATIVA;3;INIC_Descricao;NÃO;SIM;Caractere(255);Descrição;;;
+PLANO_ESTRATEGICO_INICIATIVA;4;PESS_Matricula;NÃO;NÃO;Caractere(10);Núm. da matrícula do responsável pela iniciativa;PESSOAL;"9999999999" (NRO);REGRA 1: O conteúdo do campo não deverá conter espaços em branco (" ") quando obrigatório.
+PLANO_ESTRATEGICO_META;1;OBJ_Codigo;SIM;SIM;Caractere(4);Cód. do objetivo;PLANO_ESTRATEGICO_OBJETIVO;;
+PLANO_ESTRATEGICO_META;2;META_Codigo;SIM;SIM;Caractere(4);Cód. da meta;;;
+PLANO_ESTRATEGICO_META;3;META_Descricao;NÃO;SIM;Caractere(255);Descrição;;;
+PLANO_ESTRATEGICO_META;4;META_DataFinal;NÃO;SIM;Caractere(10);Data do término;;;
+PLANO_ESTRATEGICO_META;5;META_Quantidade;NÃO;SIM;Caractere(14,2);Quantidade;;;REGRA 1: O conteúdo do campo deverá conter o número ZERO ou POSITIVO quando obrigatório.
+PLANO_ESTRATEGICO_META;6;META_UnidadeMedida;NÃO;SIM;Caractere(60);Unidade de medida;;;
+PLANO_ESTRATEGICO_META;7;PESS_Matricula;NÃO;NÃO;Caractere(10);Núm. da matrícula do responsável pela meta;PESSOAL;"9999999999" (NRO);REGRA 1: O conteúdo do campo não deverá conter espaços em branco (" ") quando obrigatório.
+PLANO_ESTRATEGICO_OBJETIVO;1;OBJ_Codigo;SIM;SIM;Caractere(4);Cód. do objetivo;;;
+PLANO_ESTRATEGICO_OBJETIVO;2;PRG_Codigo;NÃO;SIM;Caractere(4);Cód. do programa;PROGRAMA;;
+PLANO_ESTRATEGICO_OBJETIVO;3;OBJ_Descricao;NÃO;SIM;Caractere(255);Descrição;;;
+PPA;1;FN_Codigo;SIM;SIM;Caractere(2);Cód. da função;TI.FUNCAO;01...28|77, 99;REGRA 1: O conteúdo do campo deverá estar preenchido com "01...28|'77', '99'".
+PPA;2;SFN_Codigo;SIM;SIM;Caractere(3);Cód. da subfunção;TI.SUBFUNCAO;;
+PPA;3;PRG_Codigo;SIM;SIM;Caractere(4);Cód. do programa;PROJETO_ATIVIDADE;;
+PPA;4;PRAT_Numero;SIM;SIM;Caractere(5);Núm. do projeto/ atividade;PROJETO_ATIVIDADE;;
+PPA;5;PPA_Exercicio;SIM;SIM;Caractere(4);Exercício do PPA;;"9999" (NRO);REGRA 1: O conteúdo do campo deverá conter o ano em que o PPA entrou em vigor.
+PPA;6;LEI_Numero;NÃO;SIM;Caractere(10);Núm. da lei do PPA;LEI;"99999/AAAA" (NRO/ANO);REGRA 1: O conteúdo do campo deverá conter um valor no formato "99999/AAAA" (NRO/ANO), o ANO será validado segundo o critério "<= EXERCÍCIO" (ver regra d).
+PPA;7;PPA_ValorMetaFisica;NÃO;SIM;Caractere(14,2);Valor da meta física;;;REGRA 1: O conteúdo do campo deverá conter "0.00" (zero) para as cargas mensais e diferente de "0.00" (zero) para a carga das Peças do Planejamento.
+PPA;8;PPA_ValorMetaFinanceira;NÃO;SIM;Caractere(14,2);Valor da meta financeira;;;REGRA 1: O conteúdo do campo deverá conter "0.00" (zero) para as cargas mensais e diferente de "0.00" (zero) para a carga das Peças do Planejamento.
+PPA_EXECUCAO;1;FN_Codigo;SIM;SIM;Caractere(2);Cód. da função;PPA;01...28|77, 99;REGRA 1: O conteúdo do campo deverá estar preenchido com "01...28|'77', '99'".
+PPA_EXECUCAO;2;SFN_Codigo;SIM;SIM;Caractere(3);Cód. da subfunção;PPA;;
+PPA_EXECUCAO;3;PRAT_Numero;SIM;SIM;Caractere(5);Núm. do projeto/ atividade;PPA;;
+PPA_EXECUCAO;4;PRG_Codigo;SIM;SIM;Caractere(4);Cód. do programa;PPA;;
+PPA_EXECUCAO;5;PPA_Exercicio;SIM;SIM;Caractere(4);Exercício do PPA;PPA;"9999" (NRO);
+PPA_EXECUCAO;6;PPAEX_Competencia;SIM;SIM;Inteiro;Competência da execução;;"4" para abril "8" para agosto "12" para dezembro;REGRA 1: O conteúdo do campo deverá estar preenchido com "'4', '8', '12'". REGRA 2: O conteúdo do campo deverá conter um valor igual ao mês de referência da carga enviada.
+PPA_EXECUCAO;7;PPAEX_PercMetaFisica;NÃO;SIM;Caractere(3,2);Percentual da meta física;;"999.99" (NRO);REGRA 1: O conteúdo do campo deverá conter o número ZERO ou POSITIVO quando obrigatório e não poderá ser maior que "999.99".
+PPA_EXECUCAO;8;PPAEX_PercMetaFinanceira;NÃO;SIM;Caractere(3,2);Percentual da meta financeira;;"999.99" (NRO);REGRA 1: O conteúdo do campo deverá conter o número ZERO ou POSITIVO quando obrigatório e não poderá ser maior que "999.99".
+PREVIDENCIA_SEGURADO_CONTRIB;1;PESS_Matricula;SIM;SIM;Caractere(10);Núm. da matrícula do segurado;PESSOAL;"9999999999" (NRO);REGRA 1: O conteúdo do campo não deverá conter espaços em branco (" ") quando obrigatório.
+PREVIDENCIA_SEGURADO_CONTRIB;2;PSC_DataCompetencia;SIM;SIM;Caractere(7);Ano/mês referência;;"AAAA/MM" (ANO/MÊS);REGRA 1: O conteúdo do campo deverá conter o/um dos seguinte(s) formato(s): 9999/99. REGRA 2: O conteúdo do campo deverá conter um MÊS ou ANO válido, o MÊS ou ANO será validado segundo o critério "<= EXERCÍCIO" (ver regra d).
+PREVIDENCIA_SEGURADO_CONTRIB;3;PSC_TipoValor;NÃO;SIM;Inteiro;Tipo do valor;;"1" para contribuição ao RPPS "4" para contribuição a outros regimes de previdência social;REGRA 1: O conteúdo do campo deverá estar preenchido com "'1', '4'".
+PREVIDENCIA_SEGURADO_CONTRIB;4;PSC_ValorBase;NÃO;SIM;Caractere(14,2);Valor base para a contribuição previdenciária;;;REGRA 1: O conteúdo do campo deverá conter o número ZERO ou POSITIVO quando obrigatório.
+PREVIDENCIA_SEGURADO_CONTRIB;5;PSC_ValorContribuicao;NÃO;COND;Caractere(14,2);Valor da contribuição previdenciária;;;REGRA 1: O conteúdo do campo deverá estar preenchido quando o conteúdo do campo "PSC_TipoValor" for "'1'". REGRA 2: O conteúdo do campo deverá conter o número ZERO ou POSITIVO quando obrigatório.
+PREVISAO_RECEITA;1;DRGRP_Codigo;SIM;SIM;Caractere(1);Cód. do grupo da destinação de recurso;TI.DESTINACAO_RECURSO_GRUPO;1, 2, 9;REGRA 1: O conteúdo do campo deverá estar preenchido com "'1', '2', '9'".
+PREVISAO_RECEITA;2;DRESP_Codigo;SIM;SIM;Caractere(3);Cód. da especificação da destinação de recurso;TI.DESTINACAO_RECURSO_ESPECIFIC;;
+PREVISAO_RECEITA;3;DESTREC_Codigo;SIM;SIM;Caractere(7);Cód. da destinação de recurso;TI.DESTINACAO_RECURSO;;
+PREVISAO_RECEITA;4;ESPRC_Codigo;SIM;SIM;Caractere(23);Cód. da especificação da receita;TI.ESPECIFICACAO_RECEITA;"9.9.9.9.99.9.9.99.99.99" (NRO);REGRA 1: O conteúdo do campo deverá conter o/um dos seguinte(s) formato(s): 9.9.9.9.99.9.9.99.99.99.
+PREVISAO_RECEITA;5;TOPR_Codigo;SIM;SIM;Caractere(2);Cód. do tipo de operação da receita;TI.TIPO_OPERACAO_RECEITA;00...05|10, 11, 19, 99;REGRA 1: O conteúdo do campo deverá estar preenchido com "00...05|'10', '11', '19', '99'".
+PREVISAO_RECEITA;6;PVRC_MesReferencia;SIM;SIM;Caractere(2);Mês de referência;;"99" (NRO);REGRA 1: O conteúdo do campo deverá estar preenchido com "00...12". REGRA 2: O conteúdo do campo deverá conter um MÊS ou ANO válido, o MÊS ou ANO será validado segundo o critério "<= MÊS" (ver regra d).
+PREVISAO_RECEITA;7;PVRC_TipoPrevisao;NÃO;SIM;Inteiro;Tipo da previsão;TI.TIPO_PREVISAO_RECEITA;1...3;REGRA 1: O conteúdo do campo deverá estar preenchido com "1...3". REGRA 2: O conteúdo do campo deverá conter "1" para a carga das Peças do Planejamento e "2" ou "3" para as cargas mensais.
+PREVISAO_RECEITA;8;PVRC_Valor;NÃO;SIM;Caractere(14,2);Valor da previsão;;;REGRA 1: O conteúdo do campo deverá conter o número ZERO ou POSITIVO quando obrigatório.
+PRODUTO_UNIDADE_MEDIDA;1;PRUM_Codigo;SIM;SIM;Caractere(10);Cód. do produto;;;
+PRODUTO_UNIDADE_MEDIDA;2;PRUM_DescricaoProduto;NÃO;SIM;Caractere(255);Descrição do produto;;;
+PRODUTO_UNIDADE_MEDIDA;3;UNMED_Codigo;NÃO;SIM;Caractere(2);Cód. da unidade de medida;TI.UNIDADE_MEDIDA;01...28|99;REGRA 1: O conteúdo do campo deverá estar preenchido com "01...28|'99'".
+PROGRAMA;1;PRG_Codigo;SIM;SIM;Caractere(4);Cód. do programa;;;
+PROGRAMA;2;LEI_Numero;NÃO;SIM;Caractere(10);Núm. da lei do PPA;PLANO_ESTRATEGICO_PPA;"99999/AAAA" (NRO/ANO);REGRA 1: O conteúdo do campo deverá conter um valor no formato "99999/AAAA" (NRO/ANO), o ANO será validado segundo o critério "<= EXERCÍCIO" (ver regra d).
+PROGRAMA;3;TPRG_Codigo;NÃO;COND;Inteiro;Cód. do tipo;TI.TIPO_PROGRAMA;1...2;REGRA 1: O conteúdo do campo deverá estar preenchido com "1...2".
+PROGRAMA;4;PRG_Descricao;NÃO;SIM;Caractere(120);Descrição;;;REGRA 1: O conteúdo do campo deverá estar preenchido com "RESERVA DE CONTINGENCIA" quando o conteúdo do campo "PRG_Codigo" for um dos valores "9999".
+PROGRAMA;5;PRG_Objetivo;NÃO;COND;Caractere(255);Objetivo;;;
+PROGRAMA;6;PRG_ValorFinanceiro;NÃO;SIM;Caractere(14,2);Valor;;;REGRA 1: O conteúdo do campo deverá conter o número ZERO ou POSITIVO quando obrigatório.
+PROGRAMA_CATEGORIA_ECONOMICA;1;PRG_Codigo;SIM;SIM;Caractere(4);Cód. do programa;PROGRAMA;;
+PROGRAMA_CATEGORIA_ECONOMICA;2;CTEC_Codigo;SIM;SIM;Caractere(1);Cód. da categoria econômica;TI.CATEGORIA_ECONOMICA;1...4|9;REGRA 1: O conteúdo do campo deverá estar preenchido com "1...4|'9'".
+PROGRAMA_CATEGORIA_ECONOMICA;3;PRGCTEC_AnoReferenciaInicio;NÃO;SIM;Caractere(4);Ano inicial de referência;;"9999" (NRO);REGRA 1: O conteúdo do campo deverá conter um número POSITIVO quando obrigatório.
+PROGRAMA_CATEGORIA_ECONOMICA;4;PRGCTEC_AnoReferenciaFim;NÃO;SIM;Caractere(4);Ano final de referência;;"9999" (NRO);REGRA 1: O conteúdo do campo deverá conter um valor MAIOR ou IGUAL ao conteúdo do campo "PRGCTEC_AnoReferenciaInicio". REGRA 2: O conteúdo do campo deverá conter um número POSITIVO quando obrigatório.
+PROGRAMA_CATEGORIA_ECONOMICA;5;PRGCTEC_Valor;NÃO;SIM;Caractere(14,2);Valor definido para o período;;;REGRA 1: O conteúdo do campo deverá conter um número POSITIVO quando obrigatório.
+PROJETO_ATIVIDADE;1;PRG_Codigo;SIM;SIM;Caractere(4);Cód. do programa;PROGRAMA;;
+PROJETO_ATIVIDADE;2;PRAT_Numero;SIM;SIM;Caractere(5);Núm. do projeto/ atividade;;;REGRA 1: O conteúdo do campo deverá estar preenchido com "09999,99999" quando o conteúdo do campo "PRG_Codigo" for igual a "9999". REGRA 2: O 1º dígito do campo "PRAT_Numero" deverá ser igual a "0 ou 9" para "TPRAT_Codigo" igual a "9".
+PROJETO_ATIVIDADE;3;ORG_Codigo;NÃO;SIM;Caractere(2);Cód. do órgão;ORGAO;;
+PROJETO_ATIVIDADE;4;TPRAT_Codigo;NÃO;SIM;Caractere(1);Cód. do tipo do projeto/ atividade;TI.TIPO_PROJETO_ATIVIDADE;1...2|9;REGRA 1: O conteúdo do campo deverá estar preenchido com "1...2|'9'".
+PROJETO_ATIVIDADE;5;PRUM_Codigo;NÃO;SIM;Caractere(10);Cód. do produto;PRODUTO_UNIDADE_MEDIDA;;
+PROJETO_ATIVIDADE;6;PRAT_Descricao;NÃO;SIM;Caractere(120);Descrição do projeto/ atividade;;;REGRA 1: O conteúdo do campo deverá estar preenchido com "RESERVA DE CONTINGENCIA" quando o conteúdo do campo "PRAT_Numero" for um dos valores "'09999','99999'".
+PROJETO_ATIVIDADE;7;PRAT_Objetivo;NÃO;SIM;Caractere(255);Objetivo do projeto/ atividade;;;
+RECIBO_PAGTO;1;RCPGTO_Numero;SIM;SIM;Caractere(10);Núm. do recibo;;"99999/AAAA" (NRO/ANO);REGRA 1: O conteúdo do campo deverá conter um valor no formato "99999/AAAA" (NRO/ANO), o ANO será validado segundo o critério "= EXERCÍCIO" (ver regra d).
+RECIBO_PAGTO;2;ORG_Codigo;SIM;SIM;Caractere(2);Cód. do órgão;LIQUIDACAO_EMPENHO;;
+RECIBO_PAGTO;3;UNOR_Codigo;SIM;SIM;Caractere(3);Cód. da unidade orçamentária;LIQUIDACAO_EMPENHO;;
+RECIBO_PAGTO;4;EMP_Numero;SIM;SIM;Caractere(11);Núm. do empenho;LIQUIDACAO_EMPENHO;"999999/AAAA" (NRO/ANO);REGRA 1: O conteúdo do campo deverá conter um valor no formato "999999/AAAA" (NRO/ANO), o ANO será validado segundo o critério "<= EXERCÍCIO" (ver regra d).
+RECIBO_PAGTO;5;LIQ_Numero;SIM;SIM;Caractere(11);Núm. da liquidação;LIQUIDACAO_EMPENHO;"999999/AAAA" (NRO/ANO);REGRA 1: O conteúdo do campo deverá conter um valor no formato "999999/AAAA" (NRO/ANO), o ANO será validado segundo o critério "<= EXERCÍCIO" (ver regra d).
+RECIBO_PAGTO;6;RCPGTO_DataEmissao;NÃO;SIM;Caractere(10);Data da emissão;;;REGRA 1: O conteúdo do campo deverá conter uma DATA válida, a DATA será validada segundo o critério "COMPETÊNCIA DA CARGA" (ver regra d).
+RECIBO_PAGTO;7;PESS_Matricula;NÃO;SIM;Caractere(10);Núm. da matrícula do servidor;PESSOAL;"9999999999" (NRO);REGRA 1: O conteúdo do campo não deverá conter espaços em branco (" ") quando obrigatório.
+RECIBO_PAGTO;8;RCPGTO_Descricao;NÃO;SIM;Caractere(120);Descrição do recibo;;;
+RECIBO_PAGTO;9;RCPGTO_ValorLiquido;NÃO;SIM;Caractere(14,2);Valor líquido;;;REGRA 1: O conteúdo do campo deverá conter o número ZERO ou POSITIVO quando obrigatório.
+RECIBO_PAGTO;10;RCPGTO_ValorBruto;NÃO;SIM;Caractere(14,2);Valor bruto;;;REGRA 1: O conteúdo do campo deverá conter um valor MAIOR ou IGUAL ao conteúdo do campo "RCPGTO_ValorLiquido". REGRA 2: O conteúdo do campo deverá conter o número ZERO ou POSITIVO quando obrigatório.
+RECIBO_PAGTO_EVENTUAL;1;RPGPS_Numero;SIM;SIM;Caractere(10);Núm. do recibo de pagamento;;;
+RECIBO_PAGTO_EVENTUAL;2;CG_Identificacao;SIM;SIM;Caractere(20);CPF/CNPJ do credor;CADASTRO_GERAL;;REGRA 1: O conteúdo do campo deverá conter um número de CPF ("999.999.999-99") ou CNPJ ("99.999.999/9999-99") válido.
+RECIBO_PAGTO_EVENTUAL;3;ORG_Codigo;SIM;SIM;Caractere(2);Cód. do órgão;LIQUIDACAO_EMPENHO;;
+RECIBO_PAGTO_EVENTUAL;4;UNOR_Codigo;SIM;SIM;Caractere(3);Cód. da unidade orçamentária;LIQUIDACAO_EMPENHO;;
+RECIBO_PAGTO_EVENTUAL;5;EMP_Numero;SIM;SIM;Caractere(11);Núm. do empenho;LIQUIDACAO_EMPENHO;"999999/AAAA" (NRO/ANO);REGRA 1: O conteúdo do campo deverá conter um valor no formato "999999/AAAA" (NRO/ANO), o ANO será validado segundo o critério "<= EXERCÍCIO" (ver regra d).
+RECIBO_PAGTO_EVENTUAL;6;LIQ_Numero;SIM;SIM;Caractere(11);Núm. da liquidação;LIQUIDACAO_EMPENHO;"999999/AAAA" (NRO/ANO);REGRA 1: O conteúdo do campo deverá conter um valor no formato "999999/AAAA" (NRO/ANO), o ANO será validado segundo o critério "<= EXERCÍCIO" (ver regra d).
+RECIBO_PAGTO_EVENTUAL;7;RCPGTOEV_DataEmissao;NÃO;SIM;Caractere(10);Data da emissão;;;
+RECIBO_PAGTO_EVENTUAL;8;RCPGTOEV_Descricao;NÃO;SIM;Caractere(120);Descrição do recibo;;;
+RECIBO_PAGTO_EVENTUAL;9;RCPGTOEV_ValorLiquido;NÃO;SIM;Caractere(14,2);Valor líquido;;;REGRA 1: O conteúdo do campo deverá conter o número ZERO ou POSITIVO quando obrigatório.
+RECIBO_PAGTO_EVENTUAL;10;RCPGTOEV_ValorBruto;NÃO;SIM;Caractere(14,2);Valor bruto;;;REGRA 1: O conteúdo do campo deverá conter um valor MAIOR ou IGUAL ao conteúdo do campo "RCPGTOEV_ValorLiquido". REGRA 2: O conteúdo do campo deverá conter o número ZERO ou POSITIVO quando obrigatório.
+RPPS_APORTE_PERIODICO_INSCRIC;1;RAPI_Tipo;SIM;SIM;Inteiro;Tipo do aporte;TI.TIPO_APORTE;1...4;REGRA 1: O conteúdo do campo deverá estar preenchido com "1...4".
+RPPS_APORTE_PERIODICO_INSCRIC;2;RAPI_Exercicio;SIM;SIM;Caractere(4);Exercício de inscrição do aporte;;;REGRA 1: O conteúdo do campo deverá conter um MÊS ou ANO válido, o MÊS ou ANO será validado segundo o critério "<= EXERCÍCIO" (ver regra d).
+RPPS_APORTE_PERIODICO_INSCRIC;3;RAPI_Competencia;SIM;SIM;Caractere(2);Competência de inscrição do aporte;;01...12;REGRA 1: O conteúdo do campo deverá estar preenchido com "01...12". REGRA 2: O conteúdo do campo deverá conter um MÊS ou ANO válido, o MÊS ou ANO será validado segundo o critério "<= MÊS" (ver regra d).
+RPPS_APORTE_PERIODICO_INSCRIC;4;RAPI_Valor;NÃO;SIM;Caractere(14,2);Valor do aporte periódico a receber;;;REGRA 1: O conteúdo do campo deverá conter o número ZERO ou POSITIVO quando obrigatório.
+RPPS_APORTE_PERIODICO_PGTO;1;RAPI_Tipo;SIM;SIM;Inteiro;Tipo do aporte;RPPS_APORTE_PERIODICO_INSCRIC;1...4;REGRA 1: O conteúdo do campo deverá estar preenchido com "1...4".
+RPPS_APORTE_PERIODICO_PGTO;2;RAPI_Exercicio;SIM;SIM;Caractere(4);Exercício de inscrição do aporte;RPPS_APORTE_PERIODICO_INSCRIC;;REGRA 1: O conteúdo do campo deverá conter um MÊS ou ANO válido, o MÊS ou ANO será validado segundo o critério "<= EXERCÍCIO" (ver regra d).
+RPPS_APORTE_PERIODICO_PGTO;3;RAPI_Competencia;SIM;SIM;Caractere(2);Competência de inscrição do aporte;RPPS_APORTE_PERIODICO_INSCRIC;01...12;REGRA 1: O conteúdo do campo deverá estar preenchido com "01...12".
+RPPS_APORTE_PERIODICO_PGTO;4;RAPP_Data;SIM;SIM;Caractere(10);Data do pagamento do aporte;;;REGRA 1: O conteúdo do campo deverá conter uma DATA válida, a DATA será validada segundo o critério "<= DATA ATUAL" (ver regra d).
+RPPS_APORTE_PERIODICO_PGTO;5;RAPP_Valor;NÃO;SIM;Caractere(14,2);Valor do aporte periódico recebido;;;REGRA 1: O conteúdo do campo deverá conter um número POSITIVO quando obrigatório.
+RPPS_COMPENSACAO_PREVIDENCIARIA;1;PESS_Matricula;SIM;SIM;Caractere(10);Matrícula do beneficiário;PESSOAL;;REGRA 1: O conteúdo do campo não deverá conter espaços em branco (" ") quando obrigatório.
+RPPS_COMPENSACAO_PREVIDENCIARIA;2;CPREV_NumProcesso;NÃO;SIM;Caractere(30);Número do processo de aposentadoria;;;
+RPPS_COMPENSACAO_PREVIDENCIARIA;3;TBENEF_Codigo;NÃO;SIM;Inteiro;Código do tipo de benefício;TI.TIPO_BENEFICIO;1...2;REGRA 1: O conteúdo do campo deverá estar preenchido com "1...2".
+RPPS_COMPENSACAO_PREVIDENCIARIA;4;TAPOSENTA_Codigo;NÃO;COND;Inteiro;Código do tipo de aposentadoria;TI.TIPO_APOSENTADORIA;1...4;REGRA 1: O conteúdo do campo deverá estar preenchido com "1...4", quando o conteúdo do campo "TBENEF_Codigo" for "'1'".
+RPPS_COMPENSACAO_PREVIDENCIARIA;5;CPREV_TempoContribuicao;NÃO;COND;Inteiro;Tempo total de contribuição em dias não concomitante;;;REGRA 1: O conteúdo do campo deverá conter o número ZERO ou POSITIVO quando obrigatório.
+RPPS_COMPENSACAO_PREVIDENCIARIA;6;CPREV_TempoOutroRPPS;NÃO;COND;Inteiro;Tempo de contribuição (em dias) em outro(s) RPPS;;;REGRA 1: O conteúdo do campo deverá conter o número ZERO ou POSITIVO quando obrigatório.
+RPPS_COMPENSACAO_PREVIDENCIARIA;7;CPREV_TempoRGPS;NÃO;COND;Inteiro;Tempo de contribuição (em dias) no RGPS;;;REGRA 1: O conteúdo do campo deverá conter o número ZERO ou POSITIVO quando obrigatório.
+RPPS_CONTRIB_PREVID_ATUAL_MULT;1;TCONTRIB_Codigo;SIM;SIM;Inteiro;Cód. do tipo da contribuição;RPPS_CONTRIB_PREVID_DEVIDO;1...3;REGRA 1: O conteúdo do campo deverá estar preenchido com "1...3".
+RPPS_CONTRIB_PREVID_ATUAL_MULT;2;UG_Codigo;SIM;SIM;Caractere(7);Cód. da Unidade Gestora;RPPS_CONTRIB_PREVID_DEVIDO;;
+RPPS_CONTRIB_PREVID_ATUAL_MULT;3;CPD_ExercicioContribuicao;SIM;SIM;Caractere(4);Exercício de contribuição;RPPS_CONTRIB_PREVID_DEVIDO;"9999" (NRO);REGRA 1: O conteúdo do campo deverá conter um MÊS ou ANO válido, o MÊS ou ANO será validado segundo o critério "<= EXERCÍCIO" (ver regra d).
+RPPS_CONTRIB_PREVID_ATUAL_MULT;4;CPD_MesCompetencia;SIM;SIM;Caractere(2);Mês de competência;RPPS_CONTRIB_PREVID_DEVIDO;"99" (NRO);REGRA 1: O conteúdo do campo deverá estar preenchido com "01...13".
+RPPS_CONTRIB_PREVID_ATUAL_MULT;5;CPAM_MesAtualizacao;SIM;SIM;Caractere(2);Mês de atualização;;"99" (NRO);REGRA 1: O conteúdo do campo deverá estar preenchido com "01...12". REGRA 2: O conteúdo do campo deverá conter um MÊS ou ANO válido, o MÊS ou ANO será validado segundo o critério "< MÊS" (ver regra d).
+RPPS_CONTRIB_PREVID_ATUAL_MULT;6;CPAM_ValorMulta;NÃO;SIM;Caractere(14,2);Valor atuallizado das multas da Unidade Gestora;;;REGRA 1: O conteúdo do campo deverá conter o número ZERO ou POSITIVO quando obrigatório.
+RPPS_CONTRIB_PREVID_ATUAL_MULT;7;CPAM_ValorJuros;NÃO;SIM;Caractere(14,2);Valor atuallizado dos juros da Unidade Gestora;;;REGRA 1: O conteúdo do campo deverá conter o número ZERO ou POSITIVO quando obrigatório.
+RPPS_CONTRIB_PREVID_DEVID_ANUL;1;TCONTRIB_Codigo;SIM;SIM;Inteiro;Cód. do tipo da contribuição;RPPS_CONTRIB_PREVID_DEVIDO;1...3;REGRA 1: O conteúdo do campo deverá estar preenchido com "1...3".
+RPPS_CONTRIB_PREVID_DEVID_ANUL;2;UG_Codigo;SIM;SIM;Caractere(7);Cód. da Unidade Gestora;RPPS_CONTRIB_PREVID_DEVIDO;;
+RPPS_CONTRIB_PREVID_DEVID_ANUL;3;CPD_ExercicioContribuicao;SIM;SIM;Caractere(4);Exercício de contribuição;RPPS_CONTRIB_PREVID_DEVIDO;"9999" (NRO);REGRA 1: O conteúdo do campo deverá conter um MÊS ou ANO válido, o MÊS ou ANO será validado segundo o critério "<= EXERCÍCIO" (ver regra d).
+RPPS_CONTRIB_PREVID_DEVID_ANUL;4;CPD_MesCompetencia;SIM;SIM;Caractere(2);Mês de competência;RPPS_CONTRIB_PREVID_DEVIDO;"99" (NRO);REGRA 1: O conteúdo do campo deverá estar preenchido com "01...13".
+RPPS_CONTRIB_PREVID_DEVID_ANUL;5;LEI_Numero;SIM;SIM;Caractere(10);Núm. da lei do parcelamento;RPPS_PARCELAMENTO;"99999/AAAA" (NRO/ANO);REGRA 1: O conteúdo do campo deverá conter um valor no formato "99999/AAAA" (NRO/ANO), o ANO será validado segundo o critério "<= EXERCÍCIO" (ver regra d).
+RPPS_CONTRIB_PREVID_DEVID_ANUL;6;PARC_Numero;SIM;SIM;Caractere(10);Núm. do parcelamento;RPPS_PARCELAMENTO;"99999/AAAA" (NRO/ANO);REGRA 1: O conteúdo do campo deverá conter um valor no formato "99999/AAAA" (NRO/ANO), o ANO será validado segundo o critério "<= EXERCÍCIO" (ver regra d).
+RPPS_CONTRIB_PREVID_DEVID_ANUL;7;UG_Codigo_Parcelamento;SIM;SIM;Caractere(7);Cód. da Unidade Gestora que parcelou as contribuições;RPPS_PARCELAMENTO;;
+RPPS_CONTRIB_PREVID_DEVID_ANUL;8;CPDA_Data;NÃO;SIM;Caractere(10);Data da anulação;;;REGRA 1: O conteúdo do campo deverá conter uma DATA válida, a DATA será validada segundo o critério "COMPETÊNCIA DA CARGA" (ver regra d).
+RPPS_CONTRIB_PREVID_DEVID_ANUL;9;CPDA_Motivo;NÃO;SIM;Caractere(255);Motivo da anulação;;;
+RPPS_CONTRIB_PREVID_DEVID_ANUL;10;CPDA_Valor;NÃO;SIM;Caractere(14,2);Valor anulado;;;REGRA 1: O conteúdo do campo deverá conter um número POSITIVO quando obrigatório.
+RPPS_CONTRIB_PREVID_DEVIDO;1;TCONTRIB_Codigo;SIM;SIM;Inteiro;Cód. do tipo da contribuição;TI.TIPO_CONTRIBUICAO;1...3;REGRA 1: O conteúdo do campo deverá estar preenchido com "1...3".
+RPPS_CONTRIB_PREVID_DEVIDO;2;UG_Codigo;SIM;SIM;Caractere(7);Cód. da Unidade Gestora;TI.UG;;
+RPPS_CONTRIB_PREVID_DEVIDO;3;CPD_ExercicioContribuicao;SIM;SIM;Caractere(4);Exercício de contribuição;;"9999" (NRO);REGRA 1: O conteúdo do campo deverá conter um MÊS ou ANO válido, o MÊS ou ANO será validado segundo o critério "<= EXERCÍCIO" (ver regra d).
+RPPS_CONTRIB_PREVID_DEVIDO;4;CPD_MesCompetencia;SIM;SIM;Caractere(2);Mês de competência;;"99" (NRO);REGRA 1: O conteúdo do campo deverá estar preenchido com "01...13".
+RPPS_CONTRIB_PREVID_DEVIDO;5;CPD_Valor;NÃO;SIM;Caractere(14,2);Valor devido pela Unidade Gestora;;;REGRA 1: O conteúdo do campo deverá conter o número ZERO ou POSITIVO quando obrigatório.
+RPPS_CONTRIB_PREVID_DEVIDO;6;CPD_ContribuicaoComplementar;NÃO;SIM;Caractere(1);É contribuição complementar de competência anterior?;;S, N;REGRA 1: O conteúdo do campo deverá estar preenchido com "'S', 'N'".
+RPPS_CONTRIB_PREVID_DEVIDO;7;CPD_Justificativa;NÃO;COND;Caractere(255);Justificativa para o envio de valores devidos de competências anteriores;;;REGRA 1: O conteúdo do campo deverá estar preenchido quando o conteúdo do campo "CPD_ContribuicaoComplementar" for "'S'".
+RPPS_CONTRIB_PREVID_PAGO;1;TCONTRIB_Codigo;SIM;SIM;Inteiro;Cód. do tipo da contribuição;RPPS_CONTRIB_PREVID_DEVIDO;1...3;REGRA 1: O conteúdo do campo deverá estar preenchido com "1...3".
+RPPS_CONTRIB_PREVID_PAGO;2;UG_Codigo;SIM;SIM;Caractere(7);Cód. da Unidade Gestora;RPPS_CONTRIB_PREVID_DEVIDO;;
+RPPS_CONTRIB_PREVID_PAGO;3;CPD_ExercicioContribuicao;SIM;SIM;Caractere(4);Exercício de contribuição;RPPS_CONTRIB_PREVID_DEVIDO;"9999" (NRO);REGRA 1: O conteúdo do campo deverá conter um MÊS ou ANO válido, o MÊS ou ANO será validado segundo o critério "<= EXERCÍCIO" (ver regra d).
+RPPS_CONTRIB_PREVID_PAGO;4;CPD_MesCompetencia;SIM;SIM;Caractere(2);Mês de competência;RPPS_CONTRIB_PREVID_DEVIDO;01...13;REGRA 1: O conteúdo do campo deverá estar preenchido com "01...13".
+RPPS_CONTRIB_PREVID_PAGO;5;CPP_DataPagamento;SIM;SIM;Caractere(10);Data do pagamento;;;REGRA 1: O conteúdo do campo deverá conter uma DATA válida, a DATA será validada segundo o critério "<= DATA ATUAL" (ver regra d).
+RPPS_CONTRIB_PREVID_PAGO;6;CPP_ValorMulta;NÃO;SIM;Caractere(14,2);Valor das multas da Unidade Gestora;;;REGRA 1: O conteúdo do campo deverá conter o número ZERO ou POSITIVO quando obrigatório.
+RPPS_CONTRIB_PREVID_PAGO;7;CPP_ValorJuros;NÃO;SIM;Caractere(14,2);Valor dos juros da Unidade Gestora;;;REGRA 1: O conteúdo do campo deverá conter o número ZERO ou POSITIVO quando obrigatório.
+RPPS_CONTRIB_PREVID_PAGO;8;CPP_ValorPrincipal;NÃO;SIM;Caractere(14,2);Valor principal da Unidade Gestora;;;REGRA 1: O conteúdo do campo deverá conter o número ZERO ou POSITIVO quando obrigatório.
+RPPS_DESPESAS_ADMINISTRATIVAS;1;BCDA_Codigo;SIM;SIM;Inteiro;Cód. da base de cálculo;TI.BASE_CALCULO_DESPESA_ADM;1...3;REGRA 1: O conteúdo do campo deverá estar preenchido com "1...3".
+RPPS_DESPESAS_ADMINISTRATIVAS;2;DA_Exercicio;SIM;SIM;Caractere(4);Exercício da carga;;"9999" (NRO);REGRA 1: O conteúdo do campo deverá conter um MÊS ou ANO válido, o MÊS ou ANO será validado segundo o critério "= EXERCÍCIO" (ver regra d).
+RPPS_DESPESAS_ADMINISTRATIVAS;3;DA_MesCompetencia;SIM;SIM;Caractere(2);Competência da carga;;01...12|99;REGRA 1: O conteúdo do campo deverá estar preenchido com "01...12|'99'". REGRA 2: O conteúdo do campo deverá conter um MÊS ou ANO válido, o MÊS ou ANO será validado segundo o critério "= MÊS" (ver regra d).
+RPPS_DESPESAS_ADMINISTRATIVAS;4;DA_Valor;NÃO;SIM;Caractere(14,2);Valor total do exercício anterior;;;REGRA 1: O conteúdo do campo deverá conter o número ZERO ou POSITIVO quando obrigatório.
+RPPS_DESPESAS_ADMINISTRATIVAS;5;DA_PercentualTaxaAdministracao;NÃO;COND;Caractere(3,2);Percentual da taxa de administração utilizado no ente;;"999.99" (NRO);REGRA 1: O conteúdo do campo deverá estar preenchido quando o conteúdo do campo "BCDA_Codigo" for "'1'".
+RPPS_DESPESAS_ADMINISTRATIVAS;6;DA_NomeArqPDF;NÃO;COND;Caractere(19);Nome do arquivo PDF;;;REGRA 1: O conteúdo do campo deverá estar preenchido quando o conteúdo do campo "BCDA_Codigo" for "'1'". REGRA 2: A formatação do nome do arquivo PDF deverá estar de acordo com a regra "DA_AAAAMM_99999.PDF".
+RPPS_INVESTIMENTO;1;TINV_Codigo;SIM;SIM;Inteiro;Cód. do tipo do investimento;TI.TIPO_INVESTIMENTO;;
+RPPS_INVESTIMENTO;2;INVS_NumInvestimento;SIM;SIM;Caractere(10);Núm. do investimento;;"99999/AAAA" (NRO/ANO);REGRA 1: O conteúdo do campo deverá conter um valor no formato "99999/AAAA" (NRO/ANO), o ANO será validado segundo o critério "<= EXERCÍCIO" (ver regra d).
+RPPS_INVESTIMENTO;3;INVS_CNPJFundoInstituicao;NÃO;SIM;Caractere(20);CNPJ do Fundo;CADASTRO_GERAL;"99.999.999/9999-99";REGRA 1: O conteúdo do campo deverá conter um número de CNPJ ("99.999.999/9999-99") válido.
+RPPS_INVESTIMENTO;4;INVS_CNPJInstituicaoFinan;NÃO;SIM;Caractere(20);CNPJ da instituição financeira;CADASTRO_GERAL;"99.999.999/9999-99";REGRA 1: O conteúdo do campo deverá conter um número de CNPJ ("99.999.999/9999-99") válido.
+RPPS_INVESTIMENTO;5;INVS_PossuiTaxaIngresso;NÃO;SIM;Inteiro;Possui taxa de ingresso?;;"1" para sim, em percentual "2" para sim, em Reais "3" para não;REGRA 1: O conteúdo do campo deverá estar preenchido com "1...3".
+RPPS_INVESTIMENTO;6;INVS_TaxaIngresso;NÃO;COND;Caractere(14,2);Taxa de ingresso;;;REGRA 1: O conteúdo do campo deverá estar preenchido quando o conteúdo do campo "INVS_PossuiTaxaIngresso" for "1...2". REGRA 2: O conteúdo do campo deverá conter um número POSITIVO quando obrigatório.
+RPPS_INVESTIMENTO;7;INVS_PossuiTaxaSaida;NÃO;SIM;Inteiro;Possui taxa de saída?;;"1" para sim, em percentual "2" para sim, em Reais "3" para não;REGRA 1: O conteúdo do campo deverá estar preenchido com "1...3".
+RPPS_INVESTIMENTO;8;INVS_TaxaSaida;NÃO;COND;Caractere(14,2);Taxa de saída;;;REGRA 1: O conteúdo do campo deverá estar preenchido quando o conteúdo do campo "INVS_PossuiTaxaSaida" for "1...2". REGRA 2: O conteúdo do campo deverá conter um número POSITIVO quando obrigatório.
+RPPS_INVESTIMENTO;9;INVS_PossuiTaxaPerformance;NÃO;SIM;Inteiro;Possui taxa de performance?;;"1" para sim, em percentual "2" para sim, em Reais "3" para não;REGRA 1: O conteúdo do campo deverá estar preenchido com "1...3".
+RPPS_INVESTIMENTO;10;INVS_TaxaPerformance;NÃO;COND;Caractere(14,2);Taxa de performance;;;REGRA 1: O conteúdo do campo deverá estar preenchido quando o conteúdo do campo "INVS_PossuiTaxaPerformance" for "1...2". REGRA 2: O conteúdo do campo deverá conter um número POSITIVO quando obrigatório.
+RPPS_INVESTIMENTO;11;INVS_TipoTaxaAdministracao;NÃO;SIM;Inteiro;Tipo de taxa de administração;;"1" para em percentual "2" para em Reais;REGRA 1: O conteúdo do campo deverá estar preenchido com "1...2".
+RPPS_INVESTIMENTO;12;INVS_TaxaAdministracao;NÃO;SIM;Caractere(14,2);Taxa de administração;;;REGRA 1: O conteúdo do campo deverá conter um número POSITIVO quando obrigatório.
+RPPS_INVESTIMENTO;13;INVS_AtivoExterior;NÃO;SIM;Caractere(1);Há previsão para investimentos em ativos do exterior?;;"S" para sim "N" para não;REGRA 1: O conteúdo do campo deverá estar preenchido com "'S', 'N'".
+RPPS_INVESTIMENTO;14;INVS_InvestidoresQualificados;NÃO;SIM;Caractere(1);É destinado à investidores qualificados?;;"S" para sim "N" para não;REGRA 1: O conteúdo do campo deverá estar preenchido com "'S', 'N'".
+RPPS_INVESTIMENTO;15;INVS_PossuiPrazoCarencia;NÃO;SIM;Caractere(1);Possui prazo de carência?;;"S" para sim "N" para não;REGRA 1: O conteúdo do campo deverá estar preenchido com "'S', 'N'".
+RPPS_INVESTIMENTO;16;INVS_PrazoCarencia;NÃO;COND;Inteiro;Prazo de carência;;;REGRA 1: O conteúdo do campo deverá estar preenchido quando o conteúdo do campo "INVS_PossuiPrazoCarencia" for "'S'".
+RPPS_INVESTIMENTO;17;INVS_ObservacaoCarencia;NÃO;COND;Caractere(100);Observação da carência;;;REGRA 1: O conteúdo do campo deverá estar preenchido quando o conteúdo do campo "INVS_PossuiPrazoCarencia" for "'S'".
+RPPS_INVESTIMENTO;18;INVS_PossuiPrazoCotizacao;NÃO;SIM;Caractere(1);Possui prazo de cotização?;;"S" para sim "N" para não;REGRA 1: O conteúdo do campo deverá estar preenchido com "'S', 'N'".
+RPPS_INVESTIMENTO;19;INVS_PrazoCotizacao;NÃO;COND;Inteiro;Prazo de cotização;;;REGRA 1: O conteúdo do campo deverá estar preenchido quando o conteúdo do campo "INVS_PossuiPrazoCotizacao" for "'S'".
+RPPS_INVESTIMENTO;20;INVS_ObservacaoCotizacao;NÃO;COND;Caractere(100);Observação da cotização;;;REGRA 1: O conteúdo do campo deverá estar preenchido quando o conteúdo do campo "INVS_PossuiPrazoCotizacao" for "'S'".
+RPPS_INVESTIMENTO_DOCUMENTO;1;TINV_Codigo;SIM;SIM;Inteiro;Cód. do tipo do investimento;RPPS_INVESTIMENTO;;
+RPPS_INVESTIMENTO_DOCUMENTO;2;INVS_NumInvestimento;SIM;SIM;Caractere(10);Núm. do investimento;RPPS_INVESTIMENTO;"99999/AAAA" (NRO/ANO);REGRA 1: O conteúdo do campo deverá conter um valor no formato "99999/AAAA" (NRO/ANO), o ANO será validado segundo o critério "<= EXERCÍCIO" (ver regra d).
+RPPS_INVESTIMENTO_DOCUMENTO;3;TDD_Codigo;SIM;SIM;Inteiro;Cód. do tipo do documento;TI.TIPO_DOCUMENTO_DIVERSO;117, 118, 119, 120, 138, 139, 140, 177, 178;REGRA 1: O conteúdo do campo deverá estar preenchido com "'117', '118', '119', '120', '138', '139', '140', '177', '178'".
+RPPS_INVESTIMENTO_DOCUMENTO;4;INVDOC_Data;SIM;SIM;Caractere(10);Data do documento;;;REGRA 1: O conteúdo do campo deverá conter uma DATA válida, a DATA será validada segundo o critério "<= DATA ATUAL" (ver regra d).
+RPPS_INVESTIMENTO_DOCUMENTO;5;INVDOC_NomeArqPDF;NÃO;SIM;Caractere(23);Nome do arquivo PDF;;;REGRA 1: A formatação do nome do arquivo PDF deverá estar de acordo com a regra "INVDOC_AAAAMM_99999.PDF".
+RPPS_INVESTIMENTO_MOVIMENTACAO;1;TINV_Codigo;SIM;SIM;Inteiro;Cód. do tipo do investimento;RPPS_INVESTIMENTO;;
+RPPS_INVESTIMENTO_MOVIMENTACAO;2;INVS_NumInvestimento;SIM;SIM;Caractere(10);Núm. do investimento;RPPS_INVESTIMENTO;"99999/AAAA" (NRO/ANO);REGRA 1: O conteúdo do campo deverá conter um valor no formato "99999/AAAA" (NRO/ANO), o ANO será validado segundo o critério "<= EXERCÍCIO" (ver regra d).
+RPPS_INVESTIMENTO_MOVIMENTACAO;3;INVAR_NumAPR;SIM;SIM;Caractere(10);Núm. da autorização;;"99999/AAAA" (NRO/ANO);REGRA 1: O conteúdo do campo deverá conter um valor no formato "99999/AAAA" (NRO/ANO), o ANO será validado segundo o critério "<= EXERCÍCIO" (ver regra d).
+RPPS_INVESTIMENTO_MOVIMENTACAO;4;INVAR_Data;SIM;SIM;Caractere(10);Data da autorização;;;REGRA 1: O conteúdo do campo deverá conter uma DATA válida, a DATA será validada segundo o critério "<= DATA ATUAL" (ver regra d).
+RPPS_INVESTIMENTO_MOVIMENTACAO;5;INVAR_TipoOperacao;SIM;SIM;Inteiro;Tipo da operação;TI.TIPO_OPERACAO_INVEST_MOVIM;1...10;REGRA 1: O conteúdo do campo deverá estar preenchido com "1...10".
+RPPS_INVESTIMENTO_MOVIMENTACAO;6;INVAR_QtdeQuota;NÃO;COND;Caractere(14,10);Quantidade de quotas;;;REGRA 1: O conteúdo do campo deverá estar preenchido quando o conteúdo do campo "TINV_Codigo" for diferente de "'4' ou '20'" e o conteúdo do campo "INVAR_TipoOperacao" for "'1', '2', '3', '8', '9', '10'". REGRA 2: O conteúdo do campo deverá conter o número ZERO ou POSITIVO quando obrigatório.
+RPPS_INVESTIMENTO_MOVIMENTACAO;7;INVAR_ValorQuota;NÃO;COND;Caractere(14,10);Valor da quota;;;REGRA 1: O conteúdo do campo deverá estar preenchido quando o conteúdo do campo "TINV_Codigo" for diferente de "'4' ou '20'" e o conteúdo do campo "INVAR_TipoOperacao" for "'1', '2', '3', '8', '9', '10'". REGRA 2: O conteúdo do campo deverá conter o número ZERO ou POSITIVO quando obrigatório.
+RPPS_INVESTIMENTO_MOVIMENTACAO;8;INVAR_ValorPatrimLiqdoFundo;NÃO;COND;Caractere(14,2);Valor do patrimônio líquido;;;REGRA 1: O conteúdo do campo deverá estar preenchido quando o conteúdo do campo "TINV_Codigo" for "4" e o conteúdo do campo "INVAR_TipoOperacao" for "4".
+RPPS_INVESTIMENTO_MOVIMENTACAO;9;INVAR_ValorTotal;NÃO;COND;Caractere(14,2);Valor total da operação;;;REGRA 1: O conteúdo do campo deverá estar preenchido quando o conteúdo do campo "TINV_Codigo" for "4" e o conteúdo do campo "INVAR_TipoOperacao" for "4".
+RPPS_INVESTIMENTO_RENTABTOTAL;1;INVRENTT_Exercicio;SIM;SIM;Caractere(4);Exercício da carga;;"9999" (NRO);REGRA 1: O conteúdo do campo deverá conter um MÊS ou ANO válido, o MÊS ou ANO será validado segundo o critério "= EXERCÍCIO" (ver regra d).
+RPPS_INVESTIMENTO_RENTABTOTAL;2;INVRENTT_PercMetaPolExercAnt;NÃO;SIM;Caractere(3,2);Percentual líquido de meta de rentabilidade do exerc. anterior;;"999.99" (NRO);REGRA 1: O conteúdo do campo deverá conter o número ZERO ou POSITIVO quando obrigatório e não poderá ser maior que "999.99".
+RPPS_INVESTIMENTO_RENTABTOTAL;3;INVRENTT_PercMetaPolExercCorr;NÃO;SIM;Caractere(3,2);Percentual líquido de meta de rentabilidade do exerc. da carga;;"999.99" (NRO);REGRA 1: O conteúdo do campo deverá conter o número ZERO ou POSITIVO quando obrigatório e não poderá ser maior que "999.99".
+RPPS_INVESTIMENTO_RENTABTOTAL;4;INVRENTT_PercRentabilidadeReal;NÃO;SIM;Caractere(3,2);Percentual de rentabilidade real do exerc. anterior;;"999.99" (NRO);REGRA 1: O conteúdo do campo deverá conter o número ZERO ou POSITIVO quando obrigatório e não poderá ser maior que "999.99".
+RPPS_PARCELAMENTO;1;LEI_Numero;SIM;SIM;Caractere(10);Núm. da lei do parcelamento;LEI;"99999/AAAA" (NRO/ANO);REGRA 1: O conteúdo do campo deverá conter um valor no formato "99999/AAAA" (NRO/ANO), o ANO será validado segundo o critério "<= EXERCÍCIO" (ver regra d).
+RPPS_PARCELAMENTO;2;PARC_Numero;SIM;SIM;Caractere(10);Núm. do parcelamento;;"99999/AAAA" (NRO/ANO);REGRA 1: O conteúdo do campo deverá conter um valor no formato "99999/AAAA" (NRO/ANO), o ANO será validado segundo o critério "<= EXERCÍCIO" (ver regra d).
+RPPS_PARCELAMENTO;3;UG_Codigo;SIM;SIM;Caractere(7);Cód. da Unidade Gestora que parcelou as contribuições;TI.UG;;
+RPPS_PARCELAMENTO;4;PARC_DataInicio;NÃO;SIM;Caractere(10);Data do início do período parcelado;;;REGRA 1: O conteúdo do campo deverá conter uma DATA válida, a DATA será validada segundo o critério "<= EXERCÍCIO" (ver regra d).
+RPPS_PARCELAMENTO;5;PARC_DataFim;NÃO;SIM;Caractere(10);Data final do período parcelado;;;REGRA 1: O conteúdo do campo deverá conter um valor MAIOR ou IGUAL ao conteúdo do campo "PARC_DataInicio".
+RPPS_PARCELAMENTO;6;PARC_ValPrincipalDevido;NÃO;SIM;Caractere(14,2);Valor principal do parcelamento;;;REGRA 1: O conteúdo do campo deverá conter um número POSITIVO quando obrigatório.
+RPPS_PARCELAMENTO;7;PARC_ValEncargosDevido;NÃO;SIM;Caractere(14,2);Valor das multas e juros do parcelamento;;;REGRA 1: O conteúdo do campo deverá conter o número ZERO ou POSITIVO quando obrigatório.
+RPPS_PARCELAMENTO;8;PARC_TotalDevido;NÃO;SIM;Caractere(14,2);Valor total do pacerlamento;;;REGRA 1: O conteúdo do campo deverá conter um número POSITIVO quando obrigatório.
+RPPS_PARCELAMENTO;9;PARC_QtdeParcelas;NÃO;SIM;Inteiro;Quantidade de parcelas;;;REGRA 1: O conteúdo do campo deverá conter um número POSITIVO quando obrigatório.
+RPPS_PARCELAMENTO;10;PARC_NomeArqPDF;NÃO;SIM;Caractere(21);Nome do arquivo PDF;;;REGRA 1: A formatação do nome do arquivo PDF deverá estar de acordo com a regra "PARC_AAAAMM_99999.PDF".
+RPPS_PARCELAMENTO_ANULACAO;1;LEI_Numero;SIM;SIM;Caractere(10);Núm. da lei do parcelamento;RPPS_PARCELAMENTO;"99999/AAAA" (NRO/ANO);REGRA 1: O conteúdo do campo deverá conter um valor no formato "99999/AAAA" (NRO/ANO), o ANO será validado segundo o critério "<= EXERCÍCIO" (ver regra d).
+RPPS_PARCELAMENTO_ANULACAO;2;PARC_Numero;SIM;SIM;Caractere(10);Núm. do parcelamento;RPPS_PARCELAMENTO;"99999/AAAA" (NRO/ANO);REGRA 1: O conteúdo do campo deverá conter um valor no formato "99999/AAAA" (NRO/ANO), o ANO será validado segundo o critério "<= EXERCÍCIO" (ver regra d).
+RPPS_PARCELAMENTO_ANULACAO;3;UG_Codigo;SIM;SIM;Caractere(7);Cód. da Unidade Gestora que parcelou as contribuições;RPPS_PARCELAMENTO;;
+RPPS_PARCELAMENTO_ANULACAO;4;PARCA_Data;NÃO;SIM;Caractere(10);Data da anulação;;;REGRA 1: O conteúdo do campo deverá conter uma DATA válida, a DATA será validada segundo o critério "COMPETÊNCIA DA CARGA" (ver regra d).
+RPPS_PARCELAMENTO_ANULACAO;5;PARCA_Motivo;NÃO;SIM;Caractere(255);Motivo da anulação;;;
+RPPS_PARCELAMENTO_ANULACAO;6;PARCA_VALOR;NÃO;SIM;Caractere(14,2);Valor anulado;;;REGRA 1: O conteúdo do campo deverá conter um número POSITIVO quando obrigatório.
+RPPS_PARCELAMENTO_ANULACAO;7;LEI_Numero_Parcelamento;NÃO;SIM;Caractere(10);Núm. da lei do novo parcelamento;RPPS_PARCELAMENTO;"99999/AAAA" (NRO/ANO);REGRA 1: O conteúdo do campo deverá conter um valor no formato "99999/AAAA" (NRO/ANO), o ANO será validado segundo o critério "<= EXERCÍCIO" (ver regra d).
+RPPS_PARCELAMENTO_ANULACAO;8;PARC_Numero_Parcelamento;NÃO;SIM;Caractere(10);Núm. do novo parcelamento;RPPS_PARCELAMENTO;"99999/AAAA" (NRO/ANO);REGRA 1: O conteúdo do campo deverá conter um valor no formato "99999/AAAA" (NRO/ANO), o ANO será validado segundo o critério "<= EXERCÍCIO" (ver regra d).
+RPPS_PARCELAMENTO_MOVIMENTACAO;1;LEI_Numero;SIM;SIM;Caractere(10);Núm. da lei do parcelamento;RPPS_PARCELAMENTO;"99999/AAAA" (NRO/ANO);REGRA 1: O conteúdo do campo deverá conter um valor no formato "99999/AAAA" (NRO/ANO), o ANO será validado segundo o critério "<= EXERCÍCIO" (ver regra d).
+RPPS_PARCELAMENTO_MOVIMENTACAO;2;PARC_Numero;SIM;SIM;Caractere(10);Núm. do parcelamento;RPPS_PARCELAMENTO;"99999/AAAA" (NRO/ANO);REGRA 1: O conteúdo do campo deverá conter um valor no formato "99999/AAAA" (NRO/ANO), o ANO será validado segundo o critério "<= EXERCÍCIO" (ver regra d).
+RPPS_PARCELAMENTO_MOVIMENTACAO;3;UG_Codigo;SIM;SIM;Caractere(7);Cód. da Unidade Gestora que parcelou as contribuições;RPPS_PARCELAMENTO;;
+RPPS_PARCELAMENTO_MOVIMENTACAO;4;PARCMOV_NumParcela;SIM;SIM;Inteiro;Número da parcela paga;;;REGRA 1: O conteúdo do campo deverá conter um número POSITIVO quando obrigatório.
+RPPS_PARCELAMENTO_MOVIMENTACAO;5;PARCMOV_DataPagamento;SIM;SIM;Caractere(10);Data do pagamento;;;REGRA 1: O conteúdo do campo deverá conter uma DATA válida, a DATA será validada segundo o critério "COMPETÊNCIA DA CARGA" (ver regra d).
+RPPS_PARCELAMENTO_MOVIMENTACAO;6;PARCMOV_ValParcelaDevida;NÃO;SIM;Caractere(14,2);Valor devido da parcela;;;REGRA 1: O conteúdo do campo deverá conter o número ZERO ou POSITIVO quando obrigatório.
+RPPS_PARCELAMENTO_MOVIMENTACAO;7;PARCMOV_ValAtualizacaoDevida;NÃO;SIM;Caractere(14,2);Atualizações devidas da parcela;;;REGRA 1: O conteúdo do campo deverá conter o número ZERO ou POSITIVO quando obrigatório.
+RPPS_PARCELAMENTO_MOVIMENTACAO;8;PARCMOV_ValMultaJurosDevido;NÃO;SIM;Caractere(14,2);Multa e juros devidos por atraso no pagamento;;;REGRA 1: O conteúdo do campo deverá conter o número ZERO ou POSITIVO quando obrigatório.
+RPPS_PARCELAMENTO_MOVIMENTACAO;9;PARCMOV_ValPago;NÃO;SIM;Caractere(14,2);Valor pago da parcela;;;REGRA 1: O conteúdo do campo deverá conter o número ZERO ou POSITIVO quando obrigatório.
+RPPS_PARCELAMENTO_MOVIMENTACAO;10;PARCMOV_ValAtualizacaoPago;NÃO;SIM;Caractere(14,2);Atualizações pagas da parcela;;;REGRA 1: O conteúdo do campo deverá conter o número ZERO ou POSITIVO quando obrigatório.
+RPPS_PARCELAMENTO_MOVIMENTACAO;11;PARCMOV_ValMultaJurosPago;NÃO;SIM;Caractere(14,2);Multa e juros pagos por atraso no pagamento;;;REGRA 1: O conteúdo do campo deverá conter o número ZERO ou POSITIVO quando obrigatório.
+RPPS_POLITICA_ANUAL_INVEST;1;PAINV_ExercicioReferencia;SIM;SIM;Caractere(4);Exercício de referência;;"9999" (NRO);REGRA 1: O conteúdo do campo deverá conter um MÊS ou ANO válido, o MÊS ou ANO será validado segundo o critério "<= EXERCÍCIO" (ver regra d).
+RPPS_POLITICA_ANUAL_INVEST;2;PAINV_TipoDocumento;SIM;SIM;Inteiro;Tipo do documento;;"1" para política anual "2" para revisão da política anual;REGRA 1: O conteúdo do campo deverá estar preenchido com "1...2".
+RPPS_POLITICA_ANUAL_INVEST;3;PAINV_DataDocumento;SIM;SIM;Caractere(10);Data do documento;;;REGRA 1: O conteúdo do campo deverá conter uma DATA válida, a DATA será validada segundo o critério "<= DATA ATUAL" (ver regra d).
+RPPS_POLITICA_ANUAL_INVEST;4;PAINV_NomeArqPDF;NÃO;SIM;Caractere(22);Nome do arquivo PDF;;;REGRA 1: A formatação do nome do arquivo PDF deverá estar de acordo com a regra "PAINV_AAAAMM_99999.PDF".
+RPPS_REL_AVALIACAO_INVEST;1;RAINV_ExercicioReferencia;SIM;SIM;Caractere(4);Exercício de referência;;"9999" (NRO);REGRA 1: O conteúdo do campo deverá conter um MÊS ou ANO válido, o MÊS ou ANO será validado segundo o critério "<= EXERCÍCIO" (ver regra d).
+RPPS_REL_AVALIACAO_INVEST;2;RAINV_TipoPeriodo;SIM;SIM;Inteiro;Tipo do período;;"1" para trimestral "2" para semestral;REGRA 1: O conteúdo do campo deverá estar preenchido com "1...2".
+RPPS_REL_AVALIACAO_INVEST;3;RAINV_PeriodoReferencia;SIM;SIM;Inteiro;Período de referência;;;REGRA 1: O conteúdo do campo deverá estar preenchido conforme o conteúdo do campo "RAINV_TipoPeriodo", com um valor de semestre válido (de "1" a "2") ou de trimestre válido (de "1" a "4").
+RPPS_REL_AVALIACAO_INVEST;4;RAINV_NomeArqPDF;NÃO;SIM;Caractere(22);Nome do arquivo PDF;;;REGRA 1: A formatação do nome do arquivo PDF deverá estar de acordo com a regra "RAINV_AAAAMM_99999.PDF".
+RPPS_RESPONSAVEL_INVESTIMENTO;1;RESP_IdentificResponsavel;SIM;SIM;Caractere(20);Identificação do responsável;PESSOAL ou CADASTRO_GERAL;;
+RPPS_RESPONSAVEL_INVESTIMENTO;2;RESPINV_PossuiCertificacao;NÃO;SIM;Caractere(1);Possui certificação?;;"S" para sim "N" para não;REGRA 1: O conteúdo do campo deverá estar preenchido com "'S', 'N'".
+RPPS_RESPONSAVEL_INVESTIMENTO;3;RESPINV_CNPJEntidadeCertifica;NÃO;COND;Caractere(20);CNPJ da entidade certificadora;;"99.999.999/9999-99";REGRA 1: O conteúdo do campo deverá estar preenchido quando o conteúdo do campo "RESPINV_PossuiCertificacao" for "'S'". REGRA 2: O conteúdo do campo deverá conter um número de CNPJ ("99.999.999/9999-99") válido.
+RPPS_RESPONSAVEL_INVESTIMENTO;4;RESPINV_DataValidadeCertifica;NÃO;COND;Caractere(10);Data da certificação;;;REGRA 1: O conteúdo do campo deverá estar preenchido quando o conteúdo do campo "RESPINV_PossuiCertificacao" for "'S'". REGRA 2: O conteúdo do campo deverá conter uma DATA válida, a DATA será validada segundo o critério "DATA FUTURA" (ver regra d).
+RPPS_RESPONSAVEL_INVESTIMENTO;5;RESPINV_NomeArqPDF;NÃO;COND;Caractere(24);Nome do arquivo PDF;;;REGRA 1: O conteúdo do campo deverá estar preenchido quando o conteúdo do campo "RESPINV_PossuiCertificacao" for "'S'". REGRA 2: A formatação do nome do arquivo PDF deverá estar de acordo com a regra "RESPINV_AAAAMM_99999.PDF".
+RPPS_RESULTADO_ATUARIAL;1;RATUA_Exercicio;SIM;SIM;Caractere(4);Exercício da carga;;"9999" (NRO);REGRA 1: O conteúdo do campo deverá conter um MÊS ou ANO válido, o MÊS ou ANO será validado segundo o critério "= EXERCÍCIO" (ver regra d).
+RPPS_RESULTADO_ATUARIAL;2;RATUA_MesReferencia;SIM;SIM;Caractere(2);Mês de referência;;"99" (NRO);REGRA 1: O conteúdo do campo deverá estar preenchido com "01...12". REGRA 2: O conteúdo do campo deverá conter um MÊS ou ANO válido, o MÊS ou ANO será validado segundo o critério "= MÊS" (ver regra d).
+RPPS_RESULTADO_ATUARIAL;3;RATUA_ValorExercicio;NÃO;SIM;Caractere(14,2);Valor resultado atuarial do exerc. da carga;;;
+RPPS_RESULTADO_ATUARIAL;4;RATUA_ValorExercicioAnt_01;NÃO;SIM;Caractere(14,2);Valor resultado atuarial do exerc. anterior;;;
+RPPS_RESULTADO_ATUARIAL;5;RATUA_ValorExercicioAnt_02;NÃO;SIM;Caractere(14,2);Valor resultado atuarial do segundo exerc. anterior;;;
+RPPS_RESULTADO_ATUARIAL;6;RATUA_NomeArqPDFAvaliacao;NÃO;SIM;Caractere(22);Nome do arquivo PDF da avaliação atuarial;;;REGRA 1: A formatação do nome do arquivo PDF deverá estar de acordo com a regra "RATUA_AAAAMM_99999.PDF".
+RPPS_RESULTADO_ATUARIAL;7;RATUA_NomeArqPDFNotaTecnica;NÃO;SIM;Caractere(22);Nome do arquivo PDF da nota técnica atuarial;;;REGRA 1: A formatação do nome do arquivo PDF deverá estar de acordo com a regra "RATUA_AAAAMM_99999.PDF".
+RPPS_RESULTADO_ATUARIAL;8;RATUA_NomeArqPDFViabiliCusteio;NÃO;SIM;Caractere(22);Nome do arquivo PDF do demonstrativo de viabilidade do plano de custeio (Art. 64, Port. MTP 1.467/2022);;;REGRA 1: A formatação do nome do arquivo PDF deverá estar de acordo com a regra "RATUA_AAAAMM_99999.PDF".
+RPPS_RESULTADO_ATUARIAL;9;RATUA_NomeArqPDFAvaliaAtuarial;NÃO;SIM;Caractere(22);Nome do arquivo PDF contendo cópia da avaliação atuarial anual;;;REGRA 1: A formatação do nome do arquivo PDF deverá estar de acordo com a regra "RATUA_AAAAMM_99999.PDF".
+RPPS_TITULOS_PUBL_CUSTODIANTE;1;TPUBSCUST_CNPJ;SIM;SIM;Caractere(20);CNPJ do custodiante dos títulos;CADASTRO_GERAL;"99.999.999/9999-99";REGRA 1: O conteúdo do campo deverá conter um número de CNPJ ("99.999.999/9999-99") válido.
+RPPS_TITULOS_PUBL_CUSTODIANTE;2;TTPUB_Codigo;SIM;SIM;Inteiro;Cód. do tipo do título público;RPPS_TITULOS_PUBLICOS;1...5;REGRA 1: O conteúdo do campo deverá estar preenchido com "1...5".
+RPPS_TITULOS_PUBL_CUSTODIANTE;3;TPUBS_NumAPRCompraTitulo;SIM;SIM;Caractere(10);Núm. da autorização;RPPS_TITULOS_PUBLICOS;"99999/AAAA" (NRO/ANO);REGRA 1: O conteúdo do campo deverá conter um valor no formato "99999/AAAA" (NRO/ANO), o ANO será validado segundo o critério "<= EXERCÍCIO" (ver regra d).
+RPPS_TITULOS_PUBL_CUSTODIANTE;4;TPUBSCUST_DataInicio;SIM;SIM;Caractere(10);Data do início do contrato;;;REGRA 1: O conteúdo do campo deverá conter uma DATA válida, a DATA será validada segundo o critério "<= EXERCÍCIO" (ver regra d).
+RPPS_TITULOS_PUBL_CUSTODIANTE;5;TPUBSCUST_NomeArqPDF;NÃO;SIM;Caractere(26);Nome do arquivo PDF;;;REGRA 1: A formatação do nome do arquivo PDF deverá estar de acordo com a regra "TPUBSCUST_AAAAMM_99999.PDF".
+RPPS_TITULOS_PUBL_DOCUMENTO;1;TPUBS_NumAPRCompraTitulo;SIM;SIM;Caractere(10);Núm. da autorização;RPPS_TITULOS_PUBLICOS;"99999/AAAA" (NRO/ANO);REGRA 1: O conteúdo do campo deverá conter um valor no formato "99999/AAAA" (NRO/ANO), o ANO será validado segundo o critério "<= EXERCÍCIO" (ver regra d).
+RPPS_TITULOS_PUBL_DOCUMENTO;2;TTPUB_Codigo;SIM;SIM;Inteiro;Cód. do tipo do título público;RPPS_TITULOS_PUBLICOS;1...5;REGRA 1: O conteúdo do campo deverá estar preenchido com "1...5".
+RPPS_TITULOS_PUBL_DOCUMENTO;3;TDD_Codigo;SIM;SIM;Inteiro;Cód. do tipo do documento;TI.TIPO_DOCUMENTO_DIVERSO;120, 121, 122;REGRA 1: O conteúdo do campo deverá estar preenchido com "'120', '121', '122'".
+RPPS_TITULOS_PUBL_DOCUMENTO;4;TPUBSDOC_Data;SIM;SIM;Caractere(10);Data do documento;;;REGRA 1: O conteúdo do campo deverá conter uma DATA válida, a DATA será validada segundo o critério "<= DATA ATUAL" (ver regra d).
+RPPS_TITULOS_PUBL_DOCUMENTO;5;TPUBSDOC_NomeArqPDF;NÃO;SIM;Caractere(25);Nome do arquivo PDF;;;REGRA 1: A formatação do nome do arquivo PDF deverá estar de acordo com a regra "TPUBSDOC_AAAAMM_99999.PDF".
+RPPS_TITULOS_PUBL_MOVIMENTACAO;1;TPUBS_NumAPRCompraTitulo;SIM;SIM;Caractere(10);Núm. da autorização;RPPS_TITULOS_PUBLICOS;"99999/AAAA" (NRO/ANO);REGRA 1: O conteúdo do campo deverá conter um valor no formato "99999/AAAA" (NRO/ANO), o ANO será validado segundo o critério "<= EXERCÍCIO" (ver regra d).
+RPPS_TITULOS_PUBL_MOVIMENTACAO;2;TTPUB_Codigo;SIM;SIM;Inteiro;Cód. do tipo do título público;RPPS_TITULOS_PUBLICOS;1...5;REGRA 1: O conteúdo do campo deverá estar preenchido com "1...5".
+RPPS_TITULOS_PUBL_MOVIMENTACAO;3;TPARES_NumAPR;SIM;SIM;Caractere(10);Núm. da autorização da aplicação e resgate;;"99999/AAAA" (NRO/ANO);REGRA 1: O conteúdo do campo deverá conter um valor no formato "99999/AAAA" (NRO/ANO), o ANO será validado segundo o critério "<= EXERCÍCIO" (ver regra d). REGRA 2: O conteúdo do campo deverá conter "00000/AAAA" (zero e ANO) quando o conteúdo do campo "TPARES_TipoOperacao" for "'1', '4'".
+RPPS_TITULOS_PUBL_MOVIMENTACAO;4;TPARES_TipoOperacao;SIM;SIM;Inteiro;Tipo da operação;TI.TIPO_OPERACAO_TIT_PUB;1...4;REGRA 1: O conteúdo do campo deverá estar preenchido com "1...4".
+RPPS_TITULOS_PUBL_MOVIMENTACAO;5;TPARES_DataOperacao;SIM;SIM;Caractere(10);Data da operação;;;REGRA 1: O conteúdo do campo deverá conter uma DATA válida, a DATA será validada segundo o critério "<= DATA ATUAL" (ver regra d).
+RPPS_TITULOS_PUBL_MOVIMENTACAO;6;TPARES_FormaRealizacaoOperacao;NÃO;COND;Inteiro;Forma de realização da operação;TI.FORMA_REALIZACAO_TIT_PUB;1...5;REGRA 1: O conteúdo do campo deverá estar preenchido com "1...5", quando o conteúdo do campo "TPARES_TipoOperacao" for "'2'".
+RPPS_TITULOS_PUBL_MOVIMENTACAO;7;TPARES_NumNotaNegociacaoTitulo;NÃO;COND;Caractere(20);Núm. da nota de negociação do título;;;REGRA 1: O conteúdo do campo deverá estar preenchido quando o conteúdo do campo "TPARES_TipoOperacao" for "'2', '3'".
+RPPS_TITULOS_PUBL_MOVIMENTACAO;8;TPARES_PUOperacao;NÃO;COND;Caractere(14,10);Preço unitário de mercado/ do título;;;REGRA 1: O conteúdo do campo deverá estar preenchido quando o conteúdo do campo "TPARES_TipoOperacao" for "'1', '2', '3'". REGRA 2: O conteúdo do campo deverá conter o número ZERO ou POSITIVO quando obrigatório.
+RPPS_TITULOS_PUBL_MOVIMENTACAO;9;TPARES_PUReferenciaMercado;NÃO;COND;Caractere(14,2);Preço unitário de mercado;;;REGRA 1: O conteúdo do campo deverá estar preenchido quando o conteúdo do campo "TPARES_TipoOperacao" for "'2'". REGRA 2: O conteúdo do campo deverá conter o número ZERO ou POSITIVO quando obrigatório.
+RPPS_TITULOS_PUBL_MOVIMENTACAO;10;TPARES_Quantidade;NÃO;COND;Inteiro;Quantidade de títulos;;;REGRA 1: O conteúdo do campo deverá estar preenchido quando o conteúdo do campo "TPARES_TipoOperacao" for "'1', '2', '3'". REGRA 2: O conteúdo do campo deverá conter o número ZERO ou POSITIVO quando obrigatório.
+RPPS_TITULOS_PUBL_MOVIMENTACAO;11;TPARES_TaxaJurosOperacao;NÃO;COND;Caractere(4,2);Taxa de juros da operação;;;REGRA 1: O conteúdo do campo deverá estar preenchido quando o conteúdo do campo "TPARES_TipoOperacao" for "'2'". REGRA 2: O conteúdo do campo deverá conter o número ZERO ou POSITIVO quando obrigatório.
+RPPS_TITULOS_PUBL_MOVIMENTACAO;12;TPARES_ValorTotalOperacao;NÃO;COND;Caractere(14,2);Valor total da operação;;;REGRA 1: O conteúdo do campo deverá estar preenchido quando o conteúdo do campo "TPARES_TipoOperacao" for "'4'".
+RPPS_TITULOS_PUBLICOS;1;TPUBS_NumAPRCompraTitulo;SIM;SIM;Caractere(10);Núm. da autorização;;"99999/AAAA" (NRO/ANO);REGRA 1: O conteúdo do campo deverá conter um valor no formato "99999/AAAA" (NRO/ANO), o ANO será validado segundo o critério "<= EXERCÍCIO" (ver regra d).
+RPPS_TITULOS_PUBLICOS;2;TTPUB_Codigo;SIM;SIM;Inteiro;Cód. do tipo do título público;TI.TIPO_TITULO_PUBLICO;1...5;REGRA 1: O conteúdo do campo deverá estar preenchido com "1...5".
+RPPS_TITULOS_PUBLICOS;3;TPUBS_CNPJIntermediaria;NÃO;SIM;Caractere(20);CNPJ da corretora;CADASTRO_GERAL;"99.999.999/9999-99";REGRA 1: O conteúdo do campo deverá conter um número de CNPJ ("99.999.999/9999-99") válido.
+RPPS_TITULOS_PUBLICOS;4;TPUBS_FormaRealizacaoOperacao;NÃO;SIM;Inteiro;Forma de realização da operação;TI.FORMA_REALIZACAO_TIT_PUB;1...5;REGRA 1: O conteúdo do campo deverá estar preenchido com "1...5".
+RPPS_TITULOS_PUBLICOS;5;TPUBS_DataEmissao;NÃO;SIM;Caractere(10);Data da emissão;;;REGRA 1: O conteúdo do campo deverá conter uma DATA válida, a DATA será validada segundo o critério "<= DATA ATUAL" (ver regra d).
+RPPS_TITULOS_PUBLICOS;6;TPUBS_DataNegociacao;NÃO;SIM;Caractere(10);Data da negociação;;;REGRA 1: O conteúdo do campo deverá conter uma DATA válida, a DATA será validada segundo o critério "<= DATA ATUAL" (ver regra d).
+RPPS_TITULOS_PUBLICOS;7;TPUBS_DataVencimento;NÃO;SIM;Caractere(10);Data do vencimento;;;REGRA 1: O conteúdo do campo deverá conter um valor MAIOR ou IGUAL ao conteúdo do campo "TPUBS_DataEmissao".
+RPPS_TITULOS_PUBLICOS;8;TPUBS_PUReferenciaMercado;NÃO;SIM;Caractere(14,10);Preço unitário de mercado;;;REGRA 1: O conteúdo do campo deverá conter o número ZERO ou POSITIVO quando obrigatório.
+RPPS_TITULOS_PUBLICOS;9;TPUBS_PUCompra;NÃO;SIM;Caractere(14,10);Preço unitário de compra;;;REGRA 1: O conteúdo do campo deverá conter o número ZERO ou POSITIVO quando obrigatório.
+RPPS_TITULOS_PUBLICOS;10;TPUBS_PUAtual;NÃO;SIM;Caractere(14,10);Preço unitário atual;;;REGRA 1: O conteúdo do campo deverá conter o número ZERO ou POSITIVO quando obrigatório.
+RPPS_TITULOS_PUBLICOS;11;TPUBS_QuantidadeCompra;NÃO;SIM;Inteiro;Quantidade comprada;;;REGRA 1: O conteúdo do campo deverá conter o número ZERO ou POSITIVO quando obrigatório.
+RPPS_TITULOS_PUBLICOS;12;TPUBS_TaxaJuros;NÃO;SIM;Caractere(3,2);Taxa de juros do Tesouro Nacional;;;REGRA 1: O conteúdo do campo deverá conter o número ZERO ou POSITIVO quando obrigatório.
+RPPS_TITULOS_PUBLICOS;13;TPUBS_TaxaJurosOperacao;NÃO;SIM;Caractere(3,2);Taxa de juros entre comprador e vendedor;;;REGRA 1: O conteúdo do campo deverá conter o número ZERO ou POSITIVO quando obrigatório.
+SALDO_CONTA_CONTABIL_TCEMT;1;ECTCE_Codigo;SIM;SIM;Caractere(11);Cód. do elenco de contas;TI.ELENCO_CONTAS_TCEMT;;
+SALDO_CONTA_CONTABIL_TCEMT;2;SCC_MesCompetencia;SIM;SIM;Caractere(2);Mês de competência;;"99" (NRO);REGRA 1: O conteúdo do campo deverá estar preenchido com "01...13". REGRA 2: O conteúdo do campo deverá conter um MÊS ou ANO válido, o MÊS ou ANO será validado segundo o critério "= MÊS" (ver regra d).
+SALDO_CONTA_CONTABIL_TCEMT;3;SCC_ValorDebito;NÃO;SIM;Caractere(14,2);Valor de débito acumulado até o mês anterior;;;REGRA 1: O conteúdo do campo deverá conter o número ZERO ou POSITIVO quando obrigatório.
+SALDO_CONTA_CONTABIL_TCEMT;4;SCC_ValorCredito;NÃO;SIM;Caractere(14,2);Valor de crédito acumulado até o mês anterior;;;REGRA 1: O conteúdo do campo deverá conter o número ZERO ou POSITIVO quando obrigatório.
+UNIDADE_ORCAMENTARIA;1;ORG_Codigo;SIM;SIM;Caractere(2);Cód. do órgão;ORGAO;;
+UNIDADE_ORCAMENTARIA;2;UNOR_Codigo;SIM;SIM;Caractere(3);Cód. da unidade orçamentária;;;
+UNIDADE_ORCAMENTARIA;3;UNOR_Nome;NÃO;SIM;Caractere(120);Nome;;;REGRA 1: O conteúdo do campo deverá estar preenchido com "RESERVA DE CONTINGENCIA" quando o conteúdo do campo "UNOR_Codigo" for um dos valores "999".
+UNIDADE_ORCAMENTARIA;4;LEI_Numero;NÃO;SIM;Caractere(10);Núm. da lei de criação;LEI;"99999/AAAA" (NRO/ANO);REGRA 1: O conteúdo do campo deverá conter um valor no formato "99999/AAAA" (NRO/ANO), o ANO será validado segundo o critério "<= EXERCÍCIO" (ver regra d).

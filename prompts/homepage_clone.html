@@ -1,0 +1,717 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Prefeitura Municipal de Barão de Melgaço - MT | Portal Institucional</title>
+    <style>
+        :root {
+            --primary-color: #0b4a75;
+            --primary-light: #16649c;
+            --secondary-color: #0088cc;
+            --accent-color: #f39c12;
+            --dark-color: #333333;
+            --light-color: #f8f9fa;
+            --border-color: #e9ecef;
+            --shadow: 0 4px 6px rgba(0,0,0,0.05);
+            --transition: all 0.3s ease;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background-color: #f5f7fa;
+            color: var(--dark-color);
+            line-height: 1.6;
+        }
+
+        a {
+            text-decoration: none;
+            color: inherit;
+            transition: var(--transition);
+        }
+
+        /* Top Bar */
+        .top-bar {
+            background-color: var(--primary-color);
+            color: white;
+            font-size: 13px;
+            padding: 8px 5%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 3px solid var(--accent-color);
+        }
+
+        .top-menu a {
+            margin-right: 15px;
+            opacity: 0.9;
+        }
+
+        .top-menu a:hover {
+            opacity: 1;
+            color: var(--accent-color);
+        }
+
+        .accessibility-tools {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .acc-btn {
+            background: rgba(255,255,255,0.1);
+            border: none;
+            color: white;
+            padding: 3px 8px;
+            border-radius: 3px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        .acc-btn:hover {
+            background: var(--accent-color);
+        }
+
+        /* Main Header */
+        header {
+            background-color: white;
+            box-shadow: var(--shadow);
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+        }
+
+        .header-container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 5%;
+        }
+
+        .logo-area {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .logo-placeholder {
+            width: 70px;
+            height: 70px;
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            font-size: 24px;
+            border: 2px solid var(--accent-color);
+        }
+
+        .logo-text h1 {
+            font-size: 20px;
+            color: var(--primary-color);
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .logo-text p {
+            font-size: 12px;
+            color: #777;
+        }
+
+        /* Navigation Menu */
+        nav {
+            background-color: var(--primary-light);
+        }
+
+        .nav-container {
+            display: flex;
+            list-style: none;
+            padding: 0 5%;
+        }
+
+        .nav-container li {
+            position: relative;
+        }
+
+        .nav-container a {
+            display: block;
+            padding: 15px 20px;
+            color: white;
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .nav-container a:hover, .nav-container li:hover > a {
+            background-color: var(--secondary-color);
+            color: white;
+        }
+
+        /* Dropdown Menu */
+        .dropdown {
+            display: none;
+            position: absolute;
+            top: 100%;
+            left: 0;
+            background-color: white;
+            min-width: 220px;
+            box-shadow: 0 8px 16px rgba(0,0,0,0.1);
+            list-style: none;
+            border-radius: 0 0 5px 5px;
+            border-top: 3px solid var(--accent-color);
+        }
+
+        .dropdown a {
+            color: var(--dark-color);
+            padding: 12px 20px;
+            font-weight: normal;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .dropdown a:hover {
+            background-color: #f1f3f5;
+            color: var(--primary-color);
+        }
+
+        .nav-container li:hover .dropdown {
+            display: block;
+        }
+
+        /* Hero / Banner */
+        .hero {
+            background: linear-gradient(rgba(11, 74, 117, 0.8), rgba(0, 136, 204, 0.7)), url('https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=1200&q=80');
+            background-size: cover;
+            background-position: center;
+            color: white;
+            text-align: center;
+            padding: 100px 20px;
+        }
+
+        .hero-content h2 {
+            font-size: 42px;
+            font-weight: 800;
+            margin-bottom: 15px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .hero-content p {
+            font-size: 18px;
+            max-width: 800px;
+            margin: 0 auto 30px auto;
+            opacity: 0.9;
+        }
+
+        .search-box {
+            max-width: 600px;
+            margin: 0 auto;
+            display: flex;
+            background: white;
+            border-radius: 30px;
+            padding: 5px;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.15);
+        }
+
+        .search-box input {
+            flex: 1;
+            border: none;
+            padding: 12px 25px;
+            font-size: 16px;
+            border-radius: 30px 0 0 30px;
+            outline: none;
+        }
+
+        .search-box button {
+            background-color: var(--accent-color);
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            font-size: 16px;
+            font-weight: bold;
+            border-radius: 30px;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .search-box button:hover {
+            background-color: #e67e22;
+        }
+
+        /* Container General */
+        .main-container {
+            max-width: 1200px;
+            margin: 50px auto;
+            padding: 0 20px;
+        }
+
+        .section-title {
+            text-align: center;
+            margin-bottom: 40px;
+            position: relative;
+        }
+
+        .section-title h3 {
+            font-size: 28px;
+            color: var(--primary-color);
+            text-transform: uppercase;
+            font-weight: 750;
+        }
+
+        .section-title::after {
+            content: '';
+            display: block;
+            width: 80px;
+            height: 4px;
+            background-color: var(--accent-color);
+            margin: 10px auto 0 auto;
+            border-radius: 2px;
+        }
+
+        /* Services Grid */
+        .services-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 20px;
+            margin-bottom: 60px;
+        }
+
+        .service-card {
+            background-color: white;
+            border-radius: 8px;
+            padding: 30px 20px;
+            text-align: center;
+            box-shadow: var(--shadow);
+            border: 1px solid var(--border-color);
+            transition: var(--transition);
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .service-card:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 12px 24px rgba(0,0,0,0.08);
+            border-color: var(--secondary-color);
+        }
+
+        .service-icon {
+            width: 60px;
+            height: 60px;
+            background-color: rgba(0, 136, 204, 0.1);
+            color: var(--secondary-color);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 28px;
+            margin-bottom: 20px;
+            transition: var(--transition);
+        }
+
+        .service-card:hover .service-icon {
+            background-color: var(--secondary-color);
+            color: white;
+        }
+
+        .service-card h4 {
+            font-size: 16px;
+            color: var(--primary-color);
+            font-weight: 650;
+            margin-bottom: 10px;
+        }
+
+        .service-card p {
+            font-size: 12px;
+            color: #777;
+        }
+
+        /* News Section */
+        .news-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 30px;
+            margin-bottom: 50px;
+        }
+
+        .news-card {
+            background-color: white;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: var(--shadow);
+            border: 1px solid var(--border-color);
+            transition: var(--transition);
+        }
+
+        .news-card:hover {
+            box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+            transform: translateY(-3px);
+        }
+
+        .news-img-placeholder {
+            height: 180px;
+            background: linear-gradient(135deg, #ddd, #f5f5f5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #aaa;
+            font-size: 14px;
+        }
+
+        .news-content {
+            padding: 20px;
+        }
+
+        .news-date {
+            font-size: 12px;
+            color: var(--accent-color);
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+
+        .news-title {
+            font-size: 18px;
+            color: var(--primary-color);
+            font-weight: bold;
+            margin-bottom: 10px;
+            line-height: 1.4;
+        }
+
+        .news-excerpt {
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 15px;
+        }
+
+        .read-more {
+            color: var(--secondary-color);
+            font-weight: bold;
+            font-size: 13px;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .read-more:hover {
+            color: var(--primary-color);
+        }
+
+        /* Footer */
+        footer {
+            background-color: var(--primary-color);
+            color: white;
+            padding: 60px 5% 20px 5%;
+            margin-top: 50px;
+            font-size: 14px;
+            border-top: 5px solid var(--accent-color);
+        }
+
+        .footer-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 40px;
+            margin-bottom: 40px;
+        }
+
+        .footer-col h4 {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 20px;
+            position: relative;
+            padding-bottom: 10px;
+        }
+
+        .footer-col h4::after {
+            content: '';
+            position: absolute;
+            left: 0;
+            bottom: 0;
+            width: 40px;
+            height: 3px;
+            background-color: var(--accent-color);
+        }
+
+        .footer-col p {
+            margin-bottom: 15px;
+            opacity: 0.9;
+        }
+
+        .footer-links {
+            list-style: none;
+        }
+
+        .footer-links li {
+            margin-bottom: 10px;
+        }
+
+        .footer-links a {
+            opacity: 0.8;
+        }
+
+        .footer-links a:hover {
+            opacity: 1;
+            padding-left: 5px;
+            color: var(--accent-color);
+        }
+
+        .bottom-footer {
+            text-align: center;
+            padding-top: 20px;
+            border-top: 1px solid rgba(255,255,255,0.1);
+            font-size: 12px;
+            opacity: 0.7;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .top-bar {
+                flex-direction: column;
+                gap: 10px;
+                text-align: center;
+            }
+            .header-container {
+                flex-direction: column;
+                gap: 15px;
+                text-align: center;
+            }
+            .nav-container {
+                flex-direction: column;
+                padding: 10px;
+            }
+            .nav-container a {
+                padding: 10px;
+            }
+            .hero-content h2 {
+                font-size: 28px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Top Bar -->
+    <div class="top-bar">
+        <div class="top-menu">
+            <a href="#">Prefeita</a>
+            <a href="#">Vice-prefeito</a>
+            <a href="#">Estrutura</a>
+            <a href="#">Símbolos e Hino</a>
+            <a href="#">História</a>
+        </div>
+        <div class="accessibility-tools">
+            <span>Acessibilidade:</span>
+            <button class="acc-btn">A+</button>
+            <button class="acc-btn">A-</button>
+            <button class="acc-btn">Contraste</button>
+            <button class="acc-btn">VLibras</button>
+        </div>
+    </div>
+
+    <!-- Main Header -->
+    <header>
+        <div class="header-container">
+            <div class="logo-area">
+                <div class="logo-placeholder">BM</div>
+                <div class="logo-text">
+                    <h1>Prefeitura de Barão de Melgaço</h1>
+                    <p>Estado de Mato Grosso - CNPJ: 15.023.906/0001-44</p>
+                </div>
+            </div>
+            <div style="font-size: 13px; text-align: right; color: #555;">
+                <p><strong>Atendimento:</strong> Seg a Sex, 07:00h às 13:00h</p>
+                <p><strong>Telefone:</strong> (65) 3341-1124</p>
+            </div>
+        </div>
+
+        <!-- Navigation -->
+        <nav>
+            <ul class="nav-container">
+                <li><a href="#">Início</a></li>
+                <li>
+                    <a href="#">Imprensa ▾</a>
+                    <ul class="dropdown">
+                        <li><a href="#">Notícias</a></li>
+                        <li><a href="#">Galeria de Fotos</a></li>
+                        <li><a href="#">Vídeos</a></li>
+                    </ul>
+                </li>
+                <li>
+                    <a href="#">Secretarias ▾</a>
+                    <ul class="dropdown">
+                        <li><a href="#">Gabinete do Prefeito</a></li>
+                        <li><a href="#">Finanças e Administração</a></li>
+                        <li><a href="#">Saúde</a></li>
+                        <li><a href="#">Educação e Cultura</a></li>
+                        <li><a href="#">Obras e Serviços Públicos</a></li>
+                    </ul>
+                </li>
+                <li><a href="http://portal.prefbaraodemelgaco-mt.agilicloud.com.br/Cidadao/ConsultaLicitacoes.aspx" target="_blank">Licitações</a></li>
+                <li>
+                    <a href="#">Atos Normativos ▾</a>
+                    <ul class="dropdown">
+                        <li><a href="#">Leis Municipais</a></li>
+                        <li><a href="#">Decretos</a></li>
+                        <li><a href="#">Portarias</a></li>
+                    </ul>
+                </li>
+                <li>
+                    <a href="#">Publicações ▾</a>
+                    <ul class="dropdown">
+                        <li><a href="#">Diário Oficial</a></li>
+                        <li><a href="#">Convênios</a></li>
+                        <li><a href="#">Relatórios LRF</a></li>
+                    </ul>
+                </li>
+                <li><a href="#">Contato</a></li>
+            </ul>
+        </nav>
+    </header>
+
+    <!-- Hero Banner -->
+    <section class="hero">
+        <div class="hero-content">
+            <h2>Portal de Serviços e Transparência</h2>
+            <p>Acesse informações sobre a gestão pública, serviços tributários, consultas de licitações, despesas e recursos humanos da Prefeitura de Barão de Melgaço.</p>
+            <div class="search-box">
+                <input type="text" placeholder="O que você procura? (Ex: IPTU, Contratos, Receitas...)">
+                <button>Pesquisar</button>
+            </div>
+        </div>
+    </section>
+
+    <!-- Main Content Area -->
+    <main class="main-container">
+        
+        <!-- Services Grid Section -->
+        <section class="section-title">
+            <h3>Serviços Rápidos e Transparência</h3>
+        </section>
+
+        <div class="services-grid">
+            <!-- Card 1 -->
+            <a href="https://transparencia.agilicloud.com.br/prefbaraomelgaco-mt" target="_blank" class="service-card">
+                <div class="service-icon">📊</div>
+                <h4>Portal Transparência</h4>
+                <p>Receitas, despesas, empenhos, licitações, contratos e pessoal.</p>
+            </a>
+            <!-- Card 2 -->
+            <a href="#" class="service-card">
+                <div class="service-icon">📣</div>
+                <h4>Ouvidoria Municipal</h4>
+                <p>Faça elogios, sugestões, reclamações ou denúncias.</p>
+            </a>
+            <!-- Card 3 -->
+            <a href="#" class="service-card">
+                <div class="service-icon">📝</div>
+                <h4>e-SIC (Informação)</h4>
+                <p>Solicite informações com base na Lei de Acesso à Informação.</p>
+            </a>
+            <!-- Card 4 -->
+            <a href="https://gws-sistemas.com.br/cartadeservico.pm.baraodemelgaco" target="_blank" class="service-card">
+                <div class="service-icon">📋</div>
+                <h4>Carta de Serviços</h4>
+                <p>Lista detalhada de todos os serviços públicos ofertados.</p>
+            </a>
+            <!-- Card 5 -->
+            <a href="http://agiliblue.agilicloud.com.br/portal/prefbaraodemelgaco-mt/#/guiasIptu" target="_blank" class="service-card">
+                <div class="service-icon">🏠</div>
+                <h4>IPTU Online</h4>
+                <p>Emissão e consulta de guias e débitos de imóveis.</p>
+            </a>
+            <!-- Card 6 -->
+            <a href="http://portal.prefbaraodemelgaco-mt.agilicloud.com.br/Usuario/Login.aspx" target="_blank" class="service-card">
+                <div class="service-icon">💼</div>
+                <h4>Holerite Online</h4>
+                <p>Acesso exclusivo para servidores da prefeitura municipal.</p>
+            </a>
+            <!-- Card 7 -->
+            <a href="https://agiliblue.agilicloud.com.br/" target="_blank" class="service-card">
+                <div class="service-icon">🧾</div>
+                <h4>Nota Fiscal Eletrônica</h4>
+                <p>Emissão de NFS-e e serviços tributários de Barão de Melgaço.</p>
+            </a>
+            <!-- Card 8 -->
+            <a href="https://leismunicipais.com.br/prefeitura/mt/baraodemelgaco" target="_blank" class="service-card">
+                <div class="service-icon">⚖️</div>
+                <h4>Legislação</h4>
+                <p>Leis Orgânicas, Códigos Tributários, Decretos e Leis Ordinárias.</p>
+            </a>
+        </div>
+
+        <!-- News Section -->
+        <section class="section-title">
+            <h3>Últimas Notícias</h3>
+        </section>
+
+        <div class="news-grid">
+            <div class="news-card">
+                <div class="news-img-placeholder">Foto de Progresso de Obras</div>
+                <div class="news-content">
+                    <div class="news-date">05 de Junho, 2026</div>
+                    <h4 class="news-title">Prefeitura inicia pavimentação asfáltica em bairros centrais</h4>
+                    <p class="news-excerpt">A ação faz parte do programa municipal de desenvolvimento urbano para melhorar a mobilidade e qualidade de vida dos melgacenses.</p>
+                    <a href="#" class="read-more">Leia mais ➔</a>
+                </div>
+            </div>
+
+            <div class="news-card">
+                <div class="news-img-placeholder">Campanha de Saúde UBS</div>
+                <div class="news-content">
+                    <div class="news-date">01 de Junho, 2026</div>
+                    <h4 class="news-title">Campanha de Vacinação e prevenção é reforçada nas UBSs</h4>
+                    <p class="news-excerpt">Secretaria de Saúde informa a liberação de doses atualizadas para grupos prioritários em todas as unidades básicas de saúde.</p>
+                    <a href="#" class="read-more">Leia mais ➔</a>
+                </div>
+            </div>
+
+            <div class="news-card">
+                <div class="news-img-placeholder">Audiência LDO</div>
+                <div class="news-content">
+                    <div class="news-date">28 de Maio, 2026</div>
+                    <h4 class="news-title">Convocação para Audiência Pública da LDO do próximo exercício</h4>
+                    <p class="news-excerpt">Prefeitura convida a população, associações e entidades de classe para participarem das discussões orçamentárias.</p>
+                    <a href="#" class="read-more">Leia mais ➔</a>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Footer -->
+    <footer>
+        <div class="footer-grid">
+            <div class="footer-col">
+                <h4>Contato Institucional</h4>
+                <p><strong>Endereço:</strong> Rua 13 de Maio, s/n - Centro, Barão de Melgaço - MT, CEP 78190-000</p>
+                <p><strong>Telefone:</strong> (65) 3341-1124</p>
+                <p><strong>E-mail:</strong> contato@baraodemelgaco.mt.gov.br</p>
+            </div>
+            <div class="footer-col">
+                <h4>Horário de Funcionamento</h4>
+                <p>Atendimento ao público das 07:00h às 13:00h, de segunda a sexta-feira.</p>
+                <p>Abertura de chamados ou pedidos de informação podem ser realizados de forma eletrônica a qualquer momento por meio do e-SIC e Ouvidoria.</p>
+            </div>
+            <div class="footer-col">
+                <h4>Links Úteis</h4>
+                <ul class="footer-links">
+                    <li><a href="https://transparencia.agilicloud.com.br/prefbaraomelgaco-mt">Portal da Transparência</a></li>
+                    <li><a href="#">Diário Oficial Eletrônico</a></li>
+                    <li><a href="#">Contas Anuais de Gestão</a></li>
+                    <li><a href="#">TCE-MT Geoobras</a></li>
+                </ul>
+            </div>
+        </div>
+        <div class="bottom-footer">
+            <p>&copy; 2026 Prefeitura Municipal de Barão de Melgaço - MT. Todos os direitos reservados. Desenvolvido para conformidade PNTP.</p>
+        </div>
+    </footer>
+
+</body>
+</html>

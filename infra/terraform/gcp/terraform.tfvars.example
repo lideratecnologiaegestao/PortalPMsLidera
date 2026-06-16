@@ -1,0 +1,116 @@
+# ============================================================
+# terraform.tfvars.example — Exemplo de configuração de variáveis
+# Portal de Prefeitura (SaaS multi-tenant)
+#
+# INSTRUÇÕES:
+#   1. Copie este arquivo: cp terraform.tfvars.example terraform.tfvars
+#   2. Edite terraform.tfvars com os valores reais do seu projeto
+#   3. NUNCA faça commit de terraform.tfvars (adicione ao .gitignore)
+#   4. Segredos (senhas, API keys) NÃO ficam neste arquivo
+#      — use Secret Manager e passe as senhas do banco via:
+#        export TF_VAR_db_password_app="SENHA_FORTE"
+#        export TF_VAR_db_password_ro="SENHA_FORTE_RO"
+# ============================================================
+
+# ------------------------------------------------------------------
+# Identificação do projeto GCP
+# ------------------------------------------------------------------
+project_id = "meu-projeto-gcp-000000"
+# Encontre em: gcloud config get-value project
+# Formato típico: nome-descritivo-123456 (com sufixo numérico)
+
+region = "us-east1"
+# Região recomendada para menor latência ao Brasil continental.
+# Alternativa para dados no Brasil: "southamerica-east1" (São Paulo)
+# — mais caro, mas pode ser exigido por licitações que requerem dados no Brasil.
+
+zone = "us-east1-b"
+# Zona dentro da região para recursos zonais (Cloud SQL primário).
+
+environment = "production"
+# Valores válidos: production, staging, development
+
+# ------------------------------------------------------------------
+# Domínio e URLs
+# ------------------------------------------------------------------
+domain = "prefeitura.app.br"
+# Domínio principal da plataforma.
+# O wildcard *.prefeitura.app.br será configurado para os tenants.
+# Ex: cuiaba.prefeitura.app.br, barao.prefeitura.app.br
+
+# ------------------------------------------------------------------
+# Imagens Docker (Artifact Registry)
+# ------------------------------------------------------------------
+image_api = "us-east1-docker.pkg.dev/meu-projeto-gcp-000000/portal/api:latest"
+# Imagem da API NestJS. Construa com:
+#   docker build -t IMAGE_API ./api && docker push IMAGE_API
+# Em produção, use tags específicas (ex: :v1.2.3 ou :abc1234) em vez de :latest.
+
+image_web = "us-east1-docker.pkg.dev/meu-projeto-gcp-000000/portal/web:latest"
+# Imagem do portal Next.js. Mesmas instruções acima.
+
+# ------------------------------------------------------------------
+# Cloud SQL (PostgreSQL 16)
+# ------------------------------------------------------------------
+db_tier = "db-custom-2-4096"
+# Tier da instância Cloud SQL: 2 vCPU + 4 GB RAM.
+# Para produção inicial recomendado. Opções comuns:
+#   db-custom-1-3840   — 1 vCPU, 3.75 GB (menor custo)
+#   db-custom-2-4096   — 2 vCPU, 4 GB (recomendado)
+#   db-custom-4-8192   — 4 vCPU, 8 GB (alta carga)
+#   db-custom-8-16384  — 8 vCPU, 16 GB (muito alta carga)
+
+db_name          = "portal"
+db_user_app      = "portal_app"
+db_user_readonly = "portal_ro"
+
+# SENHAS — NÃO coloque aqui. Use variáveis de ambiente:
+#   export TF_VAR_db_password_app="$(openssl rand -base64 32)"
+#   export TF_VAR_db_password_ro="$(openssl rand -base64 32)"
+# db_password_app = "NUNCA_AQUI"
+# db_password_ro  = "NUNCA_AQUI"
+
+# ------------------------------------------------------------------
+# Memorystore Redis 7
+# ------------------------------------------------------------------
+redis_memory_gb = 1
+# GB de memória Redis. 1 GB suporta até ~5.000 jobs BullMQ simultâneos
+# e cache de ~100 tenants. Monitore used_memory e escale conforme necessário.
+
+redis_tier = "STANDARD_HA"
+# STANDARD_HA: alta disponibilidade (produção)
+# BASIC: sem HA, mais barato (staging/dev)
+
+# ------------------------------------------------------------------
+# Cloud Storage (GCS)
+# ------------------------------------------------------------------
+storage_bucket_name = "portal"
+# Sufixo do nome do bucket. O nome real será: {project_id}-portal
+# Para alterar o nome real, modifique o resource em storage.tf.
+
+storage_location = "US"
+# Localização do bucket:
+#   "US"                    — Multi-region EUA (padrão, maior disponibilidade)
+#   "SOUTHAMERICA-EAST1"    — Single-region São Paulo (dados no Brasil)
+#   "us-east1"              — Single-region (menor latência, menor custo)
+
+# ------------------------------------------------------------------
+# Cloud Run — escala de instâncias
+# ------------------------------------------------------------------
+min_instances_api = 1
+# Mínimo de instâncias da API. Use 1 em produção para evitar cold start.
+# Use 0 em staging para economizar quando não há tráfego.
+
+max_instances_api = 10
+# Máximo de instâncias da API. Cada instância processa 80 req simultaneamente.
+# 10 instâncias = até 800 req simultâneas. Ajuste conforme carga esperada.
+
+min_instances_web = 1
+max_instances_web = 10
+
+# ------------------------------------------------------------------
+# Rede
+# ------------------------------------------------------------------
+vpc_connector_cidr = "10.8.0.0/28"
+# CIDR do Serverless VPC Access Connector. Não deve sobrepor outros ranges.
+# /28 suporta até 100 instâncias Cloud Run. Use /26 para maior capacidade.

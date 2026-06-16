@@ -1,0 +1,21 @@
+# Config NÃO-sensível da API. Segredos (DATABASE_URL, REDIS_PASSWORD,
+# AUTH_JWT_SECRET, CPF_PEPPER, ANTHROPIC_API_KEY, EVOLUTION_API_KEY,
+# STORAGE_*, DIARIO_SIGNING_KEY) vão num Secret separado (não versionado).
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: portal-api-config
+data:
+  PORT: '3001'
+  REDIS_HOST: 'redis'
+  REDIS_PORT: '6379'
+  REDIS_DB: '1'
+  REDIS_TLS: 'false'
+  BULLMQ_PREFIX: 'portal'
+  STORAGE_ENDPOINT: 'http://portal-minio:9000'
+  STORAGE_BUCKET: 'portal'
+  STORAGE_FORCE_PATH_STYLE: 'true'
+  WHATSAPP_PROVIDER: 'evolution'
+  EVOLUTION_API_URL: 'http://evolution-api:8080'
+  GOVBR_PROVIDER_URL: 'https://sso.acesso.gov.br'
+  AUTH_SESSION_TTL: '8h'

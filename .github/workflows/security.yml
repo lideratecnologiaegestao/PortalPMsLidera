@@ -1,0 +1,59 @@
+name: Security (DevSecOps)
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  schedule:
+    - cron: '0 3 * * 1' # varredura semanal
+
+permissions:
+  contents: read
+  security-events: write
+
+jobs:
+  sast:
+    name: SAST (CodeQL)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: github/codeql-action/init@v3
+        with: { languages: javascript-typescript }
+      - uses: github/codeql-action/analyze@v3
+
+  sca:
+    name: SCA (dependências)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      # gate real de SCA: falha o CI em vulnerabilidade HIGH/CRITICAL.
+      # Falsos-positivos conhecidos → documentar waiver explícito (não usar || true).
+      - name: npm audit (api)
+        run: cd api && npm audit --audit-level=high
+      - name: npm audit (web)
+        run: cd web && npm audit --audit-level=high
+      - name: Trivy filesystem
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: fs
+          scanners: vuln,secret,misconfig
+          severity: HIGH,CRITICAL
+          exit-code: '1'
+
+  secrets:
+    name: Secret scanning (gitleaks)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
+      - uses: gitleaks/gitleaks-action@v2
+
+  iac:
+    name: IaC scan (Checkov)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: bridgecrewio/checkov-action@master
+        with: { directory: infra, soft_fail: false }
+
+# Gate: PR não mergeia com vulnerabilidade HIGH/CRITICAL sem waiver aprovado.
