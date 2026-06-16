@@ -6,10 +6,24 @@ Material de apresentação para **vender o Portal de Prefeitura** (plataforma Sa
 
 | Arquivo | Para quê serve |
 |---------|----------------|
+| **`Apresentacao-Portal-Prefeitura.pptx`** | **Apresentação de slides (14 telas, 16:9)** — pronta para o **Google Apresentações** (importação abaixo) ou PowerPoint. Use em reuniões/projetor. |
 | **`Portfolio-Portal-Prefeitura.docx`** | Portfólio em Word (A4), com capa, 14 seções e gráficos. Edite/imprima/envie por e-mail. |
 | **`index.html`** | Mesma apresentação em página web — abre offline (duplo clique), responsiva, ideal para projetar numa reunião ou gerar PDF (Ctrl+P → Salvar como PDF). |
-| `assets/` | Gráficos (PNG) usados no `.docx` — gerados automaticamente. |
+| `assets/` | Gráficos (PNG) usados no `.docx` e no `.pptx` — gerados automaticamente. |
 | `gerar_portfolio_docx.py` | Script que **gera os gráficos e o `.docx`**. Reexecute após editar o conteúdo. |
+| `gerar_slides_pptx.py` | Script que **gera o `.pptx`** (reaproveita os gráficos de `assets/`). |
+
+## Como abrir o `.pptx` no Google Apresentações (Google Slides)
+
+1. Acesse **[slides.google.com](https://slides.google.com)** logado na conta `comercial@lideratecnologia.com.br`.
+2. Clique em **Abrir seletor de arquivos** (ícone de pasta) → aba **Upload** → arraste o
+   `Apresentacao-Portal-Prefeitura.pptx`. O Google converte automaticamente para Slides.
+   - _Alternativa:_ jogue o arquivo no **Google Drive**, clique com o botão direito →
+     **Abrir com → Google Apresentações**.
+3. (Opcional) Em **Arquivo → Salvar como Google Apresentações** para manter uma cópia nativa editável.
+
+As fontes usadas (Calibri) são substituídas pelas equivalentes do Google — o layout é preservado.
+Para reexportar a partir do Google: **Arquivo → Fazer download → PowerPoint (.pptx) / PDF**.
 
 ## Como apresentar
 
@@ -57,4 +71,4 @@ Para editar o HTML, altere diretamente `index.html` (CSS e SVG estão embutidos 
   o PNG (ou troque `assets/logo_lidera.png`).
 - **Personalizar:** cores, contato e preços ("sob consulta") são placeholders — ajuste no
   `gerar_portfolio_docx.py` (Word) e no `index.html` (web).
-- Contato usado: **Lidera Tecnologia e Gestão** · www.lideratecnologia.com.br · lideraabrange@gmail.com · demo `https://prefeitura.lidera.app.br`.
+- Contato usado: **Lidera Tecnologia e Gestão** · www.lideratecnologia.com.br · comercial@lideratecnologia.com.br · demo `https://prefeitura.lidera.app.br`.

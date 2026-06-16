@@ -153,13 +153,14 @@ def fig_conformidade():
 def fig_pntp():
     fig, (axd, axb) = plt.subplots(1, 2, figsize=(10, 4.2), dpi=200,
                                    gridspec_kw={"width_ratios": [1, 1.4]})
-    # donut
-    val = 92
-    axd.pie([val, 100-val], colors=[VERDE, CINZA_BG], startangle=90,
+    # donut — 100% dos critérios PNTP atendidos (selo Diamante)
+    axd.pie([100], colors=[VERDE], startangle=90,
             counterclock=False, wedgeprops=dict(width=0.32))
-    axd.text(0, 0.12, "Diamante", ha="center", fontsize=14, fontweight="bold",
-             color=AZUL_ESC)
-    axd.text(0, -0.22, "meta PNTP", ha="center", fontsize=10, color=TEXTO)
+    axd.text(0, 0.20, "100%", ha="center", fontsize=22, fontweight="bold",
+             color=VERDE)
+    axd.text(0, -0.16, "critérios PNTP", ha="center", fontsize=9.5, color=TEXTO)
+    axd.text(0, -0.40, "SELO DIAMANTE", ha="center", fontsize=9.5,
+             fontweight="bold", color=AZUL_ESC)
     axd.set_aspect("equal")
     # barras de dimensões com mais peso
     dims = ["Receita", "Despesa", "Recursos\nHumanos", "Licitações", "Contratos", "Obras"]
@@ -202,10 +203,10 @@ def fig_roadmap():
     fig.savefig(p, bbox_inches="tight", pad_inches=0.1); plt.close(fig); return p
 
 def fig_kpis():
-    kpis = [("1 → N", "uma plataforma,\ninfinitas prefeituras"),
+    kpis = [("100% PNTP", "Selo Diamante\nem transparência"),
+            ("1 → N", "uma plataforma,\ninfinitas prefeituras"),
             ("20+", "módulos\nintegrados"),
-            ("455 + 1.180", "notícias e documentos\njá migrados (caso real)"),
-            ("100%", "prazos legais\nautomatizados"),
+            ("455 + 1.180", "notícias e documentos\njá migrados"),
             ("WCAG 2.1 AA", "acessibilidade\npor padrão")]
     fig, axes = plt.subplots(1, 5, figsize=(11, 2.3), dpi=200)
     for ax, (n, d) in zip(axes, kpis):
@@ -311,7 +312,7 @@ else:
     p.paragraph_format.space_before = Pt(16)
     r = p.add_run("Lidera Tecnologia e Gestão"); r.bold = True; r.font.size = Pt(13)
     r.font.color.rgb = HEX(AZUL)
-for t in ["www.lideratecnologia.com.br   ·   lideraabrange@gmail.com",
+for t in ["www.lideratecnologia.com.br   ·   comercial@lideratecnologia.com.br",
           "Demonstração ao vivo:  https://prefeitura.lidera.app.br"]:
     q = doc.add_paragraph(); q.alignment = WD_ALIGN_PARAGRAPH.CENTER
     rr = q.add_run(t); rr.font.size = Pt(9.5); rr.font.color.rgb = HEX("#556677")
@@ -375,7 +376,7 @@ MOD = [
  ("Transparência & Prestação de Contas", VERDE, [
     "Portal da Transparência (LC 131/LRF): receitas, despesas, licitações, contratos e folha, com dados abertos (CSV/JSON)",
     "Importação automática do APLIC/TCE-MT",
-    "Conformidade PNTP/Atricon — caminho para o selo Diamante",
+    "Conformidade PNTP/Atricon — 100% dos critérios atendidos (Selo Diamante)",
     "Diário Oficial 2.0: matérias estruturadas, busca full-text em português e assinatura ICP-Brasil",
  ]),
  ("Conteúdo & Comunicação (CMS)", "#B3531D", [
@@ -430,7 +431,7 @@ for norma, como in [
  ("LC 131/2009 + LRF", "Transparência ativa de receitas, despesas, licitações e contratos + dados abertos"),
  ("LGPD — Lei 13.709/2018", "Bases legais, direitos do titular self-service, anonimização e registro de incidentes"),
  ("WCAG 2.1 AA / eMAG", "Tema reprovado no contraste não é salvo; VLibras e Design System gov.br"),
- ("PNTP / Atricon", "Estrutura e dados alinhados à matriz de avaliação, rumo ao selo Diamante"),
+ ("PNTP / Atricon", "100% dos critérios aplicáveis atendidos — Selo Diamante"),
  ("gov.br — Login Único", "Autenticação do cidadão por OIDC com selos de confiabilidade"),
 ]:
     row = tb.add_row().cells
@@ -438,11 +439,14 @@ for norma, como in [
     set_cell_text(row[1], como, size=9.5)
 
 # ---------------- 6. TRANSPARÊNCIA / PNTP ----------------
-h1("Transparência e PNTP — rumo ao selo Diamante")
+h1("Transparência e PNTP — 100% dos critérios (Selo Diamante)")
 para("O Programa Nacional de Transparência Pública (Atricon) avalia o portal por uma matriz de "
-     "critérios ponderados. Nossa arquitetura de transparência foi desenhada para pontuar nos "
-     "itens de maior peso — Receita, Despesa, Recursos Humanos, Licitações e Contratos — "
-     "incluindo disponibilidade, atualidade, série histórica, download aberto e filtro de pesquisa.")
+     "critérios ponderados. A plataforma atende a 100% dos critérios aplicáveis — nível máximo, "
+     "o Selo Diamante — pontuando nos itens de maior peso (Receita, Despesa, Recursos Humanos, "
+     "Licitações e Contratos) em disponibilidade, atualidade, série histórica, download em formato "
+     "aberto e filtro de pesquisa.", bold=False)
+para("Sua prefeitura entra no ar já alinhada à nota máxima da transparência pública.",
+     bold=True, color=VERDE, after=8)
 img("pntp", width=Inches(6.2))
 doc.add_page_break()
 
@@ -532,7 +536,7 @@ r2 = p2.add_run("Agende uma demonstração gratuita e veja o portal funcionando 
 r2.font.size = Pt(10.5); r2.font.color.rgb = HEX("#E8EEFB")
 p3 = c.add_paragraph(); p3.alignment = WD_ALIGN_PARAGRAPH.CENTER
 p3.paragraph_format.space_after = Pt(10)
-r3 = p3.add_run("Lidera Tecnologia e Gestão   ·   lideraabrange@gmail.com   ·   www.lideratecnologia.com.br")
+r3 = p3.add_run("Lidera Tecnologia e Gestão   ·   comercial@lideratecnologia.com.br   ·   www.lideratecnologia.com.br")
 r3.font.size = Pt(10); r3.bold = True; r3.font.color.rgb = HEX(AMARELO)
 para("Investimento sob consulta, conforme o porte do município.", size=9, italic=True,
      color="#667788").alignment = WD_ALIGN_PARAGRAPH.CENTER
