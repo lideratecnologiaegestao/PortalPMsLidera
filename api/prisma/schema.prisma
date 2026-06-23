@@ -21,6 +21,8 @@ enum UserRole {
   admin_prefeitura
   gestor
   ouvidor
+  assistente_ouvidoria
+  ti
   servidor
   cidadao
   @@map("user_role")
@@ -94,6 +96,7 @@ model Tenant {
   evolutionInstancia        String? @map("evolution_instancia")
   criadoEm            DateTime  @default(now()) @map("criado_em")
   atualizadoEm        DateTime  @updatedAt @map("atualizado_em")
+  elevationRequests   ElevationRequest[]
   @@map("tenants")
 }
 
@@ -118,6 +121,8 @@ model User {
   emailVerificado    Boolean @default(false) @map("email_verificado")
   telefoneVerificado Boolean @default(false) @map("telefone_verificado")
   ativo         Boolean   @default(true)
+  /// Conta virtual de bot (Assistente do Portal). Nunca autentica — migration 073.
+  isBot         Boolean   @default(false) @map("is_bot")
   // Relações inversas — migration 046
   grupos        UsuarioGrupo[]
   sessions      UserSession[]
@@ -133,9 +138,44 @@ model User {
   atendConversasAgente  AtendimentoConversa[] @relation("AtendConversaAgente")
   atendMensagens        AtendimentoMensagem[]
   atendEventos          AtendimentoEvento[]
+  // Relações inversas — migration 069 (solicitações de elevação de papel)
+  elevacoesSolicitadas  ElevationRequest[]    @relation("ElevacaoSolicitante")
+  elevacoesAprovadas    ElevationRequest[]    @relation("ElevacaoAprovador")
+  // Relações inversas — migration 074 (comentários em notícias)
+  comentariosAutor      NoticiaComentario[]   @relation("ComentariosAutor")
+  comentariosModerador  NoticiaComentario[]   @relation("ComentariosModerador")
+  // Relações inversas — migration 076 (builds do app do cidadão)
+  appBuilds             TenantAppBuild[]
+  // Relações inversas — migration 084 (campanhas)
+  campanhasCriadas      Campaign[]
   @@unique([tenantId, email])
   @@unique([tenantId, govbrSub])
   @@map("users")
+}
+
+/// Solicitação de elevação de papel (ADR-0005 Fase 2) — migration 069.
+model ElevationRequest {
+  id                   String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId             String     @map("tenant_id") @db.Uuid
+  userId               String     @map("user_id") @db.Uuid
+  papelSolicitado      UserRole   @map("papel_solicitado")
+  cargoDeclarado       String?    @map("cargo_declarado")
+  lotacaoSecretariaId  String?    @map("lotacao_secretaria_id") @db.Uuid
+  justificativa        String?
+  /// Status FSM: pendente → aprovada | recusada | expirada
+  status               String     @default("pendente")
+  aprovadoPor          String?    @map("aprovado_por") @db.Uuid
+  aprovadoEm           DateTime?  @map("aprovado_em") @db.Timestamptz(6)
+  motivoRecusa         String?    @map("motivo_recusa")
+  criadoEm             DateTime   @default(now()) @map("criado_em") @db.Timestamptz(6)
+  atualizadoEm         DateTime   @default(now()) @updatedAt @map("atualizado_em") @db.Timestamptz(6)
+  tenant               Tenant     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  solicitante          User       @relation("ElevacaoSolicitante", fields: [userId], references: [id], onDelete: Cascade)
+  aprovadorUser        User?      @relation("ElevacaoAprovador",   fields: [aprovadoPor], references: [id], onDelete: SetNull)
+  lotacaoSecretaria    Secretaria? @relation(fields: [lotacaoSecretariaId], references: [id], onDelete: SetNull)
+  @@index([tenantId, status])
+  @@index([userId])
+  @@map("elevation_requests")
 }
 
 /// Requisição de direitos do titular (LGPD art. 18) — migration 048.
@@ -215,27 +255,31 @@ model LgpdDocumento {
 
 /// Formulário eletrônico (builder drag-drop) — migration 049.
 model Formulario {
-  id                  String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  tenantId            String   @map("tenant_id") @db.Uuid
+  id                  String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId            String      @map("tenant_id") @db.Uuid
   slug                String
   titulo              String
   descricao           String?
-  schema              Json     @default("[]")
-  status              String   @default("rascunho")
-  mensagemConfirmacao String?  @map("mensagem_confirmacao")
-  redirecionarUrl     String?  @map("redirecionar_url")
-  loginObrigatorio    Boolean  @default(false) @map("login_obrigatorio")
-  multiplosEnvios     Boolean  @default(true) @map("multiplos_envios")
-  captchaHabilitado   Boolean  @default(true) @map("captcha_habilitado")
-  notificarEmails     String[] @map("notificar_emails")
-  notificarCc         String[] @map("notificar_cc")
-  notificarBcc        String[] @map("notificar_bcc")
-  totalEnvios         Int      @default(0) @map("total_envios")
-  criadoEm            DateTime @default(now()) @map("criado_em") @db.Timestamptz(6)
-  atualizadoEm        DateTime @default(now()) @updatedAt @map("atualizado_em") @db.Timestamptz(6)
+  schema              Json        @default("[]")
+  status              String      @default("rascunho")
+  mensagemConfirmacao String?     @map("mensagem_confirmacao")
+  redirecionarUrl     String?     @map("redirecionar_url")
+  loginObrigatorio    Boolean     @default(false) @map("login_obrigatorio")
+  multiplosEnvios     Boolean     @default(true) @map("multiplos_envios")
+  captchaHabilitado   Boolean     @default(true) @map("captcha_habilitado")
+  notificarEmails     String[]    @map("notificar_emails")
+  notificarCc         String[]    @map("notificar_cc")
+  notificarBcc        String[]    @map("notificar_bcc")
+  totalEnvios         Int         @default(0) @map("total_envios")
+  /// Secretaria responsável pelo formulário — migration 071 (ADR-0005 Fase 4).
+  secretariaId        String?     @map("secretaria_id") @db.Uuid
+  criadoEm            DateTime    @default(now()) @map("criado_em") @db.Timestamptz(6)
+  atualizadoEm        DateTime    @default(now()) @updatedAt @map("atualizado_em") @db.Timestamptz(6)
   envios              FormularioEnvio[]
+  secretaria          Secretaria? @relation(fields: [secretariaId], references: [id], onDelete: SetNull)
   @@unique([tenantId, slug])
   @@index([tenantId, status])
+  @@index([tenantId, secretariaId])
   @@map("formularios")
 }
 
@@ -287,10 +331,74 @@ model TenantWhatsappConfig {
   evolutionApiUrl        String?  @map("evolution_api_url")
   evolutionInstance      String?  @map("evolution_instance")
   evolutionApiKeyCifrado String?  @map("evolution_api_key_cifrado")
+  metaPhoneNumberId      String?  @map("meta_phone_number_id")
+  metaWabaId             String?  @map("meta_waba_id")
+  metaTokenCifrado       String?  @map("meta_token_cifrado")
+  metaAppSecretCifrado   String?  @map("meta_app_secret_cifrado")
+  metaVerifyToken        String?  @map("meta_verify_token")
+  metaWebhookSecret      String?  @map("meta_webhook_secret")
   ativo                  Boolean  @default(true)
   atualizadoEm           DateTime @default(now()) @updatedAt @map("atualizado_em") @db.Timestamptz(6)
   criadoEm               DateTime @default(now()) @map("criado_em") @db.Timestamptz(6)
   @@map("tenant_whatsapp_config")
+}
+
+/// Canal WhatsApp / Instagram Multi-número Meta por tenant — migration 081/082.
+/// Cada linha representa um número Meta ou conta IG dedicado.
+/// Credenciais cifradas em repouso via AES-256-GCM (secret-box.util).
+/// webhook_secret é UNIQUE global — resolve tenant no webhook /webhooks/meta-canal/:secret.
+model TenantWhatsappCanal {
+  id                     String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId               String    @map("tenant_id") @db.Uuid
+  label                  String
+  provider               String    @default("meta")
+  /// 'whatsapp' | 'instagram' | 'messenger' | 'telegram' — migration 082/083.
+  tipo                   String    @default("whatsapp") @map("tipo")
+  /// Obrigatório para WhatsApp/Instagram/Messenger; nulo para Telegram (que usa apenas bot token).
+  metaPhoneNumberId      String?   @map("meta_phone_number_id")
+  metaWabaId             String?   @map("meta_waba_id")
+  metaTokenCifrado       String?   @map("meta_token_cifrado")
+  metaAppSecretCifrado   String?   @map("meta_app_secret_cifrado")
+  metaVerifyToken        String?   @map("meta_verify_token")
+  webhookSecret          String    @unique @map("webhook_secret")
+  secretariaId           String?   @map("secretaria_id") @db.Uuid
+  ativo                  Boolean   @default(true)
+  ordem                  Int       @default(0)
+  criadoEm               DateTime  @default(now()) @map("criado_em") @db.Timestamptz(6)
+  atualizadoEm           DateTime  @default(now()) @updatedAt @map("atualizado_em") @db.Timestamptz(6)
+  conversas              AtendimentoConversa[]
+  templateEnvios         WhatsappTemplateEnvio[]
+  secretaria             Secretaria? @relation(fields: [secretariaId], references: [id], onDelete: SetNull)
+  @@unique([tenantId, label])
+  @@index([tenantId])
+  @@map("tenant_whatsapp_canais")
+}
+
+/// Cota de templates HSM por tenant — migration 082.
+/// PK = tenant_id (singleton por tenant). RLS aplica.
+model TenantWhatsappCota {
+  tenantId         String   @id @map("tenant_id") @db.Uuid
+  creditosTotal    Int      @default(0) @map("creditos_total")
+  alertaPercentual Int      @default(80) @map("alerta_percentual")
+  cicloDia         Int      @default(1) @map("ciclo_dia")
+  atualizadoEm     DateTime @default(now()) @updatedAt @map("atualizado_em") @db.Timestamptz(6)
+  @@map("tenant_whatsapp_cota")
+}
+
+/// Log de envios de template HSM — migration 082.
+/// Alimentado best-effort por WhatsappService após cada envio. RLS aplica.
+model WhatsappTemplateEnvio {
+  id           String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId     String   @map("tenant_id") @db.Uuid
+  canalId      String?  @map("canal_id") @db.Uuid
+  templateNome String   @map("template_nome")
+  toMascarado  String   @map("to_mascarado")
+  status       String   @default("enviado")
+  criadoEm     DateTime @default(now()) @map("criado_em") @db.Timestamptz(6)
+  canal        TenantWhatsappCanal? @relation(fields: [canalId], references: [id], onDelete: SetNull)
+  @@index([tenantId, criadoEm])
+  @@index([tenantId, canalId])
+  @@map("whatsapp_template_envios")
 }
 
 /// Configuração de IA por tenant — override opcional sobre o global — migration 056.
@@ -488,8 +596,14 @@ model AtendimentoConversa {
   encerradaEm            DateTime? @map("encerrada_em") @db.Timestamptz(6)
   ultimaAtividadeEm      DateTime  @default(now()) @map("ultima_atividade_em") @db.Timestamptz(6)
   botTentativas          Int       @default(0) @map("bot_tentativas")
+  manifestacaoId         String?   @map("manifestacao_id") @db.Uuid
+  manifestacaoProtocolo  String?   @map("manifestacao_protocolo")
+  /// FK para tenant_whatsapp_canais — canal Meta que originou a conversa (migration 081).
+  /// Quando preenchido, respostas de saída são roteadas pelo mesmo número.
+  canalId                String?   @map("canal_id") @db.Uuid
   cidadao                User?     @relation("AtendConversaCidadao", fields: [cidadaoId], references: [id], onDelete: SetNull)
   agente                 User?     @relation("AtendConversaAgente", fields: [agenteId], references: [id], onDelete: SetNull)
+  canal_whatsapp         TenantWhatsappCanal? @relation(fields: [canalId], references: [id], onDelete: SetNull)
   mensagens              AtendimentoMensagem[]
   eventos                AtendimentoEvento[]
   @@index([tenantId, status])
@@ -1187,6 +1301,22 @@ model AuditLog {
   @@map("audit_log")
 }
 
+/// Registro de aceite do EULA / Termo de Sigilo por ouvidor e assistente_ouvidoria
+/// (ADR-0005 Fase 3) — migration 070.
+/// Base legal: CF/88 art. 5º XIV + LGPD arts. 37 e 46.
+model EulaAceite {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId  String   @map("tenant_id") @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  versao    String
+  aceitoEm  DateTime @default(now()) @map("aceito_em") @db.Timestamptz(6)
+  ip        String?
+  userAgent String?  @map("user_agent")
+  @@unique([userId, versao], name: "uq_eula_user_versao")
+  @@index([tenantId, userId], name: "idx_eula_tenant_user")
+  @@map("eula_aceites")
+}
+
 // ---- Biblioteca de Mídia (migration 016_media_library.sql) ----
 
 enum MediaTipo {
@@ -1303,8 +1433,39 @@ model Noticia {
   criadoEm      DateTime  @default(now()) @map("criado_em") @db.Timestamptz(6)
   atualizadoEm  DateTime  @default(now()) @updatedAt @map("atualizado_em") @db.Timestamptz(6)
   secretaria    Secretaria? @relation(fields: [secretariaId], references: [id], onDelete: SetNull)
+  comentarios   NoticiaComentario[]
   @@unique([tenantId, slug])
   @@map("noticias")
+}
+
+/// Comentários de cidadãos autenticados em notícias publicadas.
+/// Status: pendente → aprovado | reprovado (moderação pelo gestor da secretaria).
+/// RLS por tenant (migration 074). LGPD: ip armazenado p/ combate a abuso; nunca exposto via API.
+/// Moderação automática (migration 075): moderadoPorIa, moderacaoMotivo, moderacaoCategoria.
+model NoticiaComentario {
+  id                  String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId            String    @map("tenant_id") @db.Uuid
+  noticiaId           String    @map("noticia_id") @db.Uuid
+  autorUserId         String    @map("autor_user_id") @db.Uuid
+  autorNome           String    @map("autor_nome")
+  conteudo            String
+  status              String    @default("pendente") // pendente | aprovado | reprovado
+  moderadoPor         String?   @map("moderado_por") @db.Uuid
+  moderadoEm          DateTime? @map("moderado_em") @db.Timestamptz(6)
+  ip                  String?
+  criadoEm            DateTime  @default(now()) @map("criado_em") @db.Timestamptz(6)
+  /// true quando o status foi definido automaticamente (regra determinística ou IA), não por humano
+  moderadoPorIa       Boolean   @default(false) @map("moderado_por_ia")
+  /// Justificativa da decisão automática (anti-probing: nunca exposta ao cidadão)
+  moderacaoMotivo     String?   @map("moderacao_motivo")
+  /// Categoria da reprovação automática: codigo_malicioso | baixo_calao | spam | ofensivo | sem_nexo | ok
+  moderacaoCategoria  String?   @map("moderacao_categoria")
+  noticia      Noticia   @relation(fields: [noticiaId], references: [id], onDelete: Cascade)
+  autorUser    User      @relation("ComentariosAutor", fields: [autorUserId], references: [id], onDelete: Cascade)
+  moderador    User?     @relation("ComentariosModerador", fields: [moderadoPor], references: [id], onDelete: SetNull)
+  @@index([tenantId, noticiaId, status, criadoEm(sort: Desc)])
+  @@index([tenantId, status, criadoEm(sort: Desc)])
+  @@map("noticia_comentarios")
 }
 
 model Secretaria {
@@ -1336,6 +1497,10 @@ model Secretaria {
   diarioMaterias  DiarioMateria[]
   unidades        OrgaoUnidade[]
   autoridades     GabineteAutoridade[]
+  elevationRequests ElevationRequest[]
+  formularios       Formulario[]
+  iaConteudos       IaConteudo[]
+  whatsappCanais    TenantWhatsappCanal[]
   @@map("secretarias")
 }
 
@@ -1986,4 +2151,178 @@ model Redirect {
   @@unique([tenantId, origem])
   @@index([tenantId, origem])
   @@map("redirects")
+}
+
+/// Configuração white-label do App do Cidadão por tenant (ADR-0006 Fase 1) — migration 076.
+/// Uma linha por prefeitura (UNIQUE tenant_id). Campos build-time alimentam o pipeline EAS;
+/// campos runtime são lidos pelo app na inicialização. Sem PII; base legal: LGPD art. 7º III.
+model TenantAppConfig {
+  id                  String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId            String   @unique @map("tenant_id") @db.Uuid
+
+  // Identidade do build (build-time)
+  appName             String?  @map("app_name")
+  appShortName        String?  @map("app_short_name")
+  bundleId            String?  @map("bundle_id")
+  scheme              String?
+  apiUrl              String?  @map("api_url")
+  easProjectId        String?  @map("eas_project_id")
+  easOwner            String?  @map("eas_owner")
+  appVersion          String   @default("1.0.0") @map("app_version")
+
+  // Assets de build (storage keys — build-time)
+  iconStorageKey      String?  @map("icon_storage_key")
+  splashStorageKey    String?  @map("splash_storage_key")
+  splashBgColor       String   @default("#1351b4") @map("splash_bg_color")
+
+  // Tema (runtime)
+  primaryColor        String   @default("#1351b4") @map("primary_color")
+  secondaryColor      String   @default("#071d41") @map("secondary_color")
+
+  // Módulos (runtime)
+  moduloDenuncia      Boolean  @default(true)  @map("modulo_denuncia")
+  moduloMapa          Boolean  @default(true)  @map("modulo_mapa")
+  moduloOuvidoria     Boolean  @default(true)  @map("modulo_ouvidoria")
+  moduloEsic          Boolean  @default(true)  @map("modulo_esic")
+  moduloChat          Boolean  @default(false) @map("modulo_chat")
+  moduloServicos      Boolean  @default(true)  @map("modulo_servicos")
+  moduloNoticias      Boolean  @default(true)  @map("modulo_noticias")
+  moduloCarteira      Boolean  @default(false) @map("modulo_carteira")
+  moduloGaleria       Boolean  @default(true)  @map("modulo_galeria")
+  moduloDocumentos    Boolean  @default(true)  @map("modulo_documentos")
+
+  // Conteúdo institucional (runtime, JSONB)
+  onboardingSlides    Json     @default("[]") @map("onboarding_slides")
+  acessoRapido        Json     @default("[]") @map("acesso_rapido")
+  categoriasChamados  Json     @default("[]") @map("categorias_chamados")
+
+  // Push / comportamento (runtime)
+  pushHabilitado      Boolean  @default(true)  @map("push_habilitado")
+  biometriaHabilitada Boolean  @default(false) @map("biometria_habilitada")
+  onboardingAtivo     Boolean  @default(true)  @map("onboarding_ativo")
+
+  criadoEm            DateTime @default(now()) @map("criado_em") @db.Timestamptz(6)
+  atualizadoEm        DateTime @default(now()) @updatedAt @map("atualizado_em") @db.Timestamptz(6)
+
+  builds              TenantAppBuild[]
+
+  @@index([tenantId])
+  @@map("tenant_app_config")
+}
+
+/// Histórico de builds EAS por tenant (ADR-0006) — migration 076.
+/// Criada na Fase 1; painel de acionamento entregue na Fase 2.
+model TenantAppBuild {
+  id            String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId      String    @map("tenant_id") @db.Uuid
+  perfil        String                                      // preview | production
+  plataforma    String    @default("android")               // android | ios | all
+  status        String    @default("enfileirado")           // FSM: enfileirado→preparando→em_build→concluido|falhou
+  easBuildId    String?   @map("eas_build_id")
+  easBuildUrl   String?   @map("eas_build_url")
+  logUrl        String?   @map("log_url")
+  erroResumo    String?   @map("erro_resumo")
+  solicitadoPor String?   @map("solicitado_por") @db.Uuid
+
+  criadoEm     DateTime   @default(now()) @map("criado_em") @db.Timestamptz(6)
+  atualizadoEm DateTime   @default(now()) @updatedAt @map("atualizado_em") @db.Timestamptz(6)
+
+  config        TenantAppConfig? @relation(fields: [tenantId], references: [tenantId], onDelete: Cascade)
+  solicitante   User?            @relation(fields: [solicitadoPor], references: [id], onDelete: SetNull)
+
+  @@index([tenantId, criadoEm(sort: Desc)])
+  @@index([tenantId, status])
+  @@map("tenant_app_builds")
+}
+
+/// Artigos/textos longos que alimentam o RAG do chatbot (corpus léxico + semântico).
+/// Materiais de estudo, regimentos, normas, eventos, horários, guias etc.
+/// Sem PII; base legal: LGPD art. 7º II e III. Por tenant com RLS — migration 072.
+/// NOTA: a coluna `busca` (tsvector GENERATED ALWAYS) não é mapeada porque o
+/// Prisma Client não suporta colunas geradas read-only. FTS usa $queryRaw.
+model IaConteudo {
+  id             String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId       String      @map("tenant_id") @db.Uuid
+  secretariaId   String?     @map("secretaria_id") @db.Uuid
+  categoria      String?
+  titulo         String
+  conteudo       String
+  tags           String[]
+  publico        Boolean     @default(true)
+  ativo          Boolean     @default(true)
+  vigenciaInicio DateTime?   @map("vigencia_inicio") @db.Date
+  vigenciaFim    DateTime?   @map("vigencia_fim") @db.Date
+  criadoEm       DateTime    @default(now()) @map("criado_em") @db.Timestamptz(6)
+  atualizadoEm   DateTime    @default(now()) @updatedAt @map("atualizado_em") @db.Timestamptz(6)
+  // busca tsvector GENERATED ALWAYS — usar $queryRaw para FTS (igual a ia_conhecimento)
+  secretaria     Secretaria? @relation(fields: [secretariaId], references: [id], onDelete: SetNull)
+  @@index([tenantId, secretariaId])
+  @@index([tenantId, ativo])
+  @@map("ia_conteudos")
+}
+
+// ---- Campanhas (migration 084) ----
+
+/// Biblioteca GLOBAL de presets de campanha da plataforma Lidera.
+/// Sem tenant_id — leitura livre; escrita restrita ao super_admin (app_is_platform()).
+/// Presets são instalados pelos tenants via POST /api/admin/campanhas/instalar.
+/// Sem PII; base legal: LGPD art. 7º III e IX (comunicação institucional).
+model CampaignTemplate {
+  id                  String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  key                 String    @unique
+  nome                String
+  categoria           String
+  descricao           String?
+  icone               String?
+  configDefault       Json      @default("{}") @map("config_default")
+  sugestao            Json      @default("{}")
+  prioridadeSugerida  Int       @default(100) @map("prioridade_sugerida")
+  ativo               Boolean   @default(true)
+  criadoEm            DateTime  @default(now()) @map("criado_em") @db.Timestamptz(6)
+  atualizadoEm        DateTime  @default(now()) @updatedAt @map("atualizado_em") @db.Timestamptz(6)
+  @@index([categoria, ativo])
+  @@map("campaign_template")
+}
+
+/// Instância de campanha institucional por tenant.
+/// O resolver GET /api/campanhas/ativas filtra por janela de datas + status
+/// e resolve conflitos de capacidades por prioridade.
+/// Sem PII; base legal: LGPD art. 7º III e IX. Por tenant com RLS — migration 084.
+model Campaign {
+  id           String                  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId     String                  @map("tenant_id") @db.Uuid
+  templateKey  String?                 @map("template_key")
+  nome         String
+  status       String                  @default("draft")
+  startsAt     DateTime?               @map("starts_at") @db.Timestamptz(6)
+  endsAt       DateTime?               @map("ends_at") @db.Timestamptz(6)
+  recorrencia  Json?
+  autonomous   Boolean                 @default(false)
+  prioridade   Int                     @default(100)
+  config       Json                    @default("{}")
+  criadoPor    String?                 @map("criado_por") @db.Uuid
+  criadoEm     DateTime                @default(now()) @map("criado_em") @db.Timestamptz(6)
+  atualizadoEm DateTime                @default(now()) @updatedAt @map("atualizado_em") @db.Timestamptz(6)
+  criador      User?                   @relation(fields: [criadoPor], references: [id], onDelete: SetNull)
+  logs         CampaignActivationLog[]
+  @@index([tenantId, status])
+  @@index([tenantId, startsAt, endsAt])
+  @@index([tenantId])
+  @@map("campaign")
+}
+
+/// Auditoria de ativações e transições de campanhas por tenant.
+/// Complementa audit_log (regra inviolável 6) com granularidade específica
+/// do módulo. Append-only — sem UPDATE. Sem PII — migration 084.
+model CampaignActivationLog {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId    String   @map("tenant_id") @db.Uuid
+  campaignId  String   @map("campaign_id") @db.Uuid
+  acao        String
+  ator        String
+  detalhes    Json     @default("{}")
+  criadoEm    DateTime @default(now()) @map("criado_em") @db.Timestamptz(6)
+  campaign    Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  @@index([tenantId, campaignId])
+  @@map("campaign_activation_log")
 }
