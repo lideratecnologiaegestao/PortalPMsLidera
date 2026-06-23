@@ -10,12 +10,12 @@ export type TipoOuvidoria =
   | 'elogio'
   | 'solicitacao';
 
-export const TIPOS_OUVIDORIA: { value: TipoOuvidoria; label: string; desc: string }[] = [
-  { value: 'reclamacao', label: 'Reclamação', desc: 'Insatisfação com um serviço público.' },
-  { value: 'denuncia', label: 'Denúncia', desc: 'Irregularidade ou ato ilícito (pode ser anônima).' },
-  { value: 'sugestao', label: 'Sugestão', desc: 'Ideia para melhorar um serviço.' },
-  { value: 'elogio', label: 'Elogio', desc: 'Reconhecimento de um bom atendimento.' },
-  { value: 'solicitacao', label: 'Solicitação', desc: 'Pedido de providência ou serviço.' },
+export const TIPOS_OUVIDORIA: { value: TipoOuvidoria; label: string; desc: string; emoji: string }[] = [
+  { value: 'denuncia', label: 'Denúncia', desc: 'Irregularidade ou ato ilícito (pode ser anônima).', emoji: '🚨' },
+  { value: 'reclamacao', label: 'Reclamação', desc: 'Insatisfação com um serviço público.', emoji: '😠' },
+  { value: 'sugestao', label: 'Sugestão', desc: 'Ideia para melhorar um serviço.', emoji: '💡' },
+  { value: 'elogio', label: 'Elogio', desc: 'Reconhecimento de um bom atendimento.', emoji: '👏' },
+  { value: 'solicitacao', label: 'Solicitação', desc: 'Pedido de providência, serviço ou dúvida.', emoji: '📋' },
 ];
 
 export interface RegistrarInput {

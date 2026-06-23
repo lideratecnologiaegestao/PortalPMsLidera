@@ -47,6 +47,7 @@ interface ThemeTokens {
   radius: { base: string };
   logo: { url: string; alt: string };
   favicon: string;
+  pwaIcon?: { url: string; alt: string };
   iconSet: string;
   logoRodape?: { url: string; alt: string };
   logoRelatorio?: { url: string; alt: string };
@@ -534,6 +535,9 @@ export default function TemaAdminPage() {
   const [logoUrl, setLogoUrl] = useState('');
   const [logoAlt, setLogoAlt] = useState('');
   const [favicon, setFavicon] = useState('');
+  const [pwaIconUrl, setPwaIconUrl] = useState('');
+  const [pwaIconAlt, setPwaIconAlt] = useState('');
+  const [pwaIconErro, setPwaIconErro] = useState('');
   const [iconSet, setIconSet] = useState('lucide');
   // Logo do rodapé
   const [logoRodapeUrl, setLogoRodapeUrl] = useState('');
@@ -560,6 +564,7 @@ export default function TemaAdminPage() {
   // MediaPicker (logo, favicon, logo rodapé, logo relatório)
   const [pickerLogoAberto, setPickerLogoAberto] = useState(false);
   const [pickerFaviconAberto, setPickerFaviconAberto] = useState(false);
+  const [pickerPwaIconAberto, setPickerPwaIconAberto] = useState(false);
   const [pickerLogoRodapeAberto, setPickerLogoRodapeAberto] = useState(false);
   const [pickerLogoRelatorioAberto, setPickerLogoRelatorioAberto] = useState(false);
 
@@ -576,6 +581,8 @@ export default function TemaAdminPage() {
         setLogoUrl(t.logo.url);
         setLogoAlt(t.logo.alt);
         setFavicon(t.favicon);
+        setPwaIconUrl(t.pwaIcon?.url ?? '');
+        setPwaIconAlt(t.pwaIcon?.alt ?? '');
         setIconSet(t.iconSet);
         setLogoRodapeUrl(t.logoRodape?.url ?? '');
         setLogoRodapeAlt(t.logoRodape?.alt ?? '');
@@ -608,6 +615,7 @@ export default function TemaAdminPage() {
       radius: { base: radiusBase },
       logo: { url: logoUrl, alt: logoAlt },
       favicon,
+      pwaIcon: pwaIconUrl ? { url: pwaIconUrl, alt: pwaIconAlt } : undefined,
       iconSet,
       logoRodape: logoRodapeUrl ? { url: logoRodapeUrl, alt: logoRodapeAlt } : undefined,
       logoRelatorio: logoRelatorioUrl ? { url: logoRelatorioUrl, alt: logoRelatorioAlt } : undefined,
@@ -856,6 +864,70 @@ export default function TemaAdminPage() {
                 Digite uma URL ou escolha da Biblioteca de Midia.
               </p>
             </div>
+
+            {/* Ícone do PWA — instalação do portal no celular (exige PNG) */}
+            <div>
+              <label htmlFor="inp-pwa-icon" className={ui.label}>
+                Ícone do PWA (instalação no celular)
+              </label>
+              <div className="mt-1 flex gap-2">
+                <input
+                  id="inp-pwa-icon"
+                  type="url"
+                  className={`flex-1 ${ui.input}`}
+                  value={pwaIconUrl}
+                  onChange={(e) => {
+                    setPwaIconUrl(e.target.value);
+                    setPwaIconErro('');
+                  }}
+                  placeholder="/midia/imagem/... (PNG quadrado 512×512)"
+                  aria-describedby="pwa-icon-hint"
+                />
+                <button
+                  type="button"
+                  className={ui.btnGhost}
+                  onClick={() => {
+                    setPwaIconErro('');
+                    setPickerPwaIconAberto(true);
+                  }}
+                  aria-label="Escolher ícone do PWA da biblioteca de midia"
+                >
+                  Biblioteca
+                </button>
+                {pwaIconUrl && (
+                  <button
+                    type="button"
+                    className={ui.btnGhost}
+                    onClick={() => {
+                      setPwaIconUrl('');
+                      setPwaIconAlt('');
+                      setPwaIconErro('');
+                    }}
+                    aria-label="Remover ícone do PWA"
+                  >
+                    Remover
+                  </button>
+                )}
+              </div>
+              {pwaIconUrl && (
+                /* eslint-disable-next-line @next/next/no-img-element */
+                <img
+                  src={pwaIconUrl}
+                  alt="Prévia do ícone do PWA"
+                  className="mt-2 h-16 w-16 rounded-lg border border-border object-cover"
+                />
+              )}
+              {pwaIconErro && (
+                <p role="alert" className="mt-1 text-xs font-medium text-danger">
+                  {pwaIconErro}
+                </p>
+              )}
+              <p id="pwa-icon-hint" className="mt-1 text-xs text-fg/60">
+                Use um <strong>PNG quadrado</strong> (recomendado 512×512). SVG não é aceito
+                como ícone instalável. Se vazio, o ícone do app/brasão é usado automaticamente.
+              </p>
+            </div>
+
             <div>
               <label htmlFor="inp-iconset" className={ui.label}>
                 Conjunto de ícones (iconSet)
@@ -1125,6 +1197,28 @@ export default function TemaAdminPage() {
             onSelect={(asset) => {
               if (asset.urlPublica) setFavicon(asset.urlPublica);
               setPickerFaviconAberto(false);
+            }}
+          />
+
+          {/* MediaPicker — Ícone do PWA (exige PNG) */}
+          <MediaPicker
+            open={pickerPwaIconAberto}
+            onClose={() => setPickerPwaIconAberto(false)}
+            tipo="imagem"
+            onSelect={(asset) => {
+              // O ícone do PWA precisa ser PNG — SVG não funciona como ícone
+              // instalável nos navegadores. Bloqueia qualquer outro formato.
+              if (asset.mime !== 'image/png') {
+                setPwaIconErro(
+                  `O ícone do PWA deve ser PNG. O arquivo escolhido é "${asset.mime}". Envie/escolha um PNG quadrado.`,
+                );
+                setPickerPwaIconAberto(false);
+                return;
+              }
+              if (asset.urlPublica) setPwaIconUrl(asset.urlPublica);
+              setPwaIconAlt(asset.altText ?? 'Ícone do aplicativo');
+              setPwaIconErro('');
+              setPickerPwaIconAberto(false);
             }}
           />
 

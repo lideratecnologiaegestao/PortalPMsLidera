@@ -4,6 +4,8 @@ import { useCallback, useEffect, useState } from 'react';
 import { adminGet, adminPost, adminPut, adminDelete, AdminApiError } from '../../../lib/admin-api';
 import { AdminHeader, Aviso, Modal, ui } from '../_components/ui';
 import MediaPicker from '../_components/MediaPicker';
+import { useSessaoAdmin } from '../../../lib/session-context';
+import { escopoRestrito } from '../../../lib/roles';
 
 interface Item {
   id: string;
@@ -21,6 +23,7 @@ interface Pag<T> { items: T[]; total: number; page: number; pageSize: number }
 const vazio = { tipo: 'foto' as 'foto' | 'video' | 'audio', titulo: '', url: '', youtube: '', secretariaId: '', ordem: 0 };
 
 export default function GaleriaAdminPage() {
+  const { role } = useSessaoAdmin();
   const [pagina, setPagina] = useState<Pag<Item> | null>(null);
   const [filtroTipo, setFiltroTipo] = useState<'' | 'foto' | 'video'>('');
   const [erro, setErro] = useState('');
@@ -111,6 +114,19 @@ export default function GaleriaAdminPage() {
 
       {erro && <Aviso tipo="erro">{erro}</Aviso>}
       {aviso && <Aviso tipo="ok">{aviso}</Aviso>}
+
+      {/* Aviso de escopo restrito (gestor / servidor) */}
+      {escopoRestrito(role) && (
+        <div
+          role="status"
+          className="flex items-start gap-2 rounded border border-primary/30 bg-primary/5 px-3 py-2 text-sm text-fg"
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" fill="currentColor" className="mt-0.5 shrink-0 text-primary">
+            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/>
+          </svg>
+          <span>Você gerencia apenas o conteúdo da sua secretaria.</span>
+        </div>
+      )}
 
       <div className="mb-4 flex gap-2">
         {(['', 'foto', 'video'] as const).map((t) => (
@@ -225,11 +241,29 @@ export default function GaleriaAdminPage() {
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className={ui.label}>Secretaria (opcional)</label>
-              <select className={ui.input} value={form.secretariaId} onChange={(e) => setForm({ ...form, secretariaId: e.target.value })}>
-                <option value="">— nenhuma —</option>
-                {secretarias.map((s) => <option key={s.id} value={s.id}>{s.nome}</option>)}
-              </select>
+              {escopoRestrito(role) ? (
+                /* Gestor/servidor: secretaria definida pela lotação — somente-leitura */
+                <>
+                  <p className={ui.label} id="gal-secretaria-lbl">Secretaria</p>
+                  <p
+                    aria-labelledby="gal-secretaria-lbl"
+                    className="mt-1 rounded border border-border bg-muted px-3 py-2 text-sm text-fg/70"
+                  >
+                    {secretarias.find((s) => s.id === form.secretariaId)?.nome ?? 'Definida pela sua lotação'}
+                  </p>
+                  <p className="mt-1 text-xs text-fg/60">
+                    Definida pela sua lotação; não pode ser alterada aqui.
+                  </p>
+                </>
+              ) : (
+                <>
+                  <label className={ui.label}>Secretaria (opcional)</label>
+                  <select className={ui.input} value={form.secretariaId} onChange={(e) => setForm({ ...form, secretariaId: e.target.value })}>
+                    <option value="">— nenhuma —</option>
+                    {secretarias.map((s) => <option key={s.id} value={s.id}>{s.nome}</option>)}
+                  </select>
+                </>
+              )}
             </div>
             <div>
               <label className={ui.label}>Ordem</label>

@@ -35,6 +35,8 @@ export interface UsuarioInterno {
   role: string;
   avatar: string | null;
   online: boolean;
+  /** Verdadeiro quando a entrada representa o Assistente do Portal (bot de IA). */
+  isBot?: boolean;
 }
 
 async function req<T>(path: string, init?: RequestInit): Promise<T> {

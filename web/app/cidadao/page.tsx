@@ -43,6 +43,9 @@ export default async function CidadaoPage() {
         <a href="/cidadao/meus-dados" className="rounded border border-primary p-3 hover:bg-primary hover:text-primary-fg">
           Meus Dados e Direitos (LGPD)
         </a>
+        <a href="/solicitar-acesso" className="rounded border border-primary p-3 hover:bg-primary hover:text-primary-fg">
+          Solicitar acesso de servidor
+        </a>
       </nav>
 
       <div className="space-y-3 pt-4">

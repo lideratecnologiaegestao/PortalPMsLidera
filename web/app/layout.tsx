@@ -14,6 +14,7 @@ import CookieConsent from '../components/portal/CookieConsent';
 import PopupModal from '../components/portal/PopupModal';
 import VLibras from '../components/VLibras';
 import AtendimentoWidget from '../components/portal/AtendimentoWidget';
+import PwaRegister from '../components/portal/PwaRegister';
 
 // (SiteFooter legado mantido para eventual uso em admin customizado)
 
@@ -83,10 +84,27 @@ export default async function RootLayout({
     return (
       <html lang="pt-BR">
         <head>
+          <meta charSet="utf-8" />
+          <meta name="viewport" content="width=device-width, initial-scale=1" />
           <style dangerouslySetInnerHTML={{ __html: tokensToCss(tokens) }} />
           <link rel="icon" href={tokens.favicon} />
+          {/* PWA do atendente: painel /admin instalável (Android/iOS). Manifest
+              com scope /admin — não conflita com o manifest do portal público. */}
+          {isAdmin && (
+            <>
+              <link rel="manifest" href="/admin-manifest.webmanifest" />
+              <meta name="theme-color" content={tokens.colors.primary} />
+              <link rel="apple-touch-icon" href="/api/pwa/icon?size=192" />
+              <meta name="apple-mobile-web-app-capable" content="yes" />
+              <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+              <meta name="mobile-web-app-capable" content="yes" />
+            </>
+          )}
         </head>
-        <body className="bg-bg text-fg">{children}</body>
+        <body className="bg-bg text-fg">
+          {children}
+          {isAdmin && <PwaRegister />}
+        </body>
       </html>
     );
   }
@@ -188,6 +206,14 @@ export default async function RootLayout({
             />
           </>
         )}
+        {/* PWA — manifest e meta tags por tenant */}
+        <link rel="manifest" href="/manifest.webmanifest" />
+        <meta name="theme-color" content={tokens.colors.primary} />
+        <link rel="apple-touch-icon" href="/api/pwa/icon?size=192" />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+        <meta name="apple-mobile-web-app-title" content={portal.nome} />
+        <meta name="mobile-web-app-capable" content="yes" />
       </head>
       <body className="bg-bg text-fg">
         {/* 0. Barra de utilidades (acessibilidade, skip links, redes) */}
@@ -220,6 +246,9 @@ export default async function RootLayout({
             tiver atendimento ativo — a verificação é feita dentro do componente
             via GET /api/atendimento/config, sem bloquear o SSR. */}
         <AtendimentoWidget />
+
+        {/* Registro do service worker — instala o PWA no dispositivo do cidadão */}
+        <PwaRegister />
       </body>
     </html>
   );

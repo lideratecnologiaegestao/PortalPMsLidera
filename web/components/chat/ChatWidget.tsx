@@ -12,6 +12,11 @@ function hora(iso: string) {
   return new Date(iso).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
 }
 
+/** Identifica o Assistente do Portal pelo campo isBot ou pelo nome exato. */
+function ehBot(u: UsuarioInterno & { isBot?: boolean }): boolean {
+  return u.isBot === true || u.nome === 'Assistente do Portal';
+}
+
 function Avatar({ userId, avatar, nome, online }: { userId?: string | null; avatar?: string | null; nome: string; online?: boolean }) {
   const src = avatar ?? (userId ? urlAvatar(userId) : null);
   return (
@@ -36,8 +41,9 @@ export default function ChatWidget({ meuId }: { meuId: string }) {
   const [online, setOnline] = useState<Set<string>>(new Set());
   const [typing, setTyping] = useState<Record<string, number>>({});
   const [telaNova, setTelaNova] = useState(false);
-  const [usuarios, setUsuarios] = useState<UsuarioInterno[]>([]);
+  const [usuarios, setUsuarios] = useState<(UsuarioInterno & { isBot?: boolean })[]>([]);
   const [erro, setErro] = useState('');
+  const [botUsuario, setBotUsuario] = useState<(UsuarioInterno & { isBot?: boolean }) | null>(null);
 
   const socketRef = useRef<Socket | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -86,6 +92,16 @@ export default function ChatWidget({ meuId }: { meuId: string }) {
     return () => { s.disconnect(); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Detecta o Assistente do Portal na abertura do widget (uma única vez)
+  useEffect(() => {
+    if (!aberto || botUsuario) return;
+    getUsuarios().then((lista) => {
+      const bot = lista.find(ehBot);
+      if (bot) setBotUsuario(bot);
+    }).catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [aberto]);
 
   // abre conversa via evento externo (e-SIC "Discutir internamente")
   useEffect(() => {
@@ -136,7 +152,12 @@ export default function ChatWidget({ meuId }: { meuId: string }) {
   async function abrirNova() {
     setTelaNova(true);
     setAtivaId(null);
-    try { setUsuarios(await getUsuarios()); } catch { /* */ }
+    try {
+      const lista = await getUsuarios();
+      setUsuarios(lista);
+      const bot = lista.find(ehBot);
+      if (bot) setBotUsuario(bot);
+    } catch { /* */ }
   }
 
   async function iniciarDm(u: UsuarioInterno) {
@@ -190,10 +211,34 @@ export default function ChatWidget({ meuId }: { meuId: string }) {
           {/* Corpo */}
           {!ativaId && !telaNova && (
             <div className="flex-1 overflow-y-auto">
-              <button onClick={abrirNova} className="w-full border-b border-border px-3 py-2 text-left text-sm font-semibold text-primary">+ Nova conversa</button>
+              {/* Atalho fixo: Assistente do Portal */}
+              {botUsuario && (
+                <button
+                  type="button"
+                  onClick={() => iniciarDm(botUsuario)}
+                  aria-label="Abrir conversa com o Assistente do Portal"
+                  className="flex w-full items-center gap-2 border-b-2 border-primary/20 bg-primary/5 px-3 py-2.5 text-left hover:bg-primary/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary"
+                >
+                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/15 text-lg" aria-hidden="true">
+                    🤖
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block text-sm font-semibold text-primary">Assistente do Portal</span>
+                    <span className="block text-[11px] text-fg/60">Assistente virtual • responde sobre como usar o portal</span>
+                  </span>
+                  <span className="ml-1 flex h-2 w-2 shrink-0 rounded-full bg-success" title="Online" aria-label="Online" />
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={abrirNova}
+                className="w-full border-b border-border px-3 py-2 text-left text-sm font-semibold text-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary"
+              >
+                + Nova conversa
+              </button>
               {conversas.length === 0 && <p className="p-4 text-sm text-fg/60">Nenhuma conversa ainda.</p>}
               {conversas.map((c) => (
-                <button key={c.id} onClick={() => abrir(c.id)} className="flex w-full items-center gap-2 border-b border-border/60 px-3 py-2 text-left hover:bg-muted/40">
+                <button key={c.id} onClick={() => abrir(c.id)} className="flex w-full items-center gap-2 border-b border-border/60 px-3 py-2 text-left hover:bg-muted/40 focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary">
                   <Avatar userId={c.tipo === 'dm' ? undefined : undefined} avatar={c.avatar} nome={c.titulo ?? '?'} online={c.online} />
                   <span className="min-w-0 flex-1">
                     <span className="flex items-center justify-between">
@@ -211,10 +256,39 @@ export default function ChatWidget({ meuId }: { meuId: string }) {
           {/* Nova conversa: lista de usuários internos */}
           {telaNova && (
             <div className="flex-1 overflow-y-auto">
-              <input placeholder="Buscar pessoa…" onChange={async (e) => setUsuarios(await getUsuarios(e.target.value))}
-                className="m-2 w-[calc(100%-1rem)] rounded border border-border bg-bg px-2 py-1 text-sm" />
-              {usuarios.filter((u) => u.id !== meuId).map((u) => (
-                <button key={u.id} onClick={() => iniciarDm(u)} className="flex w-full items-center gap-2 border-b border-border/60 px-3 py-2 text-left hover:bg-muted/40">
+              <label htmlFor="busca-usuario-chat" className="sr-only">Buscar pessoa</label>
+              <input
+                id="busca-usuario-chat"
+                placeholder="Buscar pessoa…"
+                onChange={async (e) => setUsuarios(await getUsuarios(e.target.value))}
+                className="m-2 w-[calc(100%-1rem)] rounded border border-border bg-bg px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+              />
+              {/* Bot sempre no topo da lista "Nova conversa" */}
+              {usuarios.filter((u) => u.id !== meuId && ehBot(u)).map((u) => (
+                <button
+                  key={u.id}
+                  type="button"
+                  onClick={() => iniciarDm(u)}
+                  className="flex w-full items-center gap-2 border-b-2 border-primary/20 bg-primary/5 px-3 py-2.5 text-left hover:bg-primary/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary"
+                >
+                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/15 text-lg" aria-hidden="true">
+                    🤖
+                  </span>
+                  <span className="min-w-0">
+                    <span className="block truncate text-sm font-semibold text-primary">{u.nome}</span>
+                    <span className="block text-[11px] text-fg/60">Assistente virtual • responde sobre como usar o portal</span>
+                  </span>
+                  <span className="ml-auto flex h-2 w-2 shrink-0 rounded-full bg-success" title="Online" aria-label="Online" />
+                </button>
+              ))}
+              {/* Servidores humanos */}
+              {usuarios.filter((u) => u.id !== meuId && !ehBot(u)).map((u) => (
+                <button
+                  key={u.id}
+                  type="button"
+                  onClick={() => iniciarDm(u)}
+                  className="flex w-full items-center gap-2 border-b border-border/60 px-3 py-2 text-left hover:bg-muted/40 focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary"
+                >
                   <Avatar userId={u.id} avatar={u.avatar} nome={u.nome} online={u.online || online.has(u.id)} />
                   <span className="min-w-0">
                     <span className="block truncate text-sm font-medium">{u.nome}</span>

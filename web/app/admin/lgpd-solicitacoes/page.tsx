@@ -518,10 +518,11 @@ export default function LgpdSolicitacoesPage() {
     setCarregando(true);
     setErro('');
     try {
-      const data = await adminGet<SolicitacaoResumo[]>(
+      const data = await adminGet<{ items: SolicitacaoResumo[]; total: number } | SolicitacaoResumo[]>(
         `/api/lgpd/admin/solicitacoes${qs({ status: filtroStatus, tipo: filtroTipo })}`,
       );
-      setLista(data);
+      // O backend devolve { items, total, page, pageSize } (paginado); tolera array por segurança.
+      setLista(Array.isArray(data) ? data : data.items ?? []);
     } catch (err) {
       setErro(err instanceof AdminApiError ? err.message : 'Erro ao carregar solicitações.');
     } finally {

@@ -297,6 +297,66 @@ export const getLgpdDocumento = (id: string) =>
 export const gerarLgpdDocumento = (id: string, dados: DadosLgpdEntidade) =>
   adminPost<LgpdDocEstado>(`/api/_platform/tenants/${id}/config/lgpd/gerar`, dados);
 
+// ── Canais de atendimento (super_admin) ──────────────────────────────────────
+
+export type TipoCanal = 'whatsapp' | 'instagram' | 'messenger' | 'telegram';
+
+export interface CanalAtendimento {
+  id: string;
+  label: string;
+  tipo: TipoCanal;
+  metaPhoneNumberId?: string | null;
+  metaWabaId?: string | null;
+  secretariaId?: string | null;
+  ativo: boolean;
+  ordem: number;
+  metaTokenDefinido: boolean;
+  metaAppSecretDefinido: boolean;
+  metaVerifyTokenDefinido: boolean;
+  webhookSecretDefinido: boolean;
+  atualizadoEm: string;
+}
+
+export interface CanalDto {
+  label: string;
+  tipo: TipoCanal;
+  metaPhoneNumberId?: string;
+  metaWabaId?: string;
+  metaToken?: string;
+  metaAppSecret?: string;
+  metaVerifyToken?: string;
+  secretariaId?: string;
+  ativo?: boolean;
+  ordem?: number;
+}
+
+export interface CanalWebhookInfo {
+  tipo: TipoCanal;
+  callbackUrl: string | null;
+  verifyTokenDefinido: boolean;
+  appSecretDefinido: boolean;
+  phoneNumberIdDefinido: boolean;
+  webhookSecretDefinido: boolean;
+  pronto: boolean;
+  aviso: string;
+}
+
+export const getCanais = (tenantId: string) =>
+  adminGet<CanalAtendimento[]>(`/api/_platform/tenants/${tenantId}/config/canais`);
+export const criarCanal = (tenantId: string, dto: CanalDto) =>
+  adminPost<CanalAtendimento>(`/api/_platform/tenants/${tenantId}/config/canais`, dto);
+export const atualizarCanal = (tenantId: string, canalId: string, dto: Partial<CanalDto>) =>
+  adminPut<CanalAtendimento>(`/api/_platform/tenants/${tenantId}/config/canais/${canalId}`, dto);
+export const excluirCanal = (tenantId: string, canalId: string) =>
+  adminDelete(`/api/_platform/tenants/${tenantId}/config/canais/${canalId}`);
+export const getCanalWebhookInfo = (tenantId: string, canalId: string) =>
+  adminGet<CanalWebhookInfo>(`/api/_platform/tenants/${tenantId}/config/canais/${canalId}/webhook-info`);
+export const telegramSetWebhook = (tenantId: string, canalId: string) =>
+  adminPost<{ ok: boolean; descricao: string }>(
+    `/api/_platform/tenants/${tenantId}/config/canais/${canalId}/telegram-setwebhook`,
+    {},
+  );
+
 /** Template GLOBAL da documentação LGPD (Console da Plataforma). */
 export interface LgpdPlaceholder { chave: string; rotulo: string; origem: string }
 export interface LgpdTemplate {
@@ -367,6 +427,79 @@ export const backupDownloadUrl = (key: string) =>
   `${apiBase}/api/_platform/backups/download?key=${encodeURIComponent(key)}`;
 export const excluirBackup = (key: string) =>
   adminDelete<{ ok: boolean }>(`/api/_platform/backups?key=${encodeURIComponent(key)}`);
+
+// ── IA Global (super_admin) ─────────────────────────────────────────────────
+// Legislação/contabilidade pública compartilhada entre todas as prefeituras.
+
+/** Slugs reconhecidos pela API para o campo domínio. */
+export const IA_GLOBAL_DOMINIOS = [
+  { value: 'licitacao',       label: 'Licitação' },
+  { value: 'contabilidade',   label: 'Contabilidade pública' },
+  { value: 'consumidor',      label: 'Consumidor' },
+  { value: 'mulher',          label: 'Proteção à mulher' },
+  { value: 'meio_ambiente',   label: 'Meio ambiente' },
+  { value: 'animais',         label: 'Proteção animal' },
+  { value: 'transparencia',   label: 'Transparência/LAI' },
+  { value: 'lgpd',            label: 'LGPD' },
+  { value: 'crianca',         label: 'Criança e adolescente' },
+  { value: 'idoso',           label: 'Idoso' },
+  { value: 'pcd',             label: 'Pessoa com deficiência' },
+  { value: 'cidade',          label: 'Estatuto da Cidade' },
+] as const;
+
+export type IaGlobalDominio = typeof IA_GLOBAL_DOMINIOS[number]['value'];
+
+export interface IaGlobalConteudo {
+  id: string;
+  dominio: string;
+  categoria: string | null;
+  leiReferencia: string | null;
+  fonteUrl: string | null;
+  titulo: string;
+  /** Só presente quando buscado individualmente (GET /:id). */
+  conteudo?: string;
+  tags: string[];
+  ativo: boolean;
+  atualizadoEm: string;
+}
+
+export interface IaGlobalStatus {
+  configurado: boolean;
+  provider: string | null;
+  chunks: number;
+}
+
+export interface IaGlobalConteudoDto {
+  dominio: string;
+  categoria?: string;
+  leiReferencia?: string;
+  fonteUrl?: string;
+  titulo: string;
+  conteudo: string;
+  tags?: string[];
+  ativo?: boolean;
+}
+
+export const getIaGlobalStatus = () =>
+  adminGet<IaGlobalStatus>('/api/_platform/ia/status');
+
+export const listarIaGlobalConteudos = (params?: { dominio?: string; q?: string }) =>
+  adminGet<IaGlobalConteudo[]>(`/api/_platform/ia/conteudos${qs({ dominio: params?.dominio, q: params?.q })}`);
+
+export const getIaGlobalConteudo = (id: string) =>
+  adminGet<IaGlobalConteudo>(`/api/_platform/ia/conteudos/${id}`);
+
+export const criarIaGlobalConteudo = (dto: IaGlobalConteudoDto) =>
+  adminPost<IaGlobalConteudo>('/api/_platform/ia/conteudos', dto);
+
+export const atualizarIaGlobalConteudo = (id: string, dto: Partial<IaGlobalConteudoDto>) =>
+  adminPut<IaGlobalConteudo>(`/api/_platform/ia/conteudos/${id}`, dto);
+
+export const excluirIaGlobalConteudo = (id: string) =>
+  adminDelete<void>(`/api/_platform/ia/conteudos/${id}`);
+
+export const reindexarIaGlobal = () =>
+  adminPost<{ enfileirado: boolean }>('/api/_platform/ia/reindexar');
 
 /** Upload da logomarca da empresa (multipart). Retorna a URL pública estável. */
 export async function uploadLogoPlataforma(file: File): Promise<{ logoUrl: string }> {

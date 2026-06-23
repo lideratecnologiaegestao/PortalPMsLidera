@@ -103,7 +103,7 @@ export default function OuvidoriaForm() {
                 className="mt-0.5"
               />
               <span>
-                <span className="font-semibold">{t.label}</span>
+                <span className="font-semibold"><span aria-hidden="true">{t.emoji}</span> {t.label}</span>
                 <span className="block text-xs text-fg/60">{t.desc}</span>
               </span>
             </label>

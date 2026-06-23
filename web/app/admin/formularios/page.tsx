@@ -20,6 +20,8 @@ import {
 } from '../../../lib/admin-api';
 import { AdminHeader, Aviso, Modal, ui } from '../_components/ui';
 import { apiBase } from '../../../lib/auth-shared';
+import { useSessaoAdmin } from '../../../lib/session-context';
+import { escopoRestrito } from '../../../lib/roles';
 import {
   CampoFormulario,
   FormularioDetalhe,
@@ -1601,6 +1603,7 @@ function ModalConfirmarExclusaoForm({
 type Tela = 'lista' | 'construtor' | 'envios';
 
 export default function FormulariosAdminPage() {
+  const { role } = useSessaoAdmin();
   const [formularios, setFormularios] = useState<FormularioResumo[]>([]);
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState('');
@@ -1697,6 +1700,19 @@ export default function FormulariosAdminPage() {
       {erro && <Aviso tipo="erro">{erro}</Aviso>}
       {carregandoDetalhe && (
         <p className="text-sm text-fg/60" role="status">Carregando…</p>
+      )}
+
+      {/* Aviso de escopo restrito (gestor / servidor) */}
+      {escopoRestrito(role) && (
+        <div
+          role="status"
+          className="flex items-start gap-2 rounded border border-primary/30 bg-primary/5 px-3 py-2 text-sm text-fg"
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" fill="currentColor" className="mt-0.5 shrink-0 text-primary">
+            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/>
+          </svg>
+          <span>Você gerencia apenas o conteúdo da sua secretaria.</span>
+        </div>
       )}
 
       <section aria-label="Lista de formulários" aria-live="polite" aria-busy={carregando}>

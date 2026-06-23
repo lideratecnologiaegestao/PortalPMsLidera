@@ -7,13 +7,16 @@ import ChatWidget from '../../components/chat/ChatWidget';
  * Gate + Shell do painel administrativo.
  *
  * - Sem perfil ou papel 'cidadao' -> exibe apenas o formulario de login.
- * - Autenticado com papel de servidor/gestor/admin/ouvidor/super_admin
+ * - Autenticado com papel de servidor/gestor/admin/ouvidor/assistente_ouvidoria/super_admin
  *   -> encapsula {children} no AdminShell (sidebar + topbar).
  *
  * O root layout (app/layout.tsx) detecta /admin e omite o shell do portal
  * publico, entregando apenas html+body+tema. Este layout adiciona o shell admin.
  *
  * Server Component: usa getPerfil() que requer next/headers.
+ *
+ * ADR-0005 Fase 1: assistente_ouvidoria entra no painel mas enxerga apenas
+ * os itens de menu de Ouvidoria/e-SIC (filtro feito no AdminShell).
  */
 
 const ROLES_PERMITIDOS = new Set([
@@ -21,6 +24,7 @@ const ROLES_PERMITIDOS = new Set([
   'gestor',
   'admin_prefeitura',
   'ouvidor',
+  'assistente_ouvidoria',
   'super_admin',
 ]);
 

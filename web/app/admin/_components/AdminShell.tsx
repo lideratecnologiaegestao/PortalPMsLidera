@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { usePathname } from 'next/navigation';
 import { apiBase } from '../../../lib/auth-shared';
+import { SessaoAdminProvider } from '../../../lib/session-context';
 import type { Perfil } from '../../../lib/auth';
 
 /* ------------------------------------------------------------------ */
@@ -14,6 +15,7 @@ const ROLE_LABEL: Record<string, string> = {
   gestor: 'Gestor',
   admin_prefeitura: 'Administrador',
   ouvidor: 'Ouvidor',
+  assistente_ouvidoria: 'Assistente de Ouvidoria',
   super_admin: 'Super Admin',
   cidadao: 'Cidadão',
 };
@@ -22,6 +24,8 @@ interface MenuItem {
   href: string;
   label: string;
   icon: React.ReactNode;
+  /** Quando definido, o item só aparece para papéis incluídos neste conjunto. */
+  apenasRoles?: Set<string>;
 }
 
 interface MenuGroup {
@@ -120,6 +124,13 @@ function IconArticle() {
     </svg>
   );
 }
+function IconComment() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" fill="currentColor">
+      <path d="M21.99 4c0-1.1-.89-2-1.99-2H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h14l4 4-.01-18zM18 14H6v-2h12v2zm0-3H6V9h12v2zm0-3H6V6h12v2z"/>
+    </svg>
+  );
+}
 function IconBuilding() {
   return (
     <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" fill="currentColor">
@@ -190,6 +201,33 @@ function IconBrain() {
     </svg>
   );
 }
+function IconBook() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" fill="currentColor">
+      <path d="M18 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zM6 4h5v8l-2.5-1.5L6 12V4z"/>
+    </svg>
+  );
+}
+function IconPhone() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" fill="currentColor">
+      <path d="M17 2H7c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h10c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H7V6h10v10zm-5 4c-.55 0-1-.45-1-1s.45-1 1-1 1 .45 1 1-.45 1-1 1zm0-18c.55 0 1 .45 1 1s-.45 1-1 1-1-.45-1-1 .45-1 1-1z"/>
+    </svg>
+  );
+}
+
+/**
+ * Conjunto de papéis com acesso a Ouvidoria / e-SIC.
+ * ADR-0005 Fase 1: apenas ouvidor, assistente_ouvidoria e super_admin
+ * enxergam esses itens de menu.
+ */
+const ROLES_OUVIDORIA = new Set(['ouvidor', 'assistente_ouvidoria', 'super_admin']);
+
+/**
+ * Papéis que podem aprovar solicitações de acesso de servidor/gestor.
+ * ADR-0005 Fase 2: admin_prefeitura e gestor.
+ */
+const ROLES_APROVACAO_ACESSO = new Set(['admin_prefeitura', 'gestor', 'super_admin']);
 
 const MENU_GROUPS: MenuGroup[] = [
   {
@@ -199,74 +237,135 @@ const MENU_GROUPS: MenuGroup[] = [
     ],
   },
   {
-    group: 'Pagina Inicial',
+    group: 'Página Inicial',
     items: [
-      { href: '/admin/banners', label: 'Banners', icon: <IconBanner /> },
-      { href: '/admin/popups', label: 'Popups', icon: <IconBanner /> },
-      { href: '/admin/noticias', label: 'Noticias', icon: <IconArticle /> },
-      { href: '/admin/secretarias', label: 'Secretarias', icon: <IconBuilding /> },
-      { href: '/admin/galeria', label: 'Galeria', icon: <IconPhoto /> },
       { href: '/admin/home', label: 'Layout da Home', icon: <IconGrid /> },
+      { href: '/admin/banners', label: 'Banners', icon: <IconBanner /> },
+      { href: '/admin/popups', label: 'Pop-ups', icon: <IconBanner /> },
       { href: '/admin/enquetes', label: 'Enquetes', icon: <IconList /> },
     ],
   },
   {
-    group: 'Conteudo e Transparencia',
+    group: 'Conteúdo',
     items: [
-      { href: '/admin/midia', label: 'Midia', icon: <IconPhoto /> },
-      { href: '/admin/documentos', label: 'Documentos', icon: <IconFile /> },
-      { href: '/admin/formularios', label: 'Formularios', icon: <IconList /> },
-      { href: '/admin/licitacoes', label: 'Licitacoes', icon: <IconFile /> },
-      { href: '/admin/conselhos', label: 'Conselhos', icon: <IconUsers /> },
-      { href: '/admin/concursos', label: 'Concursos', icon: <IconFile /> },
-      { href: '/admin/contratos', label: 'Contratos', icon: <IconFile /> },
-      { href: '/admin/convenios', label: 'Convenios', icon: <IconFile /> },
-      { href: '/admin/tipos', label: 'Tipos e Taxonomias', icon: <IconList /> },
-      { href: '/admin/transparencia', label: 'Transparencia', icon: <IconFile /> },
-      { href: '/admin/aplic', label: 'Contas (APLIC)', icon: <IconBarChart /> },
-      { href: '/admin/paginas', label: 'Paginas', icon: <IconPages /> },
-      { href: '/admin/diario', label: 'Diario Oficial', icon: <IconNewspaper /> },
-      { href: '/admin/servicos', label: 'Servicos', icon: <IconList /> },
+      { href: '/admin/noticias', label: 'Notícias', icon: <IconArticle /> },
+      {
+        href: '/admin/comentarios',
+        label: 'Comentários',
+        icon: <IconComment />,
+        apenasRoles: new Set(['gestor', 'admin_prefeitura', 'servidor', 'super_admin']),
+      },
+      { href: '/admin/secretarias', label: 'Secretarias', icon: <IconBuilding /> },
+      { href: '/admin/galeria', label: 'Galeria', icon: <IconPhoto /> },
+      { href: '/admin/midia', label: 'Mídia', icon: <IconPhoto /> },
+      { href: '/admin/paginas', label: 'Páginas', icon: <IconPages /> },
+      { href: '/admin/diario', label: 'Diário Oficial', icon: <IconNewspaper /> },
+      { href: '/admin/servicos', label: 'Serviços', icon: <IconList /> },
+      { href: '/admin/formularios', label: 'Formulários', icon: <IconList /> },
     ],
   },
   {
-    group: 'Atendimento e IA',
+    group: 'Transparência',
+    items: [
+      { href: '/admin/documentos', label: 'Documentos', icon: <IconFile /> },
+      { href: '/admin/licitacoes', label: 'Licitações', icon: <IconFile /> },
+      { href: '/admin/contratos', label: 'Contratos', icon: <IconFile /> },
+      { href: '/admin/convenios', label: 'Convênios', icon: <IconFile /> },
+      { href: '/admin/concursos', label: 'Concursos', icon: <IconFile /> },
+      { href: '/admin/conselhos', label: 'Conselhos', icon: <IconUsers /> },
+      { href: '/admin/transparencia', label: 'Portal da Transparência', icon: <IconFile /> },
+      { href: '/admin/conformidade', label: 'Conformidade PNTP', icon: <IconShield /> },
+      { href: '/admin/aplic', label: 'Contas Públicas (APLIC)', icon: <IconBarChart /> },
+      { href: '/admin/tipos', label: 'Tipos e Taxonomias', icon: <IconList /> },
+    ],
+  },
+  {
+    group: 'Atendimento e Ouvidoria',
     items: [
       { href: '/admin/atendimento', label: 'Chat Omnichannel', icon: <IconMessage /> },
-      { href: '/admin/chamados', label: 'Denuncias (App)', icon: <IconAlert /> },
-      { href: '/admin/ouvidor', label: 'Painel do Ouvidor', icon: <IconMessage /> },
-      { href: '/admin/ouvidoria', label: 'Ouvidoria', icon: <IconMessage /> },
-      { href: '/admin/esic', label: 'e-SIC', icon: <IconMail /> },
-      { href: '/admin/minhas-atribuicoes', label: 'Minhas atribuicoes', icon: <IconList /> },
-      { href: '/admin/paineis-tv', label: 'Paineis de TV', icon: <IconTv /> },
-      { href: '/admin/ia-conhecimento', label: 'Assistente (Base de conhecimento)', icon: <IconBrain /> },
+      { href: '/admin/whatsapp/config', label: 'WhatsApp', icon: <IconMessage /> },
+      { href: '/admin/chamados', label: 'Denúncias (App)', icon: <IconAlert /> },
+      {
+        href: '/admin/ouvidor',
+        label: 'Painel do Ouvidor',
+        icon: <IconMessage />,
+        apenasRoles: ROLES_OUVIDORIA,
+      },
+      {
+        href: '/admin/ouvidoria',
+        label: 'Ouvidoria',
+        icon: <IconMessage />,
+        apenasRoles: ROLES_OUVIDORIA,
+      },
+      {
+        href: '/admin/esic',
+        label: 'e-SIC',
+        icon: <IconMail />,
+        apenasRoles: ROLES_OUVIDORIA,
+      },
+      {
+        href: '/admin/minhas-atribuicoes',
+        label: 'Minhas Atribuições',
+        icon: <IconList />,
+        apenasRoles: ROLES_OUVIDORIA,
+      },
+      { href: '/admin/paineis-tv', label: 'Painéis de TV', icon: <IconTv /> },
+    ],
+  },
+  {
+    group: 'Inteligência Artificial',
+    items: [
+      {
+        href: '/admin/ia-conhecimento',
+        label: 'Assistente IA (Conhecimento)',
+        icon: <IconBrain />,
+        apenasRoles: new Set(['gestor', 'admin_prefeitura', 'ti', 'super_admin']),
+      },
     ],
   },
   {
     group: 'LGPD e Privacidade',
     items: [
       { href: '/admin/lgpd-conformidade', label: 'Conformidade LGPD', icon: <IconShield /> },
-      { href: '/admin/lgpd-documentacao', label: 'Documentacao LGPD', icon: <IconFile /> },
-      { href: '/admin/lgpd-solicitacoes', label: 'Solicitacoes LGPD', icon: <IconLock /> },
-      { href: '/admin/lgpd-incidentes', label: 'Incidentes de Seguranca', icon: <IconWarning /> },
+      { href: '/admin/lgpd-documentacao', label: 'Documentação LGPD', icon: <IconFile /> },
+      { href: '/admin/lgpd-solicitacoes', label: 'Solicitações LGPD', icon: <IconLock /> },
+      { href: '/admin/lgpd-incidentes', label: 'Incidentes de Segurança', icon: <IconWarning /> },
     ],
   },
   {
-    group: 'Administracao',
+    group: 'Administração',
     items: [
-      { href: '/admin/usuarios', label: 'Usuarios', icon: <IconUsers /> },
-      { href: '/admin/grupos', label: 'Grupos e Permissoes', icon: <IconShield /> },
-      { href: '/admin/sessoes', label: 'Sessoes Ativas', icon: <IconMonitor /> },
-      { href: '/admin/usuarios-relatorio', label: 'Relatorio de Usuarios', icon: <IconBarChart /> },
+      { href: '/admin/usuarios', label: 'Usuários', icon: <IconUsers /> },
+      {
+        href: '/admin/usuarios/solicitacoes',
+        label: 'Solicitações de Acesso',
+        icon: <IconLock />,
+        apenasRoles: ROLES_APROVACAO_ACESSO,
+      },
+      { href: '/admin/grupos', label: 'Grupos e Permissões', icon: <IconShield /> },
+      { href: '/admin/sessoes', label: 'Sessões Ativas', icon: <IconMonitor /> },
+      { href: '/admin/usuarios-relatorio', label: 'Relatório de Usuários', icon: <IconBarChart /> },
       { href: '/admin/email', label: 'E-mail (SMTP)', icon: <IconMail /> },
       { href: '/admin/tema', label: 'Tema e Identidade', icon: <IconPalette /> },
       { href: '/admin/menus', label: 'Menus', icon: <IconMenus /> },
+      {
+        href: '/admin/app-cidadao',
+        label: 'App do Cidadão',
+        icon: <IconPhone />,
+        apenasRoles: new Set(['admin_prefeitura', 'super_admin']),
+      },
+    ],
+  },
+  {
+    group: 'Ajuda',
+    items: [
+      { href: '/admin/manual', label: 'Manual do Sistema', icon: <IconBook /> },
     ],
   },
   {
     group: 'Conta',
     items: [
-      { href: '/admin/perfil', label: 'Meu perfil', icon: <IconPerson /> },
+      { href: '/admin/perfil', label: 'Meu Perfil', icon: <IconPerson /> },
     ],
   },
 ];
@@ -278,9 +377,11 @@ const MENU_GROUPS: MenuGroup[] = [
 function Sidebar({
   aberta,
   fechar,
+  role,
 }: {
   aberta: boolean;
   fechar: () => void;
+  role: string;
 }) {
   const pathname = usePathname();
 
@@ -325,43 +426,53 @@ function Sidebar({
 
         {/* Itens de menu */}
         <nav aria-label="Menu administrativo" className="flex-1 overflow-y-auto py-3">
-          {MENU_GROUPS.map((group) => (
-            <div key={group.group} className="mb-4">
-              <p className="px-4 pb-1 text-xs font-semibold uppercase tracking-wide text-fg/50">
-                {group.group}
-              </p>
-              <ul role="list">
-                {group.items.map((item) => {
-                  const ativo =
-                    item.href === '/admin'
-                      ? pathname === '/admin'
-                      : pathname === item.href || pathname.startsWith(item.href + '/');
-                  return (
-                    <li key={item.href}>
-                      <a
-                        href={item.href}
-                        aria-current={ativo ? 'page' : undefined}
-                        className={[
-                          'flex items-center gap-3 px-4 py-2 text-sm transition-colors',
-                          'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-primary',
-                          ativo
-                            ? 'border-l-4 border-primary bg-primary/10 font-semibold text-primary'
-                            : 'border-l-4 border-transparent text-fg hover:bg-muted hover:text-fg',
-                        ].join(' ')}
-                        onClick={() => {
-                          // fecha sidebar no mobile ao navegar
-                          if (window.innerWidth < 768) fechar();
-                        }}
-                      >
-                        <span aria-hidden="true">{item.icon}</span>
-                        {item.label}
-                      </a>
-                    </li>
-                  );
-                })}
-              </ul>
-            </div>
-          ))}
+          {MENU_GROUPS.map((group) => {
+            // Filtra itens que o papel atual não pode ver
+            const itensFiltrados = group.items.filter(
+              (item) => !item.apenasRoles || item.apenasRoles.has(role),
+            );
+
+            // Omite o grupo inteiro se não sobrar nenhum item visível
+            if (itensFiltrados.length === 0) return null;
+
+            return (
+              <div key={group.group} className="mb-4">
+                <p className="px-4 pb-1 text-xs font-semibold uppercase tracking-wide text-fg/50">
+                  {group.group}
+                </p>
+                <ul role="list">
+                  {itensFiltrados.map((item) => {
+                    const ativo =
+                      item.href === '/admin'
+                        ? pathname === '/admin'
+                        : pathname === item.href || pathname.startsWith(item.href + '/');
+                    return (
+                      <li key={item.href}>
+                        <a
+                          href={item.href}
+                          aria-current={ativo ? 'page' : undefined}
+                          className={[
+                            'flex items-center gap-3 px-4 py-2 text-sm transition-colors',
+                            'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-primary',
+                            ativo
+                              ? 'border-l-4 border-primary bg-primary/10 font-semibold text-primary'
+                              : 'border-l-4 border-transparent text-fg hover:bg-muted hover:text-fg',
+                          ].join(' ')}
+                          onClick={() => {
+                            // fecha sidebar no mobile ao navegar
+                            if (window.innerWidth < 768) fechar();
+                          }}
+                        >
+                          <span aria-hidden="true">{item.icon}</span>
+                          {item.label}
+                        </a>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </div>
+            );
+          })}
         </nav>
       </aside>
     </>
@@ -601,34 +712,37 @@ export default function AdminShell({
   const [sidebarAberta, setSidebarAberta] = useState(false);
 
   return (
-    <div className="flex h-screen flex-col bg-bg text-fg">
-      <Topbar
-        perfil={perfil}
-        onHamburguer={() => setSidebarAberta((v) => !v)}
-        sidebarAberta={sidebarAberta}
-      />
-
-      <div className="flex flex-1 overflow-hidden">
-        <Sidebar
-          aberta={sidebarAberta}
-          fechar={() => setSidebarAberta(false)}
+    <SessaoAdminProvider sessao={{ id: perfil.id, role: perfil.role }}>
+      <div className="flex h-screen flex-col bg-bg text-fg">
+        <Topbar
+          perfil={perfil}
+          onHamburguer={() => setSidebarAberta((v) => !v)}
+          sidebarAberta={sidebarAberta}
         />
 
-        <main
-          id="admin-conteudo"
-          className="flex-1 overflow-y-auto p-6"
-          tabIndex={-1}
-        >
-          {/* Skip link target */}
-          <a
-            href="#admin-conteudo"
-            className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 focus:rounded focus:bg-primary focus:px-3 focus:py-2 focus:text-primary-fg"
+        <div className="flex flex-1 overflow-hidden">
+          <Sidebar
+            aberta={sidebarAberta}
+            fechar={() => setSidebarAberta(false)}
+            role={perfil.role}
+          />
+
+          <main
+            id="admin-conteudo"
+            className="flex-1 overflow-y-auto p-6"
+            tabIndex={-1}
           >
-            Ir para o conteudo principal
-          </a>
-          {children}
-        </main>
+            {/* Skip link target */}
+            <a
+              href="#admin-conteudo"
+              className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 focus:rounded focus:bg-primary focus:px-3 focus:py-2 focus:text-primary-fg"
+            >
+              Ir para o conteudo principal
+            </a>
+            {children}
+          </main>
+        </div>
       </div>
-    </div>
+    </SessaoAdminProvider>
   );
 }

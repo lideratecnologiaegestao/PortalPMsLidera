@@ -4,6 +4,8 @@ import { Fragment, useCallback, useEffect, useId, useState } from 'react';
 import { adminGet, adminPost, adminPut, adminDelete, qs, AdminApiError } from '../../../lib/admin-api';
 import { AdminHeader, Aviso, Modal, ui } from '../_components/ui';
 import MediaPicker from '../_components/MediaPicker';
+import { useSessaoAdmin } from '../../../lib/session-context';
+import { escopoRestrito } from '../../../lib/roles';
 
 // ---------------------------------------------------------------------------
 // Tipos
@@ -356,6 +358,7 @@ const vaziodoc = {
 // ---------------------------------------------------------------------------
 
 export default function DocumentosAdminPage() {
+  const { role } = useSessaoAdmin();
   const [cadastros, setCadastros] = useState<Cadastro[]>([]);
   const [cadSel, setCadSel] = useState<string>('');
   const [tipos, setTipos] = useState<TipoAdmin[]>([]);
@@ -581,6 +584,19 @@ export default function DocumentosAdminPage() {
 
       {erro && <Aviso tipo="erro">{erro}</Aviso>}
 
+      {/* Aviso de escopo restrito (gestor / servidor) */}
+      {escopoRestrito(role) && (
+        <div
+          role="status"
+          className="flex items-start gap-2 rounded border border-primary/30 bg-primary/5 px-3 py-2 text-sm text-fg"
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" fill="currentColor" className="mt-0.5 shrink-0 text-primary">
+            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/>
+          </svg>
+          <span>Você gerencia apenas o conteúdo da sua secretaria.</span>
+        </div>
+      )}
+
       {/* Sub-abas: Documentos | Tipos */}
       {cadSel && (
         <div className="mb-4 flex gap-1 border-b border-border">
@@ -799,20 +815,36 @@ export default function DocumentosAdminPage() {
               onChange={(e) => setForm({ ...form, ementa: e.target.value })}
             />
           </div>
-          <div>
-            <label className={ui.label}>Secretaria (opcional)</label>
-            <select
-              className={ui.input}
-              value={form.secretariaId}
-              onChange={(e) => setForm({ ...form, secretariaId: e.target.value })}
-            >
-              <option value="">— nenhuma —</option>
-              {secretarias.map((s) => <option key={s.id} value={s.id}>{s.nome}</option>)}
-            </select>
-            <p className="mt-1 text-xs text-fg/60">
-              Se vinculado, o documento aparece também na página da secretaria.
-            </p>
-          </div>
+          {escopoRestrito(role) ? (
+            /* Gestor/servidor: secretaria definida pela lotação — somente-leitura */
+            <div>
+              <p className={ui.label} id="doc-secretaria-lbl">Secretaria</p>
+              <p
+                aria-labelledby="doc-secretaria-lbl"
+                className="mt-1 rounded border border-border bg-muted px-3 py-2 text-sm text-fg/70"
+              >
+                {secretarias.find((s) => s.id === form.secretariaId)?.nome ?? 'Definida pela sua lotação'}
+              </p>
+              <p className="mt-1 text-xs text-fg/60">
+                A secretaria é definida automaticamente pela sua lotação e não pode ser alterada aqui.
+              </p>
+            </div>
+          ) : (
+            <div>
+              <label className={ui.label}>Secretaria (opcional)</label>
+              <select
+                className={ui.input}
+                value={form.secretariaId}
+                onChange={(e) => setForm({ ...form, secretariaId: e.target.value })}
+              >
+                <option value="">— nenhuma —</option>
+                {secretarias.map((s) => <option key={s.id} value={s.id}>{s.nome}</option>)}
+              </select>
+              <p className="mt-1 text-xs text-fg/60">
+                Se vinculado, o documento aparece também na página da secretaria.
+              </p>
+            </div>
+          )}
           <div>
             <label className={ui.label}>Arquivo (PDF da biblioteca de mídia)</label>
             <div className="flex items-center gap-2">

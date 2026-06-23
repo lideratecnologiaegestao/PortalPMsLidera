@@ -33,6 +33,8 @@ export interface MensagemAtend {
   conteudo: string;
   interno?: boolean;
   criadoEm: string;
+  /** Botões de resposta rápida (transientes, só via socket — ex.: menu de tipos). */
+  opcoes?: { label: string; valor: string }[];
 }
 
 export interface ConversaPublica {
@@ -74,6 +76,9 @@ export interface ConversaDetalhe {
     iniciadaEm: string;
     encerradaEm?: string | null;
     ultimaAtividadeEm: string;
+    /** Manifestação aberta a partir do chat (cross-link com a ouvidoria). */
+    manifestacaoId?: string | null;
+    manifestacaoProtocolo?: string | null;
   };
   mensagens: MensagemAtend[];
   eventos?: Array<{ id: string; tipo: string; criadoEm: string; payload?: unknown }>;

@@ -20,6 +20,8 @@ import {
 } from '../../../lib/atendimento';
 import { AdminApiError, adminGet, adminPatch, adminPost, qs } from '../../../lib/admin-api';
 import { apiBase } from '../../../lib/auth-shared';
+import { useSessaoAdmin } from '../../../lib/session-context';
+import { podeVerOuvidoria } from '../../../lib/roles';
 import { AdminHeader, Aviso, Modal, ui } from '../_components/ui';
 import EmojiPicker from '../../../components/ui/EmojiPicker';
 
@@ -104,6 +106,7 @@ interface SecretariaLista {
 // ─── Componente principal ─────────────────────────────────────────────────────
 
 export default function AtendimentoAdminPage() {
+  const sessao = useSessaoAdmin();
   const [conversas, setConversas] = useState<ConversaLista[]>([]);
   const [total, setTotal] = useState(0);
   const [selecionadaId, setSelecionadaId] = useState<string | null>(null);
@@ -639,6 +642,24 @@ export default function AtendimentoAdminPage() {
                 )}
                 {detalhe.conversa.iniciadaEm && (
                   <span>Início: <span className="text-fg">{dataHora(detalhe.conversa.iniciadaEm)}</span></span>
+                )}
+                {detalhe.conversa.manifestacaoProtocolo && (
+                  <span>
+                    Manifestação:{' '}
+                    {podeVerOuvidoria(sessao.role) ? (
+                      <a
+                        href="/admin/ouvidoria"
+                        className="font-semibold text-primary underline"
+                        title="Abrir no painel da Ouvidoria"
+                      >
+                        {detalhe.conversa.manifestacaoProtocolo} ↗
+                      </a>
+                    ) : (
+                      <span className="font-semibold text-fg">
+                        {detalhe.conversa.manifestacaoProtocolo}
+                      </span>
+                    )}
+                  </span>
                 )}
                 {detalhe.conversa.tagIds?.length > 0 && (
                   <span className="flex items-center gap-1 flex-wrap">

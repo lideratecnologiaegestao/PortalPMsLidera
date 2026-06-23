@@ -59,6 +59,12 @@ export default function PlataformaShell({
           <a href="/plataforma/configuracoes" className="rounded px-2.5 py-1 text-sm font-medium text-primary-fg/90 hover:bg-primary-fg/10">
             Configurações
           </a>
+          <a href="/plataforma/solicitacoes" className="rounded px-2.5 py-1 text-sm font-medium text-primary-fg/90 hover:bg-primary-fg/10">
+            Solicitações de acesso
+          </a>
+          <a href="/plataforma/ia-global" className="rounded px-2.5 py-1 text-sm font-medium text-primary-fg/90 hover:bg-primary-fg/10">
+            IA Global
+          </a>
         </nav>
 
         {/* Spacer */}

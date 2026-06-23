@@ -65,17 +65,44 @@ export default function EmojiPicker({ onSelect, disabled }: EmojiPickerProps) {
 
   const triggerRef = useRef<HTMLButtonElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const popoverRef = useRef<HTMLDivElement>(null);
   // índice focado dentro do grid plano
   const [focusIdx, setFocusIdx] = useState(0);
   const gridRef = useRef<HTMLDivElement>(null);
 
-  // Fecha ao clicar fora
+  // Posição do popover (renderizado em portal no body para escapar do
+  // `overflow-hidden`/empilhamento do painel do chat, que antes o recortava).
+  const [pos, setPos] = useState<{ bottom: number; right: number } | null>(null);
+
+  // Calcula a posição a partir do trigger ao abrir (e em resize/scroll).
+  useEffect(() => {
+    if (!aberto) return;
+    function recalcular() {
+      const r = triggerRef.current?.getBoundingClientRect();
+      if (!r) return;
+      // Abre ACIMA do botão, alinhado à direita do trigger.
+      setPos({
+        bottom: window.innerHeight - r.top + 8,
+        right: Math.max(8, window.innerWidth - r.right),
+      });
+    }
+    recalcular();
+    window.addEventListener('resize', recalcular);
+    window.addEventListener('scroll', recalcular, true);
+    return () => {
+      window.removeEventListener('resize', recalcular);
+      window.removeEventListener('scroll', recalcular, true);
+    };
+  }, [aberto]);
+
+  // Fecha ao clicar fora (considera o popover em portal, fora do container).
   useEffect(() => {
     if (!aberto) return;
     function handler(e: MouseEvent) {
+      const alvo = e.target as Node;
       if (
-        containerRef.current &&
-        !containerRef.current.contains(e.target as Node)
+        !containerRef.current?.contains(alvo) &&
+        !popoverRef.current?.contains(alvo)
       ) {
         setAberto(false);
       }
@@ -148,14 +175,19 @@ export default function EmojiPicker({ onSelect, disabled }: EmojiPickerProps) {
         <span aria-hidden="true">😊</span>
       </button>
 
-      {/* Popover */}
-      {aberto && (
+      {/* Popover — posição FIXA (relativa à viewport) para não ser recortado
+          pelo `overflow-hidden` do painel do chat nem ficar atrás das mensagens.
+          Um filho `position: fixed` escapa do overflow do ancestral (que não tem
+          transform), dispensando portal/@types/react-dom. */}
+      {aberto && pos && (
         <div
+          ref={popoverRef}
           id={dialogId}
           role="dialog"
           aria-label="Seletor de emojis"
           aria-modal="true"
-          className="absolute bottom-full right-0 z-50 mb-1 w-72 rounded-lg border border-border bg-bg p-3 shadow-xl"
+          style={{ position: 'fixed', bottom: pos.bottom, right: pos.right, zIndex: 60 }}
+          className="w-72 rounded-lg border border-border bg-bg p-3 shadow-xl"
         >
           {/* Grid por categoria */}
           <div

@@ -2,12 +2,32 @@
 
 import { useState } from 'react';
 import { apiBase, govbrLoginUrl } from '../../../lib/auth-shared';
+import Turnstile from '../../../components/ui/Turnstile';
 
 export default function AdminLogin() {
   const [email, setEmail] = useState('');
   const [senha, setSenha] = useState('');
   const [erro, setErro] = useState<string | null>(null);
   const [carregando, setCarregando] = useState(false);
+  const [turnstileToken, setTurnstileToken] = useState('');
+  // Mudar esta key força re-mount do Turnstile (reset do widget)
+  const [turnstileKey, setTurnstileKey] = useState(0);
+  /**
+   * turnstileAtivo: true quando o Turnstile notificou que está habilitado
+   * (componente chama onToken('') ao montar com enabled=true).
+   * Quando desabilitado, onToken nunca é chamado e o botão não é bloqueado.
+   */
+  const [turnstileAtivo, setTurnstileAtivo] = useState(false);
+
+  function handleTurnstileToken(token: string) {
+    // O Turnstile chama onToken('') imediatamente ao montar (se habilitado),
+    // indicando "ativo, aguardando desafio". Qualquer chamada ativa a flag.
+    if (!turnstileAtivo) setTurnstileAtivo(true);
+    setTurnstileToken(token);
+  }
+
+  // Bloqueia submit se o Turnstile está ativo (habilitado) mas sem token válido
+  const submitBloqueado = carregando || (turnstileAtivo && !turnstileToken);
 
   async function entrar(e: React.FormEvent) {
     e.preventDefault();
@@ -18,16 +38,23 @@ export default function AdminLogin() {
         method: 'POST',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, senha }),
+        body: JSON.stringify({ email, senha, turnstileToken: turnstileToken || undefined }),
       });
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
         throw new Error(body?.message ?? 'E-mail ou senha inválidos.');
       }
-      // Recarrega para que o layout (Server Component) reavalie getPerfil().
+      const body = await res.json().catch(() => ({}));
+      if (body?.eulaRequired) {
+        window.location.href = '/admin/ouvidor';
+        return;
+      }
       window.location.reload();
     } catch (err) {
       setErro(err instanceof Error ? err.message : 'Erro ao autenticar.');
+      // Reseta o widget em caso de erro
+      setTurnstileToken('');
+      setTurnstileKey((k) => k + 1);
     } finally {
       setCarregando(false);
     }
@@ -57,7 +84,6 @@ export default function AdminLogin() {
             href={govbrLoginUrl('/admin')}
             className="flex w-full items-center justify-center gap-2 rounded border border-primary bg-bg px-4 py-2 font-semibold text-primary hover:bg-primary hover:text-primary-fg focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary transition-colors"
           >
-            {/* Ícone gov.br inline (sem lib externa) */}
             <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true" fill="currentColor">
               <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 14H9V8h2v8zm4 0h-2V8h2v8z"/>
             </svg>
@@ -111,6 +137,12 @@ export default function AdminLogin() {
               />
             </div>
 
+            {/* Widget Turnstile — define turnstileAtivo ao receber primeiro evento */}
+            <Turnstile
+              key={turnstileKey}
+              onToken={handleTurnstileToken}
+            />
+
             {/* Mensagem de erro acessível */}
             {erro && (
               <p
@@ -124,7 +156,7 @@ export default function AdminLogin() {
 
             <button
               type="submit"
-              disabled={carregando}
+              disabled={submitBloqueado}
               className="w-full rounded bg-primary px-4 py-2 font-semibold text-primary-fg hover:opacity-90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:opacity-60 transition-opacity"
               aria-busy={carregando}
             >

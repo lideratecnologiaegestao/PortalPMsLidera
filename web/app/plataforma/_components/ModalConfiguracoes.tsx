@@ -13,6 +13,12 @@ import {
   salvarLgpdConfig,
   getLgpdDocumento,
   gerarLgpdDocumento,
+  getCanais,
+  criarCanal,
+  atualizarCanal,
+  excluirCanal,
+  getCanalWebhookInfo,
+  telegramSetWebhook,
   type IaConfigMascarada,
   type IaConfigDto,
   type WhatsappConfigMascarada,
@@ -22,12 +28,16 @@ import {
   type LgpdDocEstado,
   type DadosLgpdEntidade,
   type Tenant,
+  type TipoCanal,
+  type CanalAtendimento,
+  type CanalDto,
+  type CanalWebhookInfo,
 } from '../../../lib/platform';
 import { AdminApiError } from '../../../lib/admin-api';
 
 // ── Tipos internos ─────────────────────────────────────────────────────────────
 
-type Aba = 'ia' | 'whatsapp' | 'atendimento' | 'lgpd';
+type Aba = 'ia' | 'whatsapp' | 'atendimento' | 'lgpd' | 'canais';
 
 // ── Utilitários ────────────────────────────────────────────────────────────────
 
@@ -1144,6 +1154,686 @@ function AbaLgpd({ tenantId }: { tenantId: string }) {
   );
 }
 
+// ── Aba Canais ─────────────────────────────────────────────────────────────────
+
+const TIPO_LABEL_CANAL: Record<TipoCanal, string> = {
+  whatsapp: 'WhatsApp',
+  instagram: 'Instagram',
+  messenger: 'Facebook Messenger',
+  telegram: 'Telegram',
+};
+
+function labelsCanalPorTipo(tipo: TipoCanal) {
+  const base = {
+    mostrarPhoneId: true,
+    mostrarWabaId: true,
+    mostrarAppSecret: true,
+    phoneId: 'ID do número / página',
+    token: 'Token',
+    verifyToken: 'Verify token',
+    // dicas (texto de ajuda sob cada campo)
+    phoneIdDica: '',
+    tokenDica: '',
+    appSecretDica: 'App Secret do app da Meta (Configurações do app → Básico). Valida a assinatura do webhook.',
+    verifyDica: 'Uma string que VOCÊ escolhe (ex.: "meu-token-123"). Usada no aperto de mão do webhook na Meta.',
+    // guia passo a passo
+    guia: [] as string[],
+  };
+  if (tipo === 'telegram') {
+    return {
+      ...base,
+      mostrarPhoneId: false, mostrarWabaId: false, mostrarAppSecret: false,
+      token: 'Token do Bot (BotFather)', verifyToken: 'Secret token (opcional)',
+      tokenDica: 'Token gerado pelo @BotFather ao criar o bot.',
+      verifyDica: 'Opcional: uma string secreta que você escolhe; reforça a segurança do webhook.',
+      guia: [
+        'No Telegram, fale com o @BotFather → comando /newbot → escolha nome e usuário do bot.',
+        'Copie o TOKEN que o BotFather fornece e cole em "Token do Bot".',
+        '(Opcional) defina um Secret token e cole no campo abaixo.',
+        'Salve o canal; depois clique em "Webhook" do canal → "Configurar webhook automaticamente". Pronto — o Telegram passa a entregar as mensagens.',
+      ],
+    };
+  }
+  if (tipo === 'instagram') {
+    return {
+      ...base,
+      phoneId: 'ID da conta Instagram / Página', token: 'Page Access Token',
+      phoneIdDica: 'ID da conta Instagram profissional (ou da Página do Facebook conectada a ela).',
+      tokenDica: 'Page Access Token da Página ligada ao Instagram.',
+      guia: [
+        'Tenha uma conta Instagram PROFISSIONAL conectada a uma Página do Facebook.',
+        'No app da Meta (developers.facebook.com), adicione as permissões instagram_basic, instagram_manage_messages e pages_messaging.',
+        'Pegue o ID da conta/Página e gere o Page Access Token.',
+        'Copie o App Secret (Configurações do app → Básico) e defina um Verify token.',
+        'Salve o canal, clique em "Webhook" e cole a Callback URL + Verify token no app da Meta, assinando o campo "messages".',
+      ],
+    };
+  }
+  if (tipo === 'messenger') {
+    return {
+      ...base,
+      phoneId: 'ID da Página (Page ID)', token: 'Page Access Token',
+      phoneIdDica: 'Page ID da Página do Facebook que vai atender.',
+      tokenDica: 'Page Access Token da Página (app da Meta com permissão pages_messaging).',
+      guia: [
+        'Tenha uma Página do Facebook e um app na Meta com a permissão pages_messaging.',
+        'Pegue o Page ID e gere o Page Access Token da Página.',
+        'Copie o App Secret (Configurações do app → Básico) e defina um Verify token.',
+        'Salve o canal, clique em "Webhook" e cole a Callback URL + Verify token no app da Meta, assinando "messages".',
+      ],
+    };
+  }
+  return {
+    ...base,
+    phoneId: 'Phone Number ID', token: 'Access token permanente',
+    phoneIdDica: 'Phone Number ID do número (WhatsApp → API Setup, no painel da Meta).',
+    tokenDica: 'Token PERMANENTE de um System User (Business Settings → Usuários do sistema), com permissões whatsapp_business_messaging e whatsapp_business_management.',
+    guia: [
+      'Crie/use um app Business no developers.facebook.com e um Meta Business Manager verificado.',
+      'Adicione o produto "WhatsApp" → copie o Phone Number ID (e o WABA ID, opcional).',
+      'Gere um token PERMANENTE via System User (Business Settings → Usuários do sistema).',
+      'Copie o App Secret (Configurações do app → Básico) e defina um Verify token (string sua).',
+      'Salve o canal, clique em "Webhook" e cole a Callback URL + Verify token no app da Meta (WhatsApp → Configuration → Webhooks), assinando o campo "messages".',
+    ],
+  };
+}
+
+// Bloco de guia (passo a passo) por tipo, expansível
+function GuiaCanal({ guia, tipo }: { guia: string[]; tipo: TipoCanal }) {
+  const nome = TIPO_LABEL_CANAL[tipo] ?? tipo;
+  if (!guia.length) return null;
+  return (
+    <details className="rounded border border-primary/30 bg-primary/5 px-3 py-2 text-sm">
+      <summary className="cursor-pointer select-none font-semibold text-primary">
+        Como configurar o {nome} — passo a passo
+      </summary>
+      <ol className="mt-2 list-decimal space-y-1 pl-5 text-fg/80">
+        {guia.map((p, i) => (
+          <li key={i}>{p}</li>
+        ))}
+      </ol>
+      <p className="mt-2 text-xs text-fg/50">
+        As chaves ficam cifradas; o sistema gera sozinho o segredo do webhook. Manual completo: docs/atendimento/manual-canais-apis.md
+      </p>
+    </details>
+  );
+}
+
+// Bloco do webhook DENTRO do formulário: mostra a URL exata (ao editar) ou a
+// orientação do tipo (ao criar), com a instrução correta por plataforma.
+function WebhookNoFormulario({
+  tenantId,
+  canal,
+  tipo,
+}: {
+  tenantId: string;
+  canal: CanalAtendimento | null;
+  tipo: TipoCanal;
+}) {
+  const inputId = useId();
+  const [info, setInfo] = useState<CanalWebhookInfo | null>(null);
+  const [copiado, setCopiado] = useState(false);
+  const [configurando, setConfigurando] = useState(false);
+  const [resultadoTg, setResultadoTg] = useState<{ ok: boolean; descricao: string } | null>(null);
+
+  useEffect(() => {
+    if (!canal) { setInfo(null); return; }
+    let vivo = true;
+    getCanalWebhookInfo(tenantId, canal.id).then((i) => { if (vivo) setInfo(i); }).catch(() => {});
+    return () => { vivo = false; };
+  }, [tenantId, canal]);
+
+  const ehTelegram = tipo === 'telegram';
+  const pathTipo = ehTelegram ? '/api/webhooks/telegram/…' : '/api/webhooks/meta-canal/…';
+  const instrucao = ehTelegram
+    ? 'Telegram: não precisa colar em lugar nenhum — clique em "Configurar webhook automaticamente" abaixo. O sistema registra a URL no Telegram para você.'
+    : 'Cole esta URL no painel da Meta (developers.facebook.com → seu app → Webhooks), assinando o campo "messages", e informe lá o MESMO Verify token deste formulário.';
+
+  async function copiar() {
+    if (!info?.callbackUrl) return;
+    try {
+      await navigator.clipboard.writeText(info.callbackUrl);
+    } catch {
+      const el = document.getElementById(inputId) as HTMLInputElement | null;
+      el?.select();
+      document.execCommand('copy');
+    }
+    setCopiado(true);
+    setTimeout(() => setCopiado(false), 2000);
+  }
+
+  async function configurarTelegram() {
+    if (!canal) return;
+    setConfigurando(true);
+    setResultadoTg(null);
+    try {
+      setResultadoTg(await telegramSetWebhook(tenantId, canal.id));
+    } catch (e) {
+      setResultadoTg({ ok: false, descricao: erroMsg(e) });
+    } finally {
+      setConfigurando(false);
+    }
+  }
+
+  return (
+    <fieldset className="space-y-2 rounded border border-border p-3">
+      <legend className="px-1 text-xs font-semibold text-fg/70">Webhook deste canal</legend>
+      {!canal ? (
+        <p className="text-xs text-fg/60">
+          A URL exata do webhook é <strong>gerada ao salvar</strong> este canal e aparece aqui.
+          Tipo: <span className="font-mono">{pathTipo}</span>
+        </p>
+      ) : info?.callbackUrl ? (
+        <>
+          <label htmlFor={inputId} className="text-xs text-fg/60">
+            {ehTelegram ? 'URL do webhook (registrada pelo botão automático)' : 'Callback URL — cole no app da Meta'}
+          </label>
+          <div className="flex gap-2">
+            <input id={inputId} type="text" readOnly value={info.callbackUrl}
+              className={`${ui.input} flex-1 select-all font-mono text-xs`}
+              aria-label="URL do webhook deste canal" />
+            <button type="button" onClick={copiar} className={`${ui.btnGhost} shrink-0 text-xs`}>
+              {copiado ? 'Copiado!' : 'Copiar'}
+            </button>
+          </div>
+          <p className="text-xs text-fg/50">{instrucao}</p>
+          {ehTelegram && (
+            <>
+              <button type="button" onClick={configurarTelegram} disabled={configurando}
+                className={`${ui.btn} text-sm`}>
+                {configurando ? 'Configurando…' : 'Configurar webhook automaticamente'}
+              </button>
+              {resultadoTg && (
+                <p role={resultadoTg.ok ? 'status' : 'alert'}
+                  className={`rounded border p-2 text-xs ${resultadoTg.ok ? 'border-success/40 text-success' : 'border-danger/40 text-danger'}`}>
+                  {resultadoTg.descricao}
+                </p>
+              )}
+            </>
+          )}
+        </>
+      ) : (
+        <p className="text-xs text-fg/60">Salve as credenciais para gerar a URL do webhook.</p>
+      )}
+    </fieldset>
+  );
+}
+
+// Formulário de criação/edição de canal (dentro do modal de canais)
+function FormCanal({
+  tenantId,
+  canal,
+  onSalvo,
+  onCancelar,
+}: {
+  tenantId: string;
+  canal: CanalAtendimento | null;
+  onSalvo: () => void;
+  onCancelar: () => void;
+}) {
+  const uid = useId();
+  const [tipo, setTipo] = useState<TipoCanal>(canal?.tipo ?? 'whatsapp');
+  const [label, setLabel] = useState(canal?.label ?? '');
+  const [phoneId, setPhoneId] = useState(canal?.metaPhoneNumberId ?? '');
+  const [wabaId, setWabaId] = useState(canal?.metaWabaId ?? '');
+  const [token, setToken] = useState('');
+  const [appSecret, setAppSecret] = useState('');
+  const [verifyToken, setVerifyToken] = useState('');
+  const [secretariaId, setSecretariaId] = useState(canal?.secretariaId ?? '');
+  const [ativo, setAtivo] = useState(canal?.ativo ?? true);
+  const [ordem, setOrdem] = useState(String(canal?.ordem ?? 0));
+  const [salvando, setSalvando] = useState(false);
+  const [erro, setErro] = useState('');
+
+  const l = labelsCanalPorTipo(tipo);
+
+  async function handleSalvar(e: React.FormEvent) {
+    e.preventDefault();
+    if (!label.trim()) { setErro('O nome do canal é obrigatório.'); return; }
+    if (l.mostrarPhoneId && !phoneId.trim()) { setErro(`O campo "${l.phoneId}" é obrigatório.`); return; }
+    setSalvando(true);
+    setErro('');
+    try {
+      const dto: CanalDto = {
+        label: label.trim(),
+        tipo,
+        ativo,
+        ordem: Number(ordem) || 0,
+        ...(token ? { metaToken: token } : {}),
+        ...(appSecret && l.mostrarAppSecret ? { metaAppSecret: appSecret } : {}),
+        ...(verifyToken.trim() ? { metaVerifyToken: verifyToken.trim() } : {}),
+        ...(secretariaId.trim() ? { secretariaId: secretariaId.trim() } : {}),
+      };
+      if (l.mostrarPhoneId) dto.metaPhoneNumberId = phoneId.trim();
+      if (l.mostrarWabaId && wabaId.trim()) dto.metaWabaId = wabaId.trim();
+
+      if (canal) {
+        await atualizarCanal(tenantId, canal.id, dto);
+      } else {
+        await criarCanal(tenantId, dto);
+      }
+      onSalvo();
+    } catch (err) {
+      setErro(erroMsg(err));
+    } finally {
+      setSalvando(false);
+    }
+  }
+
+  return (
+    <div className="space-y-4">
+      <h3 className="font-semibold text-sm">
+        {canal ? `Editar canal — ${canal.label}` : 'Novo canal'}
+      </h3>
+
+      {erro && <p role="alert" className="rounded border border-danger/40 p-2 text-sm text-danger">{erro}</p>}
+
+      <form onSubmit={handleSalvar} noValidate className="space-y-4">
+        {/* Tipo */}
+        <div>
+          <label htmlFor={`${uid}-tipo`} className={ui.label}>Tipo do canal <span className="text-danger" aria-hidden="true">*</span></label>
+          <select id={`${uid}-tipo`} value={tipo} onChange={(e) => setTipo(e.target.value as TipoCanal)}
+            className={`mt-1 ${ui.input}`} aria-required="true">
+            <option value="whatsapp">WhatsApp</option>
+            <option value="instagram">Instagram</option>
+            <option value="messenger">Facebook Messenger</option>
+            <option value="telegram">Telegram</option>
+          </select>
+        </div>
+
+        {/* Guia de configuração (passo a passo por tipo) */}
+        <GuiaCanal guia={l.guia} tipo={tipo} />
+
+        {/* Nome */}
+        <div>
+          <label htmlFor={`${uid}-label`} className={ui.label}>Nome do canal <span className="text-danger" aria-hidden="true">*</span></label>
+          <input id={`${uid}-label`} type="text" required value={label}
+            onChange={(e) => setLabel(e.target.value)}
+            placeholder="Ex.: Saúde, Geral" className={`mt-1 ${ui.input}`} aria-required="true" />
+          <p className="mt-0.5 text-xs text-fg/50">Rótulo interno para identificar o canal (ex.: Saúde, Ouvidoria). Não aparece para o cidadão.</p>
+        </div>
+
+        {/* Phone ID / Page ID */}
+        {l.mostrarPhoneId && (
+          <div>
+            <label htmlFor={`${uid}-phone-id`} className={ui.label}>
+              {l.phoneId} <span className="text-danger" aria-hidden="true">*</span>
+            </label>
+            <input id={`${uid}-phone-id`} type="text" required value={phoneId}
+              onChange={(e) => setPhoneId(e.target.value)}
+              placeholder="123456789012345" className={`mt-1 ${ui.input}`} aria-required="true" />
+            {l.phoneIdDica && <p className="mt-0.5 text-xs text-fg/50">{l.phoneIdDica}</p>}
+          </div>
+        )}
+
+        {/* WABA ID */}
+        {l.mostrarWabaId && (
+          <div>
+            <label htmlFor={`${uid}-waba-id`} className={ui.label}>
+              WABA ID <span className="text-xs font-normal text-fg/50">(opcional)</span>
+            </label>
+            <input id={`${uid}-waba-id`} type="text" value={wabaId}
+              onChange={(e) => setWabaId(e.target.value)}
+              placeholder="987654321098765" className={`mt-1 ${ui.input}`} />
+          </div>
+        )}
+
+        {/* Token (segredo) */}
+        <div>
+          <div className="flex flex-wrap items-center gap-2 mb-1">
+            <label htmlFor={`${uid}-token`} className={ui.label}>{l.token}</label>
+            {canal && <BadgeChave definida={canal.metaTokenDefinido} rotulo={l.token} />}
+          </div>
+          <input id={`${uid}-token`} type="password" autoComplete="new-password"
+            value={token} onChange={(e) => setToken(e.target.value)}
+            placeholder={canal?.metaTokenDefinido ? '•••• definido (deixe vazio para manter)' : 'Cole o token aqui'}
+            className={ui.input} />
+          {l.tokenDica && <p className="mt-0.5 text-xs text-fg/50">{l.tokenDica}</p>}
+        </div>
+
+        {/* App Secret */}
+        {l.mostrarAppSecret && (
+          <div>
+            <div className="flex flex-wrap items-center gap-2 mb-1">
+              <label htmlFor={`${uid}-app-secret`} className={ui.label}>App Secret</label>
+              {canal && <BadgeChave definida={canal.metaAppSecretDefinido} rotulo="App Secret" />}
+            </div>
+            <input id={`${uid}-app-secret`} type="password" autoComplete="new-password"
+              value={appSecret} onChange={(e) => setAppSecret(e.target.value)}
+              placeholder={canal?.metaAppSecretDefinido ? '•••• definido (deixe vazio para manter)' : 'Cole o App Secret'}
+              className={ui.input} />
+            {l.appSecretDica && <p className="mt-0.5 text-xs text-fg/50">{l.appSecretDica}</p>}
+          </div>
+        )}
+
+        {/* Verify / Secret token */}
+        <div>
+          <label htmlFor={`${uid}-verify`} className={ui.label}>{l.verifyToken}</label>
+          <input id={`${uid}-verify`} type="text"
+            value={verifyToken} onChange={(e) => setVerifyToken(e.target.value)}
+            placeholder={canal?.metaVerifyTokenDefinido ? '•••• definido (deixe vazio para manter)' : 'Ex.: meu-token-secreto'}
+            className={`mt-1 ${ui.input}`} />
+          {l.verifyDica && <p className="mt-0.5 text-xs text-fg/50">{l.verifyDica}</p>}
+        </div>
+
+        {/* Webhook (URL exata ao editar; orientação ao criar) */}
+        <WebhookNoFormulario tenantId={tenantId} canal={canal} tipo={tipo} />
+
+        {/* Secretaria */}
+        <div>
+          <label htmlFor={`${uid}-secretaria`} className={ui.label}>
+            UUID da secretaria <span className="text-xs font-normal text-fg/50">(opcional)</span>
+          </label>
+          <input id={`${uid}-secretaria`} type="text" value={secretariaId}
+            onChange={(e) => setSecretariaId(e.target.value)}
+            placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" className={`mt-1 ${ui.input}`} />
+          <p className="mt-0.5 text-xs text-fg/50">Vincula o canal a uma secretaria: as conversas desse número já entram atribuídas a ela. Deixe vazio para a caixa geral.</p>
+        </div>
+
+        {/* Ordem + Ativo */}
+        <div className="flex flex-wrap items-center gap-4">
+          <div>
+            <label htmlFor={`${uid}-ordem`} className={ui.label}>Ordem</label>
+            <input id={`${uid}-ordem`} type="number" min="0" value={ordem}
+              onChange={(e) => setOrdem(e.target.value)} className={`mt-1 ${ui.input} w-24`} />
+          </div>
+          <CheckField id={`${uid}-ativo`} checked={ativo} onChange={setAtivo} label="Canal ativo" />
+        </div>
+
+        <div className="flex justify-end gap-2 border-t border-border pt-3">
+          <button type="button" onClick={onCancelar} className={ui.btnGhost}>Cancelar</button>
+          <button type="submit" disabled={salvando} className={ui.btn} aria-busy={salvando}>
+            {salvando ? 'Salvando…' : canal ? 'Salvar alterações' : 'Criar canal'}
+          </button>
+        </div>
+      </form>
+    </div>
+  );
+}
+
+// Bloco de webhook do canal (plataforma)
+function BlocoWebhookCanalPlataforma({
+  tenantId,
+  canal,
+  onFechar,
+}: {
+  tenantId: string;
+  canal: CanalAtendimento;
+  onFechar: () => void;
+}) {
+  const inputId = useId();
+  const [info, setInfo] = useState<CanalWebhookInfo | null>(null);
+  const [carregando, setCarregando] = useState(true);
+  const [erro, setErro] = useState('');
+  const [copiado, setCopiado] = useState(false);
+  const [configurando, setConfigurando] = useState(false);
+  const [resultadoTg, setResultadoTg] = useState<{ ok: boolean; descricao: string } | null>(null);
+
+  useEffect(() => {
+    getCanalWebhookInfo(tenantId, canal.id)
+      .then(setInfo)
+      .catch((e) => setErro(erroMsg(e)))
+      .finally(() => setCarregando(false));
+  }, [tenantId, canal.id]);
+
+  async function copiar() {
+    if (!info?.callbackUrl) return;
+    try {
+      await navigator.clipboard.writeText(info.callbackUrl);
+    } catch {
+      const el = document.getElementById(inputId) as HTMLInputElement | null;
+      el?.select();
+      document.execCommand('copy');
+    }
+    setCopiado(true);
+    setTimeout(() => setCopiado(false), 2000);
+  }
+
+  async function configurarTelegram() {
+    setConfigurando(true);
+    setResultadoTg(null);
+    try {
+      const res = await telegramSetWebhook(tenantId, canal.id);
+      setResultadoTg(res);
+    } catch (e) {
+      setResultadoTg({ ok: false, descricao: erroMsg(e) });
+    } finally {
+      setConfigurando(false);
+    }
+  }
+
+  return (
+    <div className="space-y-4">
+      <h3 className="font-semibold text-sm">Webhook — {canal.label}</h3>
+      {carregando && <p className="text-sm text-fg/60" aria-live="polite">Carregando…</p>}
+      {erro && <p role="alert" className="rounded border border-danger/40 p-2 text-sm text-danger">{erro}</p>}
+      {!carregando && info && (
+        <>
+          {info.aviso && (
+            <p role={info.pronto ? 'status' : 'alert'} aria-live="polite"
+              className={`rounded border p-2 text-sm ${info.pronto ? 'border-success/40 text-success' : 'border-warning/60 text-fg/80'}`}>
+              {info.aviso}
+            </p>
+          )}
+          {info.callbackUrl ? (
+            <div>
+              <label htmlFor={inputId} className={ui.label}>Callback URL</label>
+              <div className="mt-1 flex gap-2">
+                <input id={inputId} type="text" readOnly value={info.callbackUrl}
+                  className={`${ui.input} flex-1 select-all font-mono text-xs`}
+                  aria-label={`Callback URL do canal ${canal.label}`} />
+                <button type="button" onClick={copiar} className={`${ui.btnGhost} shrink-0 text-xs`}
+                  aria-label={copiado ? 'URL copiada' : 'Copiar URL'}>
+                  {copiado ? 'Copiado!' : 'Copiar'}
+                </button>
+              </div>
+            </div>
+          ) : (
+            <p className="text-sm text-fg/60">Salve o canal com as credenciais para gerar a URL.</p>
+          )}
+
+          {canal.tipo === 'telegram' && info.callbackUrl && (
+            <div className="space-y-2">
+              <button type="button" onClick={configurarTelegram} disabled={configurando}
+                className={`${ui.btn} text-sm`}
+                aria-label="Configurar webhook automaticamente no Telegram via Bot API">
+                {configurando ? 'Configurando…' : 'Configurar webhook automaticamente'}
+              </button>
+              {resultadoTg && (
+                <p role={resultadoTg.ok ? 'status' : 'alert'} aria-live="polite"
+                  className={`rounded border p-2 text-sm ${resultadoTg.ok ? 'border-success/40 text-success' : 'border-danger/40 text-danger'}`}>
+                  {resultadoTg.descricao}
+                </p>
+              )}
+            </div>
+          )}
+        </>
+      )}
+      <div className="flex justify-end">
+        <button type="button" onClick={onFechar} className={ui.btnGhost}>Fechar</button>
+      </div>
+    </div>
+  );
+}
+
+function AbaCanais({ tenantId }: { tenantId: string }) {
+  const [canais, setCanais] = useState<CanalAtendimento[]>([]);
+  const [carregando, setCarregando] = useState(true);
+  const [erro, setErro] = useState<string | null>(null);
+  const [sucesso, setSucesso] = useState<string | null>(null);
+  const [excluindo, setExcluindo] = useState<string | null>(null);
+  const [confirmandoId, setConfirmandoId] = useState<string | null>(null);
+
+  // Qual painel inline exibir: null = lista, 'form-novo', 'form-editar', 'webhook'
+  type Vista = null | 'form-novo' | { tipo: 'editar'; canal: CanalAtendimento } | { tipo: 'webhook'; canal: CanalAtendimento };
+  const [vista, setVista] = useState<Vista>(null);
+
+  function feedback(msg: string) {
+    setSucesso(msg);
+    setTimeout(() => setSucesso(null), 4000);
+  }
+
+  async function carregar() {
+    setCarregando(true);
+    setErro(null);
+    try {
+      setCanais(await getCanais(tenantId));
+    } catch (e) {
+      setErro(erroMsg(e));
+    } finally {
+      setCarregando(false);
+    }
+  }
+
+  useEffect(() => { carregar(); }, [tenantId]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  async function handleExcluir(id: string) {
+    setExcluindo(id);
+    setErro(null);
+    try {
+      await excluirCanal(tenantId, id);
+      setConfirmandoId(null);
+      feedback('Canal excluído com sucesso.');
+      await carregar();
+    } catch (e) {
+      setErro(erroMsg(e));
+    } finally {
+      setExcluindo(null);
+    }
+  }
+
+  // Mostrar sub-painel inline (form ou webhook)
+  if (vista === 'form-novo') {
+    return (
+      <FormCanal tenantId={tenantId} canal={null}
+        onSalvo={async () => { setVista(null); feedback('Canal criado.'); await carregar(); }}
+        onCancelar={() => setVista(null)} />
+    );
+  }
+  if (vista !== null && typeof vista === 'object' && vista.tipo === 'editar') {
+    return (
+      <FormCanal tenantId={tenantId} canal={vista.canal}
+        onSalvo={async () => { setVista(null); feedback('Canal atualizado.'); await carregar(); }}
+        onCancelar={() => setVista(null)} />
+    );
+  }
+  if (vista !== null && typeof vista === 'object' && vista.tipo === 'webhook') {
+    return (
+      <BlocoWebhookCanalPlataforma tenantId={tenantId} canal={vista.canal}
+        onFechar={() => setVista(null)} />
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div>
+          <p className="text-sm font-semibold">Canais de atendimento</p>
+          <p className="text-xs text-fg/60">WhatsApp, Instagram, Facebook Messenger e Telegram — credenciais por entidade.</p>
+        </div>
+        <button type="button" onClick={() => setVista('form-novo')} className={`${ui.btn} text-sm`}>
+          + Novo canal
+        </button>
+      </div>
+
+      <div aria-live="polite" aria-atomic="true">
+        {erro && <Aviso tipo="erro">{erro}</Aviso>}
+        {sucesso && <Aviso tipo="ok">{sucesso}</Aviso>}
+      </div>
+
+      {carregando && (
+        <p className="py-4 text-center text-sm text-fg/60" aria-live="polite">Carregando canais…</p>
+      )}
+
+      {!carregando && canais.length === 0 && (
+        <div className={`${ui.card} p-5 text-center`}>
+          <p className="text-sm text-fg/60">Nenhum canal cadastrado. Clique em <strong>+ Novo canal</strong> para adicionar.</p>
+        </div>
+      )}
+
+      {!carregando && canais.length > 0 && (
+        <ul className="space-y-2" role="list" aria-label="Canais cadastrados">
+          {canais.map((c) => {
+            const tipoLabel = TIPO_LABEL_CANAL[c.tipo] ?? c.tipo;
+            const ehTelegram = c.tipo === 'telegram';
+            return (
+              <li key={c.id} className={`${ui.card} p-4`}>
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div className="min-w-0 flex-1 space-y-1">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="font-semibold text-sm">{c.label}</span>
+                      <span className={`${ui.badge} bg-primary/10 text-primary`} aria-label={`Tipo: ${tipoLabel}`}>{tipoLabel}</span>
+                      <span className={`${ui.badge} ${c.ativo ? 'bg-success/10 text-success' : 'bg-muted text-fg/50'}`}
+                        aria-label={c.ativo ? 'Ativo' : 'Inativo'}>
+                        {c.ativo ? 'Ativo' : 'Inativo'}
+                      </span>
+                    </div>
+                    {!ehTelegram && c.metaPhoneNumberId && (
+                      <p className="truncate font-mono text-xs text-fg/60">
+                        {c.tipo === 'messenger' ? 'Page ID' : c.tipo === 'instagram' ? 'IG Account ID' : 'Phone ID'}: {c.metaPhoneNumberId}
+                      </p>
+                    )}
+                    <div className="flex flex-wrap gap-3 text-xs text-fg/50">
+                      <span className={c.metaTokenDefinido ? 'text-success' : 'text-fg/40'}
+                        title={c.metaTokenDefinido ? 'Token definido' : 'Token não definido'}>
+                        {ehTelegram ? 'BotToken' : 'Token'} {c.metaTokenDefinido ? '✓' : '✗'}
+                      </span>
+                      {!ehTelegram && (
+                        <span className={c.metaAppSecretDefinido ? 'text-success' : 'text-fg/40'}
+                          title={c.metaAppSecretDefinido ? 'App Secret definido' : 'App Secret não definido'}>
+                          App Secret {c.metaAppSecretDefinido ? '✓' : '✗'}
+                        </span>
+                      )}
+                      <span className={c.metaVerifyTokenDefinido ? 'text-success' : 'text-fg/40'}
+                        title={ehTelegram ? (c.metaVerifyTokenDefinido ? 'Secret token definido' : 'Secret token não definido') : (c.metaVerifyTokenDefinido ? 'Verify Token definido' : 'Verify Token não definido')}>
+                        {ehTelegram ? 'Secret Token' : 'Verify Token'} {c.metaVerifyTokenDefinido ? '✓' : '✗'}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="flex shrink-0 flex-wrap items-center gap-2">
+                    <button type="button" className={`${ui.btnGhost} text-xs`}
+                      onClick={() => setVista({ tipo: 'webhook', canal: c })}
+                      aria-label={`Ver webhook do canal ${c.label}`}>
+                      Webhook
+                    </button>
+                    <button type="button" className={`${ui.btnGhost} text-xs`}
+                      onClick={() => setVista({ tipo: 'editar', canal: c })}
+                      aria-label={`Editar canal ${c.label}`}>
+                      Editar
+                    </button>
+                    {confirmandoId === c.id ? (
+                      <span className="flex items-center gap-1">
+                        <span className="text-xs text-danger">Confirmar?</span>
+                        <button type="button" disabled={excluindo === c.id}
+                          onClick={() => handleExcluir(c.id)}
+                          className={`${ui.btnDanger} text-xs`}
+                          aria-label={`Confirmar exclusão do canal ${c.label}`}>
+                          {excluindo === c.id ? 'Excluindo…' : 'Excluir'}
+                        </button>
+                        <button type="button" onClick={() => setConfirmandoId(null)}
+                          className={`${ui.btnGhost} text-xs`} aria-label="Cancelar exclusão">
+                          Cancelar
+                        </button>
+                      </span>
+                    ) : (
+                      <button type="button" onClick={() => setConfirmandoId(c.id)}
+                        className={`${ui.btnDanger} text-xs`}
+                        aria-label={`Excluir canal ${c.label}`}>
+                        Excluir
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+    </div>
+  );
+}
+
 // ── Modal principal com abas ────────────────────────────────────────────────────
 
 export function ModalConfiguracoes({
@@ -1166,6 +1856,7 @@ export function ModalConfiguracoes({
     { id: 'whatsapp', rotulo: 'WhatsApp' },
     { id: 'atendimento', rotulo: 'Atendimento' },
     { id: 'lgpd', rotulo: 'LGPD' },
+    { id: 'canais', rotulo: 'Canais' },
   ];
 
   const open = !!tenant;
@@ -1228,6 +1919,7 @@ export function ModalConfiguracoes({
                 {aba.id === 'whatsapp' && <AbaWhatsapp tenantId={tenant.id} />}
                 {aba.id === 'atendimento' && <AbaAtendimento tenantId={tenant.id} />}
                 {aba.id === 'lgpd' && <AbaLgpd tenantId={tenant.id} />}
+                {aba.id === 'canais' && <AbaCanais tenantId={tenant.id} />}
               </>
             )}
           </div>

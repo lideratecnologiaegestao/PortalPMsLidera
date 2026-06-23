@@ -8,6 +8,7 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { getNoticiaBySlug, getNoticias } from '../../../lib/portal-api';
+import Comentarios from './Comentarios';
 
 interface Props {
   params: { slug: string };
@@ -164,6 +165,9 @@ export default async function NoticiaDetalhePage({ params }: Props) {
               Voltar para Notícias
             </a>
           </div>
+
+          {/* Seção de comentários — Client Component (requer interação) */}
+          <Comentarios noticiaId={noticia.id} />
         </article>
 
         {/* Sidebar: notícias relacionadas */}

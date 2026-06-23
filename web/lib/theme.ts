@@ -8,6 +8,8 @@ export interface ThemeTokens {
   radius: { base: string };
   logo: { url: string; alt: string };
   favicon: string;
+  /** Ícone do PWA (instalação no celular). PNG quadrado; SVG não é aceito. */
+  pwaIcon?: { url: string; alt: string };
   iconSet: string;
   /** Logo alternativo exibido no rodapé. Cai no `logo` principal se ausente. */
   logoRodape?: { url: string; alt: string };

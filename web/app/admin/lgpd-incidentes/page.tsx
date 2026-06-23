@@ -817,10 +817,11 @@ export default function LgpdIncidentesPage() {
     setCarregando(true);
     setErro('');
     try {
-      const data = await adminGet<IncidenteResumo[]>(
+      const data = await adminGet<{ items: IncidenteResumo[]; total: number } | IncidenteResumo[]>(
         `/api/lgpd/incidentes${qs({ status: filtroStatus, severidade: filtroSeveridade })}`,
       );
-      setLista(data);
+      // O backend devolve { items, total, page, pageSize } (paginado); tolera array por segurança.
+      setLista(Array.isArray(data) ? data : data.items ?? []);
     } catch (err) {
       setErro(err instanceof AdminApiError ? err.message : 'Erro ao carregar incidentes.');
     } finally {
