@@ -48,6 +48,15 @@ function corBolha(autorTipo: AutorTipo, meuTipo: 'visitante'): string {
   return 'bg-muted/60 text-fg/60 italic text-xs rounded border border-border/40'; // sistema
 }
 
+// Menu inicial de ações rápidas (cliente) — facilita a comunicação do cidadão.
+// Os `valor` são frases que o bot reconhece (intents de registrar/consultar/atendente/dúvida).
+const ACOES_RAPIDAS: { label: string; valor: string }[] = [
+  { label: '📝 Registrar manifestação', valor: 'Quero registrar uma manifestação.' },
+  { label: '🔎 Consultar protocolo', valor: 'Quero consultar um protocolo.' },
+  { label: '❓ Tirar uma dúvida', valor: 'Tenho uma dúvida.' },
+  { label: '💬 Falar com atendente', valor: 'Quero falar com um atendente.' },
+];
+
 // ─── Estado persistido em sessionStorage ────────────────────────────────────
 
 interface SessaoAtend {
@@ -168,6 +177,11 @@ export default function AtendimentoWidget() {
     socket.on('atend:mensagem', (msg: MensagemAtend) => {
       // nunca renderiza internas no widget público
       if (msg.interno) return;
+      // Chegou resposta de quem não é o visitante → encerra o efeito "digitando".
+      if (msg.autorTipo !== 'visitante') {
+        if (typingTimerRef.current) clearTimeout(typingTimerRef.current);
+        setDigitando(false);
+      }
       setMensagens((prev) => {
         // já temos esta mensagem (idempotente contra ecos repetidos)
         if (prev.some((x) => x.id === msg.id)) return prev;
@@ -305,13 +319,11 @@ export default function AtendimentoWidget() {
     }
   }
 
-  // ── Envia mensagem ────────────────────────────────────────────────────────
-  async function enviar(e: React.FormEvent) {
-    e.preventDefault();
-    const v = texto.trim();
+  // ── Envia um texto (usado pelo composer e pelos botões de opção) ──────────
+  const enviarTexto = useCallback(async (vRaw: string) => {
+    const v = vRaw.trim();
     if (!v || !sessaoRef.current || enviando) return;
     const s = sessaoRef.current;
-    setTexto('');
     setEnviando(true);
     setErro('');
 
@@ -324,11 +336,18 @@ export default function AtendimentoWidget() {
     };
     setMensagens((prev) => [...prev, otimista]);
 
+    // Efeito "digitando" enquanto o assistente/atendente prepara a resposta.
+    // Fallback longo (60s): a IA pode consultar fontes oficiais (busca web) e
+    // demorar mais — o efeito é encerrado antes disso quando a resposta chega.
+    setDigitando(true);
+    if (typingTimerRef.current) clearTimeout(typingTimerRef.current);
+    typingTimerRef.current = setTimeout(() => setDigitando(false), 60000);
+
     try {
       await enviarMensagemVisitante(s.id, s.token, v);
     } catch (err) {
-      // remove otimista em caso de erro
       setMensagens((prev) => prev.filter((m) => m.id !== otimista.id));
+      setDigitando(false);
       if ((err as { status?: number })?.status === 401) {
         setTexto(v); // devolve o texto digitado
         reiniciar('Sua sessão expirou. Inicie um novo atendimento e reenvie sua mensagem.');
@@ -338,6 +357,14 @@ export default function AtendimentoWidget() {
     } finally {
       setEnviando(false);
     }
+  }, [enviando, reiniciar]);
+
+  async function enviar(e: React.FormEvent) {
+    e.preventDefault();
+    const v = texto.trim();
+    if (!v) return;
+    setTexto('');
+    await enviarTexto(v);
   }
 
   // ── Insere emoji na posicao do cursor ────────────────────────────────────
@@ -554,12 +581,14 @@ export default function AtendimentoWidget() {
                     {config.saudacao ?? 'Aguardando…'}
                   </p>
                 )}
-                {mensagens.map((m) => {
+                {mensagens.map((m, i) => {
                   const ehVisitante = m.autorTipo === 'visitante';
+                  const ehUltima = i === mensagens.length - 1;
+                  const mostrarOpcoes = ehUltima && !encerrada && !!m.opcoes?.length;
                   return (
                     <div
                       key={m.id}
-                      className={`flex ${ehVisitante ? 'justify-end' : 'justify-start'}`}
+                      className={`flex flex-col ${ehVisitante ? 'items-end' : 'items-start'}`}
                     >
                       <div
                         className={`max-w-[85%] rounded-lg px-3 py-2 text-sm ${corBolha(m.autorTipo, 'visitante')}`}
@@ -580,13 +609,58 @@ export default function AtendimentoWidget() {
                           {hora(m.criadoEm)}
                         </p>
                       </div>
+                      {/* Botões de resposta rápida (ex.: menu de tipos de manifestação) */}
+                      {mostrarOpcoes && (
+                        <div className="mt-1.5 flex max-w-[90%] flex-wrap gap-1.5">
+                          {m.opcoes!.map((op) => (
+                            <button
+                              key={op.valor}
+                              type="button"
+                              disabled={enviando}
+                              onClick={() => enviarTexto(op.valor)}
+                              className="rounded-full border border-primary/40 bg-primary/5 px-3 py-1 text-xs font-medium text-primary hover:bg-primary/10 disabled:opacity-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary"
+                            >
+                              {op.label}
+                            </button>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   );
                 })}
+
+                {/* Menu inicial: aparece enquanto o cidadão ainda não enviou nada */}
+                {!encerrada && statusAtend === 'bot' && !mensagens.some((m) => m.autorTipo === 'visitante') && (
+                  <div className="flex flex-wrap gap-1.5 pt-1">
+                    {ACOES_RAPIDAS.map((a) => (
+                      <button
+                        key={a.valor}
+                        type="button"
+                        disabled={enviando}
+                        onClick={() => enviarTexto(a.valor)}
+                        className="rounded-full border border-border bg-bg px-3 py-1 text-xs font-medium text-fg/80 hover:border-primary hover:text-primary disabled:opacity-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary"
+                      >
+                        {a.label}
+                      </button>
+                    ))}
+                  </div>
+                )}
+
+                {/* Efeito "digitando" (bolha com pontos animados) */}
                 {digitando && (
-                  <p className="text-xs italic text-fg/50" aria-live="polite">
-                    Atendente está digitando…
-                  </p>
+                  <div className="flex justify-start" aria-live="polite">
+                    <div className="flex items-center gap-2 rounded-lg rounded-bl-none border border-border bg-muted px-3 py-2">
+                      <span className="text-[11px] font-semibold text-fg/60">
+                        {statusAtend === 'em_atendimento' ? (agenteNome ?? 'Atendente') : 'Assistente'}
+                      </span>
+                      <span className="flex gap-1" aria-hidden="true">
+                        <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-fg/40 [animation-delay:-0.3s]" />
+                        <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-fg/40 [animation-delay:-0.15s]" />
+                        <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-fg/40" />
+                      </span>
+                      <span className="sr-only">está digitando…</span>
+                    </div>
+                  </div>
                 )}
                 <div ref={fimRef} />
               </div>

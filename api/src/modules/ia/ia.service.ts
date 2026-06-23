@@ -149,8 +149,10 @@ export class IaService {
       'prevenção de doenças, endemias, epidemias ou pandemias (ex.: dengue, Aedes aegypti, zika, ' +
       'chikungunya, febre amarela, COVID-19, sarampo, influenza, vacinação, surtos), se o CONTEXTO ' +
       'acima não cobrir ou estiver incompleto, você PODE e DEVE usar a ferramenta `web_search` para ' +
-      'consultar EXCLUSIVAMENTE fontes oficiais de saúde (portais gov.br e órgãos públicos). Cite a ' +
-      'fonte com o link oficial. Use a busca SOMENTE para esses temas de saúde — para qualquer outro ' +
+      'consultar EXCLUSIVAMENTE fontes oficiais de saúde (portais gov.br e órgãos públicos). ' +
+      'NÃO anuncie que vai buscar nem narre o processo ("vou buscar", "encontrei"): consulte e ' +
+      'responda DIRETO, citando ao final a fonte com o LINK OFICIAL EXATO retornado pela busca (nunca um ' +
+      'caminho interno inventado). Use a busca SOMENTE para esses temas de saúde — para qualquer outro ' +
       'assunto, mantenha a regra de responder apenas pelo contexto e orientar à Ouvidoria/Prefeitura. ' +
       'NUNCA forneça diagnóstico, prescrição ou dose de medicamento: oriente procurar a UBS/Unidade ' +
       'de Saúde mais próxima e, em emergência, ligar 192 (SAMU).'
