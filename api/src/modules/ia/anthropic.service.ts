@@ -11,6 +11,12 @@ import { PlatformSettingsService } from '../platform-settings/platform-settings.
  * Resolução de chave/modelo (precedência): override da ENTIDADE (tenant_ia_config)
  * → GLOBAL do painel (platform_settings) → `.env`. Assim dá p/ trocar a chave/modelo
  * no painel sem mexer no .env nem recriar o container.
+ *
+ * DOIS MODELOS por finalidade (custo x precisão):
+ *  - chat/triagem/tool use → modelo leve (default Haiku 4.5) — alto volume.
+ *  - OCR (visão) → modelo forte (default Sonnet 4.6, via IA_OCR_MODEL) — em
+ *    digitalizações ruins o modelo leve troca números/datas silenciosamente,
+ *    o que corromperia documentos legais/fiscais. Baixo volume, vale a precisão.
  */
 @Injectable()
 export class AnthropicService {
@@ -40,7 +46,9 @@ export class AnthropicService {
       throw new ServiceUnavailableException('IA não configurada (chave Anthropic ausente).');
     }
     // `||` p/ cobrir IA_MODEL definido porém VAZIO no .env.
-    const model = g.iaModel || (process.env.IA_MODEL || '').trim() || 'claude-sonnet-4-6';
+    // Default do chat = Haiku 4.5 (mesma qualidade prática no atendimento, ~64%
+    // mais barato que o Sonnet). Override por entidade/painel/.env continua valendo.
+    const model = g.iaModel || (process.env.IA_MODEL || '').trim() || 'claude-haiku-4-5';
     let client = this.clients.get(apiKey);
     if (!client) {
       client = new Anthropic({ apiKey });
@@ -88,6 +96,14 @@ export class AnthropicService {
     system: string;
     user: string;
     tools: { name: string; description: string; input_schema: Record<string, unknown> }[];
+    /**
+     * Ferramentas SERVER-SIDE (executadas pela Anthropic, ex.: web_search). Têm
+     * formato próprio ({ type, name, ... }) e NÃO passam por `executar` — a
+     * Anthropic resolve dentro da própria chamada e devolve os blocos de
+     * resultado no `content`. Quando o loop interno do servidor atinge o limite,
+     * o `stop_reason` vem como 'pause_turn' e reenviamos para retomar.
+     */
+    serverTools?: Record<string, unknown>[];
     executar: (nome: string, input: Record<string, unknown>) => Promise<unknown>;
     maxTokens?: number;
     cacheSystem?: boolean;
@@ -98,6 +114,7 @@ export class AnthropicService {
       ? [{ type: 'text' as const, text: opts.system, cache_control: { type: 'ephemeral' as const } }]
       : opts.system;
 
+    const tools = [...opts.tools, ...(opts.serverTools ?? [])];
     const messages: Anthropic.MessageParam[] = [{ role: 'user', content: opts.user }];
     const maxTurnos = opts.maxTurnos ?? 4;
 
@@ -106,7 +123,7 @@ export class AnthropicService {
         model,
         max_tokens: opts.maxTokens ?? 800,
         system: system as never,
-        tools: opts.tools as never,
+        tools: tools as never,
         messages,
       });
 
@@ -132,6 +149,13 @@ export class AnthropicService {
         continue;
       }
 
+      // Ferramenta server-side (web_search) pausou no limite do loop do servidor:
+      // reecoa o conteúdo e reenvia para a Anthropic retomar de onde parou.
+      if ((res.stop_reason as string) === 'pause_turn') {
+        messages.push({ role: 'assistant', content: res.content });
+        continue;
+      }
+
       return res.content
         .filter((b): b is Anthropic.TextBlock => b.type === 'text')
         .map((b) => b.text)
@@ -140,9 +164,14 @@ export class AnthropicService {
     return 'Não consegui concluir a consulta no momento.';
   }
 
-  /** OCR de um documento via visão do modelo. Degrada (503) sem chave. */
+  /**
+   * OCR de um documento via visão do modelo. Degrada (503) sem chave.
+   * Usa modelo PRÓPRIO (IA_OCR_MODEL, default Sonnet 4.6) — independente do
+   * modelo do chat: precisão de números/datas em scans ruins é crítica.
+   */
   async ocr(imagemBase64: string, mediaType: string): Promise<string> {
-    const { client, model } = await this.get();
+    const { client } = await this.get();
+    const model = (process.env.IA_OCR_MODEL || '').trim() || 'claude-sonnet-4-6';
     const res = await client.messages.create({
       model,
       max_tokens: 1500,
