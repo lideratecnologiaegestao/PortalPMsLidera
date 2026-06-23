@@ -58,6 +58,7 @@ import { TurnstileModule } from './modules/turnstile/turnstile.module';
 import { AppConfigModule } from './modules/app-config/app-config.module';
 import { DashboardModule } from './modules/dashboard/dashboard.module';
 import { PwaModule } from './modules/pwa/pwa.module';
+import { CampanhasModule } from './modules/campanhas/campanhas.module';
 
 @Module({
   imports: [
@@ -118,6 +119,7 @@ import { PwaModule } from './modules/pwa/pwa.module';
     AppConfigModule,         // ADR-0006 Fase 1: config white-label do App do Cidadão
     DashboardModule,         // Painel BI administrativo (agregado multi-módulo)
     PwaModule,               // ícone PWA por tenant (GET /api/pwa/icon)
+    CampanhasModule,         // campanhas institucionais (tema/faixa/banner/popup/efeito)
   ],
   providers: [
     // ordem importa: rate limit → autenticação (popula req.user) → RolesGuard das rotas
