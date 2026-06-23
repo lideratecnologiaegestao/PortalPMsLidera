@@ -125,6 +125,10 @@ export function sistemaChat(): string {
     '  em Markdown com a URL EXATA — ex.: [Abrir o documento (PDF)](URL_EXATA). Não use crases/código',
     '  nem deixe a URL como texto solto. Se NÃO houver URL no contexto, cite o nome SEM link e diga',
     '  onde encontrar (ex.: menu do portal, Ouvidoria).',
+    '- LINKS DE DOCUMENTOS/PÁGINAS DO PORTAL vêm como caminho RELATIVO (ex.: /midia/documento/',
+    '  leis/arquivo.pdf, /servicos/..., /noticias/...). Mantenha-os RELATIVOS, exatamente como no',
+    '  contexto. NUNCA acrescente um domínio/host (não transforme em https://cidade.mt.gov.br/... ',
+    '  nem em qualquer outro domínio) — o portal resolve o caminho relativo no endereço correto.',
     '- Seja CONCISO e direto, adequado a uma janela de chat. Evite tabelas e seções longas;',
     '  prefira um parágrafo curto + 1 link quando a resposta for sobre um documento.',
     '',
@@ -159,6 +163,39 @@ export function limparQuebrasResposta(texto: string): string {
   // 5. Normaliza espaços e apara
   t = t.replace(/[ \t]{2,}/g, ' ').replace(/ +\n/g, '\n').trim();
   return t;
+}
+
+/**
+ * Rotas internas do portal. Um link absoluto cujo CAMINHO começa por uma destas
+ * pertence ao portal do tenant — deve ser servido pelo host atual, não por um
+ * domínio inventado. (Caminhos do gov.br começam por /pt-br, /saude, etc., então
+ * não colidem com estes prefixos.)
+ */
+const ROTAS_INTERNAS = [
+  '/midia/', '/documentos', '/servicos/', '/noticias/', '/secretarias',
+  '/transparencia', '/diario', '/institucional', '/privacidade', '/esic',
+  '/ouvidoria', '/acompanhar', '/galeria', '/enquete', '/api/',
+];
+
+/**
+ * Conserta links de rotas INTERNAS que o modelo transformou em absoluto com um
+ * host inventado (ex.: "https://exemplolandia.mt.gov.br/midia/...pdf"): remove o
+ * scheme+host, deixando o link RELATIVO ("/midia/...pdf"). O chat então resolve
+ * no host real do portal. Links EXTERNOS (gov.br e afins) ficam intactos. Pura.
+ */
+export function corrigirLinksInternos(texto: string): string {
+  return (texto ?? '').replace(/\]\(\s*(https?:\/\/[^)\s]+?)\s*\)/g, (original, url) => {
+    try {
+      const u = new URL(url);
+      const caminho = u.pathname + u.search + u.hash;
+      if (ROTAS_INTERNAS.some((p) => caminho.startsWith(p))) {
+        return `](${caminho})`;
+      }
+    } catch {
+      /* URL malformada — preserva como está */
+    }
+    return original;
+  });
 }
 
 /** Monta o bloco de contexto citável a partir dos trechos do portal (Camada 3). */

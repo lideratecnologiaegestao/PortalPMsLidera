@@ -1,4 +1,5 @@
 import {
+  corrigirLinksInternos,
   limparQuebrasResposta,
   montarContexto,
   parseTriagem,
@@ -8,6 +9,28 @@ import {
 } from './ia.prompts';
 
 describe('IA prompts/parser', () => {
+  describe('corrigirLinksInternos', () => {
+    it('remove host inventado de link de rota interna (vira relativo)', () => {
+      const t = 'Veja o [Orçamento 2023](https://exemplolandia.mt.gov.br/midia/documento/leis/abc.pdf).';
+      expect(corrigirLinksInternos(t)).toBe('Veja o [Orçamento 2023](/midia/documento/leis/abc.pdf).');
+    });
+
+    it('preserva o host correto do tenant também como relativo', () => {
+      const t = '[doc](https://exemplolandia.lidera.app.br/midia/documento/leis/abc.pdf)';
+      expect(corrigirLinksInternos(t)).toBe('[doc](/midia/documento/leis/abc.pdf)');
+    });
+
+    it('NÃO mexe em link externo oficial (gov.br)', () => {
+      const t = 'Fonte: [Ministério da Saúde](https://www.gov.br/saude/pt-br/assuntos/dengue)';
+      expect(corrigirLinksInternos(t)).toBe(t);
+    });
+
+    it('NÃO mexe em link já relativo', () => {
+      const t = '[Serviço](/servicos/iptu) e [Notícia](/noticias/abertura)';
+      expect(corrigirLinksInternos(t)).toBe(t);
+    });
+  });
+
   describe('limparQuebrasResposta', () => {
     it('junta frases quebradas pelas citações da busca web', () => {
       const bruto =
