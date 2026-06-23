@@ -40,3 +40,18 @@ migration/.cache/
 coverage/
 # mobile
 .expo/
+
+# SEGREDOS DE ASSINATURA / EAS — NUNCA commitar (keystore = chave de assinatura do app)
+expo/
+*.jks
+*.keystore
+*-keystore-credentials.md
+mobile/credentials.json
+EXPO_TOKEN
+.env.eas
+
+# Scratch de prompts / rascunhos e materiais internos (exemplos clonados, zips,
+# .docx de propostas/LGPD). Não versionar — não faz parte do produto.
+prompts/
+# Propostas comerciais por cliente (sensível — não versionar)
+portfolio/Propostas/
