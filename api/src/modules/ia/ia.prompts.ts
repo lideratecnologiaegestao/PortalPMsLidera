@@ -139,6 +139,28 @@ export function sistemaChat(): string {
   ].join('\n');
 }
 
+/**
+ * Pós-processamento leve da resposta do bot: junta as quebras de linha "soltas"
+ * que a busca web injeta ao redor das citações (frases isoladas por `\n`), sem
+ * destruir parágrafos (`\n\n`) nem o início de blocos Markdown (listas, títulos,
+ * citações, tabelas, links). Função pura — testável.
+ */
+export function limparQuebrasResposta(texto: string): string {
+  let t = (texto ?? '').replace(/\r\n/g, '\n');
+  // 1. Pontuação que ficou isolada após a quebra: "zika\n." -> "zika."
+  t = t.replace(/[ \t]*\n[ \t]*([.,;:!?)])/g, '$1');
+  // 2. Remove espaços/tabs antes da quebra
+  t = t.replace(/[ \t]+\n/g, '\n');
+  // 3. Três ou mais quebras viram um único parágrafo
+  t = t.replace(/\n{3,}/g, '\n\n');
+  // 4. Quebra ÚNICA no meio da frase -> espaço. Preserva parágrafo (\n\n) e o
+  //    início de bloco Markdown (lista, título, citação, tabela, numerada, link).
+  t = t.replace(/([^\n])\n(?!\n)(?![ \t]*(?:[-*+>#|]|\d+[.)]|\[))/g, '$1 ');
+  // 5. Normaliza espaços e apara
+  t = t.replace(/[ \t]{2,}/g, ' ').replace(/ +\n/g, '\n').trim();
+  return t;
+}
+
 /** Monta o bloco de contexto citável a partir dos trechos do portal (Camada 3). */
 export function montarContexto(trechos: { titulo: string; texto: string; url?: string; fonte?: string }[]): string {
   if (!trechos.length) return '(sem conteúdo do portal disponível)';

@@ -6,6 +6,11 @@
 import { ForbiddenException } from '@nestjs/common';
 import { IaService } from './ia.service';
 
+// Estes testes exercitam a montagem do contexto em 3 camadas via `completar`.
+// Desliga a busca web de saúde (server tool) para que o caminho sem ferramentas
+// seja usado e as asserções sobre `anthropic.completar` continuem válidas.
+process.env.IA_WEB_SEARCH_SAUDE = 'off';
+
 const TENANT_A = 'tenant-a-uuid';
 
 // -------------------------------------------------------------------------- mocks
@@ -41,8 +46,13 @@ const buildConhecimento = (overrides: Partial<{
 
 const buildAnthropic = () => ({
   completar: jest.fn().mockResolvedValue('Resposta do bot'),
+  completarComFerramentas: jest.fn().mockResolvedValue('Resposta do bot'),
   ocr: jest.fn(),
 });
+
+// Stub do serviço de consulta fiscal (APLIC) — não é exercitado nestes testes
+// (sem dados fiscais, as ferramentas fiscais não são acionadas).
+const buildAplicConsulta = () => ({});
 
 const buildAntivirus = () => ({
   limpo: jest.fn().mockResolvedValue(true),
@@ -77,6 +87,7 @@ function buildService(overrides: {
       buildAntivirus() as any,
       buildEmbeddings() as any,
       conhecimento as any,
+      buildAplicConsulta() as any,
     ),
     prisma,
     conhecimento,
@@ -157,9 +168,11 @@ describe('IaService — chat com contexto em 3 camadas', () => {
         buscar: jest.fn().mockResolvedValue([item]), // mesmo item nos dois
       });
       const { service, anthropic } = buildService({ conhecimento });
-      await service.chat('Como solicitar?');
+      // Pergunta DIFERENTE do texto do item, para isolar a dedup do bloco de
+      // conhecimento (senão a frase também apareceria na linha "PERGUNTA:").
+      await service.chat('Tenho uma dúvida sobre o procedimento');
       const userPrompt: string = (anthropic.completar as jest.Mock).mock.calls[0][0].user;
-      // Deve aparecer apenas 1 vez no bloco
+      // Deve aparecer apenas 1 vez no bloco de conhecimento (fixado + match dedup)
       const count = (userPrompt.match(/Como solicitar\?/g) ?? []).length;
       expect(count).toBe(1);
     });

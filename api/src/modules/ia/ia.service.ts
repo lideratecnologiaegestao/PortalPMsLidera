@@ -15,6 +15,7 @@ export interface ChatToolsExtra {
   systemAddendum?: string;
 }
 import {
+  limparQuebrasResposta,
   montarContexto,
   parseTriagem,
   sistemaChat,
@@ -321,7 +322,7 @@ export class IaService {
       });
 
       return {
-        resposta,
+        resposta: limparQuebrasResposta(resposta),
         fontes: trechos.map((t) => ({ titulo: t.titulo, slug: t.slug, url: t.url })),
         confianca: confiancaBase,
       };
@@ -375,7 +376,7 @@ export class IaService {
     await this.auditar('IA_CHAT', 'cms', null, { fontes: trechos.length });
 
     return {
-      resposta,
+      resposta: limparQuebrasResposta(resposta),
       fontes: trechos.map((t) => ({ titulo: t.titulo, slug: t.slug, url: t.url })),
       confianca: confiancaBase,
     };

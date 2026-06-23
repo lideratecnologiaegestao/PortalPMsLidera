@@ -1,4 +1,5 @@
 import {
+  limparQuebrasResposta,
   montarContexto,
   parseTriagem,
   sanitizarTexto,
@@ -7,6 +8,27 @@ import {
 } from './ia.prompts';
 
 describe('IA prompts/parser', () => {
+  describe('limparQuebrasResposta', () => {
+    it('junta frases quebradas pelas citações da busca web', () => {
+      const bruto =
+        'O Aedes aegypti transmite várias doenças. \nAs principais são: dengue e zika\n.\n\n\nO mosquito é o vetor';
+      const limpo = limparQuebrasResposta(bruto);
+      expect(limpo).toContain('doenças. As principais são: dengue e zika.');
+      expect(limpo).not.toMatch(/\n{3,}/);
+      expect(limpo).toContain('zika.\n\nO mosquito');
+    });
+
+    it('preserva parágrafos e blocos Markdown (listas, títulos)', () => {
+      const md = 'Intro do texto.\n\n## Título\n\n- item um\n- item dois\n\nFim.';
+      expect(limparQuebrasResposta(md)).toBe(md);
+    });
+
+    it('é seguro com entrada vazia/nula', () => {
+      expect(limparQuebrasResposta('')).toBe('');
+      expect(limparQuebrasResposta(undefined as never)).toBe('');
+    });
+  });
+
   describe('parseTriagem', () => {
     it('faz parse de JSON puro', () => {
       const r = parseTriagem(
