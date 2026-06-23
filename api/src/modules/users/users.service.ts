@@ -1,11 +1,13 @@
 import {
   BadRequestException,
   ConflictException,
+  ForbiddenException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { TenantContext } from '../../common/tenant/tenant.context';
+import { Role } from '../../common/rbac/roles.enum';
 import { hashSenha } from '../auth/password';
 import { CriarUserDto, AtualizarUserDto } from './users.dto';
 
@@ -80,8 +82,34 @@ export class UsersService {
     return user;
   }
 
-  async criar(dto: CriarUserDto, atorId?: string) {
+  /**
+   * Papéis sensíveis que somente o super_admin (via Gerenciador) pode atribuir.
+   * ADR-0005: admin_prefeitura não pode criar/elevar usuários com esses papéis.
+   */
+  private static readonly ROLES_SENSIVEIS = new Set<string>([
+    Role.OUVIDOR,
+    Role.ASSISTENTE_OUVIDORIA,
+    Role.TI,
+    Role.SUPER_ADMIN,
+  ]);
+
+  /** Valida que o solicitante tem permissão para atribuir o papel pedido. */
+  private assertPapelPermitido(roleDesejada: string, atorRole?: string): void {
+    if (UsersService.ROLES_SENSIVEIS.has(roleDesejada)) {
+      // Somente super_admin pode criar/elevar para papéis sensíveis
+      if (atorRole !== Role.SUPER_ADMIN) {
+        throw new ForbiddenException(
+          `O papel '${roleDesejada}' só pode ser atribuído pelo super_admin via Gerenciador da Plataforma.`,
+        );
+      }
+    }
+  }
+
+  async criar(dto: CriarUserDto, atorId?: string, atorRole?: string) {
     const tenantId = TenantContext.tenantId()!;
+
+    // ADR-0005: admin_prefeitura não pode criar ouvidor/assistente_ouvidoria/ti/super_admin
+    this.assertPapelPermitido(dto.role, atorRole);
 
     // e-mail duplicado no tenant
     const existente = await this.prisma.db.user.findFirst({
@@ -120,8 +148,15 @@ export class UsersService {
     return user;
   }
 
-  async atualizar(id: string, dto: AtualizarUserDto, solicitanteId?: string) {
+  async atualizar(id: string, dto: AtualizarUserDto, solicitanteId?: string, atorRole?: string) {
     const tenantId = TenantContext.tenantId()!;
+
+    // ADR-0005: verifica papel sensível ANTES de qualquer query de banco
+    // (falha rápido sem acessar dados desnecessários)
+    if (dto.role !== undefined) {
+      this.assertPapelPermitido(dto.role, atorRole);
+    }
+
     await this.buscar(id); // garante pertence ao tenant via RLS
 
     // Impede auto-bloqueio: o usuário não pode alterar seu próprio role/ativo

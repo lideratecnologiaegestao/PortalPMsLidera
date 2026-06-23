@@ -15,6 +15,7 @@ import {
   ServiceUnavailableException,
   UseGuards,
 } from '@nestjs/common';
+import { IsEmail, IsEnum, IsNotEmpty, IsOptional, IsString, IsUUID, MinLength } from 'class-validator';
 import { Prisma } from '@prisma/client';
 import { RolesGuard } from '../../common/rbac/roles.guard';
 import { Roles } from '../../common/rbac/roles.decorator';
@@ -26,6 +27,51 @@ import { RedisCacheService } from '../../common/cache/redis-cache.service';
 import { TenantProvisioningService } from './tenant-provisioning.service';
 import { CloudflareService } from '../cloudflare/cloudflare.service';
 import { AtualizarTenantDto, CriarTenantDto } from './platform.dto';
+import { hashSenha } from '../auth/password';
+
+/**
+ * Papéis que o super_admin pode criar/elevar via Gerenciador.
+ * ADR-0005: ouvidor, assistente_ouvidoria e ti são criados somente aqui.
+ */
+const ROLES_ELEVACAO_VALIDAS = [
+  Role.OUVIDOR,
+  Role.ASSISTENTE_OUVIDORIA,
+  Role.TI,
+  Role.ADMIN_PREFEITURA,
+  Role.GESTOR,
+  Role.SERVIDOR,
+] as const;
+type RoleElevacao = (typeof ROLES_ELEVACAO_VALIDAS)[number];
+
+class ElevarUserDto {
+  @IsUUID()
+  @IsOptional()
+  userId?: string; // se informado, eleva usuário existente
+
+  // Se userId não informado, cria usuário novo:
+  @IsString()
+  @IsNotEmpty()
+  @IsOptional()
+  nome?: string;
+
+  @IsEmail()
+  @IsOptional()
+  email?: string;
+
+  @IsString()
+  @MinLength(8)
+  @IsOptional()
+  senhaProvisoria?: string;
+
+  @IsEnum(ROLES_ELEVACAO_VALIDAS, {
+    message: `role deve ser um de: ${ROLES_ELEVACAO_VALIDAS.join(', ')}`,
+  })
+  role!: RoleElevacao;
+
+  @IsUUID()
+  @IsOptional()
+  secretariaId?: string;
+}
 
 /**
  * CRUD de tenants — exclusivo super_admin.
@@ -336,6 +382,103 @@ export class PlatformTenantsController {
       cfValidacao: atualizado.cfValidacao,
       cfAtualizadoEm: atualizado.cfAtualizadoEm,
     };
+  }
+
+  /**
+   * POST /api/_platform/tenants/:id/usuarios/elevar
+   *
+   * ADR-0005: somente super_admin pode criar ou elevar um usuário para os
+   * papéis sensíveis ouvidor, assistente_ouvidoria e ti dentro de um tenant.
+   * admin_prefeitura não tem permissão para fazer isso (403 no UsersService).
+   *
+   * Body:
+   *   { userId } → eleva usuário existente para o papel pedido.
+   *   { nome, email, senhaProvisoria } → cria novo usuário com o papel.
+   *
+   * Em ambos os casos, registra auditoria e retorna o usuário atualizado
+   * sem campos sensíveis (senhaHash, cpfHash, mfaSecret).
+   */
+  @Post(':id/usuarios/elevar')
+  @HttpCode(HttpStatus.OK)
+  async elevarUsuario(
+    @Param('id') tenantId: string,
+    @Body() dto: ElevarUserDto,
+    @CurrentUser() authUser: AuthUser,
+  ) {
+    const tenant = await this.prisma.platform().tenant.findUnique({
+      where: { id: tenantId },
+      select: { id: true, nome: true },
+    });
+    if (!tenant) throw new NotFoundException('Tenant não encontrado.');
+
+    if (!dto.userId && (!dto.nome || !dto.email || !dto.senhaProvisoria)) {
+      throw new BadRequestException(
+        'Para criar um novo usuário informe nome, email e senhaProvisoria. Para elevar existente, informe userId.',
+      );
+    }
+
+    const SAFE_SELECT = {
+      id: true, tenantId: true, secretariaId: true,
+      nome: true, email: true, role: true, ativo: true,
+    } as const;
+
+    let user: { id: string; tenantId: string | null; nome: string; email: string; role: string; ativo: boolean; secretariaId: string | null };
+
+    if (dto.userId) {
+      // Eleva usuário existente
+      const existente = await this.prisma.platform().user.findFirst({
+        where: { id: dto.userId, tenantId },
+        select: SAFE_SELECT,
+      });
+      if (!existente) throw new NotFoundException('Usuário não encontrado neste tenant.');
+
+      user = await this.prisma.platform().user.update({
+        where: { id: dto.userId },
+        data: {
+          role: dto.role as any,
+          ...(dto.secretariaId !== undefined && { secretariaId: dto.secretariaId }),
+        },
+        select: SAFE_SELECT,
+      });
+    } else {
+      // Cria novo usuário com papel sensível
+      const existente = await this.prisma.platform().user.findFirst({
+        where: { email: dto.email!, tenantId },
+        select: { id: true },
+      });
+      if (existente) throw new ConflictException('Já existe um usuário com este e-mail neste tenant.');
+
+      user = await this.prisma.platform().user.create({
+        data: {
+          tenantId,
+          nome: dto.nome!,
+          email: dto.email!,
+          role: dto.role as any,
+          senhaHash: hashSenha(dto.senhaProvisoria!),
+          ativo: true,
+          ...(dto.secretariaId && { secretariaId: dto.secretariaId }),
+        },
+        select: SAFE_SELECT,
+      });
+    }
+
+    // Auditoria obrigatória (ação sensível — ADR-0005)
+    await this.prisma.platform().auditLog.create({
+      data: {
+        tenantId,
+        atorId: authUser?.id ?? null,
+        acao: 'PLATFORM_USUARIO_ELEVADO',
+        entidade: 'users',
+        entidadeId: user.id,
+        dados: {
+          role: dto.role,
+          acao: dto.userId ? 'elevacao' : 'criacao',
+          tenant: tenant.nome,
+        },
+      },
+    });
+
+    return user;
   }
 
   // ---- helpers ----

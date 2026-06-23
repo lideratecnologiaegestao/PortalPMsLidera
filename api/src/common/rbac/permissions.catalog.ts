@@ -4,6 +4,10 @@
  *
  * Estrutura: { key, modulo, label }
  * key = "<modulo>.gerenciar"
+ *
+ * ADR-0005: admin_prefeitura e gestor/ti NÃO recebem ouvidoria.gerenciar
+ * nem esic.gerenciar. Apenas ouvidor e assistente_ouvidoria acessam esses
+ * módulos. O wildcard '*' está reservado exclusivamente ao super_admin.
  */
 
 export type PermissionKey = string;
@@ -37,9 +41,12 @@ export const PERMISSOES: PermissaoDefinicao[] = [
   { key: 'concursos.gerenciar',     modulo: 'Concursos',       label: 'Gerenciar Concursos e Seletivos' },
   { key: 'transparencia.gerenciar', modulo: 'Transparência',   label: 'Gerenciar Portal da Transparência' },
 
-  // Atendimento ao cidadão
-  { key: 'ouvidoria.gerenciar',     modulo: 'Ouvidoria',       label: 'Gerenciar Ouvidoria e e-SIC' },
+  // Atendimento ao cidadão — conteúdo geral (visível para admin/gestor/ti/servidor)
   { key: 'formularios.gerenciar',   modulo: 'Formulários',     label: 'Gerenciar formulários' },
+
+  // Ouvidoria e e-SIC — EXCLUSIVO ouvidor/assistente_ouvidoria (ADR-0005)
+  { key: 'ouvidoria.gerenciar',     modulo: 'Ouvidoria',       label: 'Gerenciar Ouvidoria' },
+  { key: 'esic.gerenciar',          modulo: 'e-SIC',           label: 'Gerenciar e-SIC (Lei de Acesso à Informação)' },
 
   // Administração
   { key: 'usuarios.gerenciar',      modulo: 'Usuários',        label: 'Gerenciar Usuários do Tenant' },
@@ -49,9 +56,16 @@ export const PERMISSOES: PermissaoDefinicao[] = [
 /** Todas as chaves de permissão como array de strings. */
 export const PERMISSION_KEYS: string[] = PERMISSOES.map((p) => p.key);
 
-/** Chaves de conteúdo (tudo exceto usuários e grupos). */
-const CONTENT_KEYS: string[] = PERMISSION_KEYS.filter(
-  (k) => k !== 'usuarios.gerenciar' && k !== 'grupos.gerenciar',
+/**
+ * Chaves de conteúdo geral (tudo exceto usuários, grupos, ouvidoria e e-SIC).
+ * Usada por admin_prefeitura, gestor e ti.
+ */
+const CONTENT_KEYS_GERAL: string[] = PERMISSION_KEYS.filter(
+  (k) =>
+    k !== 'usuarios.gerenciar' &&
+    k !== 'grupos.gerenciar' &&
+    k !== 'ouvidoria.gerenciar' &&
+    k !== 'esic.gerenciar',
 );
 
 /** Retorna true se a chave for válida no catálogo. */
@@ -61,13 +75,24 @@ export function isPermissionValida(key: string): boolean {
 
 /**
  * Permissões implícitas por papel (não exigem grupo).
- * '*' = curinga total (acesso a tudo).
+ *
+ * Regras ADR-0005:
+ *   - super_admin: wildcard total (cross-tenant, via platform())
+ *   - admin_prefeitura: tudo de conteúdo EXCETO ouvidoria/e-SIC + usuários/grupos
+ *   - ti: idêntico ao admin_prefeitura — acesso técnico, sem ouvidoria/e-SIC
+ *   - gestor: conteúdo geral (sem ouvidoria/e-SIC, sem usuários/grupos)
+ *   - ouvidor: somente ouvidoria.gerenciar + esic.gerenciar
+ *   - assistente_ouvidoria: idem ouvidor
+ *   - servidor: sem permissões implícitas (recebe via grupos)
+ *   - cidadao: sem permissões (portal público)
  */
 export const ROLE_DEFAULTS: Record<string, string[]> = {
-  super_admin:       [WILDCARD],
-  admin_prefeitura:  [WILDCARD],
-  gestor:            [...CONTENT_KEYS],
-  ouvidor:           ['ouvidoria.gerenciar'],
-  servidor:          [],
-  cidadao:           [],
+  super_admin:          [WILDCARD],
+  admin_prefeitura:     [...CONTENT_KEYS_GERAL, 'usuarios.gerenciar', 'grupos.gerenciar'],
+  ti:                   [...CONTENT_KEYS_GERAL, 'usuarios.gerenciar', 'grupos.gerenciar'],
+  gestor:               [...CONTENT_KEYS_GERAL],
+  ouvidor:              ['ouvidoria.gerenciar', 'esic.gerenciar'],
+  assistente_ouvidoria: ['ouvidoria.gerenciar', 'esic.gerenciar'],
+  servidor:             [],
+  cidadao:              [],
 };

@@ -7,7 +7,9 @@ import { AppModule } from './app.module';
 import { JsonLogger } from './common/logging/json-logger';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  // rawBody: true preserva o corpo cru (req.rawBody) para validar a assinatura
+  // HMAC-SHA256 do webhook da Meta (X-Hub-Signature-256), sem quebrar o parser JSON.
+  const app = await NestFactory.create(AppModule, { rawBody: true });
   // logs JSON estruturados em produção (Loki/Grafana); pretty em dev
   if (process.env.NODE_ENV === 'production') {
     app.useLogger(new JsonLogger());

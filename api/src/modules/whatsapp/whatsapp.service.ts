@@ -3,11 +3,15 @@ import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { TenantContext } from '../../common/tenant/tenant.context';
 import { redisCommands } from '../queue/redis.config';
-import { ButtonsInput, MediaInput, SendResult, WhatsappProvider } from './whatsapp-provider.interface';
+import { ButtonsInput, MediaInput, SendResult, TemplateInput, WhatsappProvider } from './whatsapp-provider.interface';
 import { WhatsappConfigService, TenantWhatsappConfigDecifrada } from './whatsapp-config.service';
+import { WhatsappCanaisService } from './whatsapp-canais.service';
 import { EvolutionProvider } from './evolution.provider';
 import { ZApiProvider } from './zapi.provider';
 import { MetaCloudProvider } from './meta-cloud.provider';
+import { InstagramProvider } from './instagram.provider';
+import { MessengerProvider } from './messenger.provider';
+import { TelegramProvider } from './telegram.provider';
 
 // ---------------------------------------------------------------- Circuit Breaker
 const CB_FALHAS_LIMITE = 5;      // falhas para abrir o breaker
@@ -51,6 +55,7 @@ interface CacheEntry {
 function assinatura(cfg: TenantWhatsappConfigDecifrada, nome: string): string {
   if (nome === 'zapi') return `${cfg.zapiInstanceId}|${cfg.zapiToken}|${cfg.zapiClientToken}`;
   if (nome === 'evolution') return `${cfg.evolutionApiUrl}|${cfg.evolutionInstance}`;
+  if (nome === 'meta') return `${cfg.metaPhoneNumberId}|${cfg.metaToken}`;
   return nome;
 }
 
@@ -78,6 +83,7 @@ export class WhatsappService {
     private readonly http: HttpService,
     private readonly prisma: PrismaService,
     private readonly configService: WhatsappConfigService,
+    private readonly canaisService: WhatsappCanaisService,
   ) {}
 
   // ---------------------------------------------------------------- API pública
@@ -91,6 +97,9 @@ export class WhatsappService {
     if (provider === 'zapi') {
       // Client-Token é opcional (só exigido se a conta Z-API tem segurança ligada).
       return !!(process.env.ZAPI_INSTANCE_ID && process.env.ZAPI_TOKEN);
+    }
+    if (provider === 'meta') {
+      return !!(process.env.META_PHONE_NUMBER_ID && process.env.META_TOKEN);
     }
     return !!(process.env.EVOLUTION_API_URL && process.env.EVOLUTION_API_KEY && process.env.EVOLUTION_INSTANCE);
   }
@@ -136,11 +145,269 @@ export class WhatsappService {
   }
 
   /**
+   * Envia um template aprovado (HSM) — necessário para INICIAR conversa fora da
+   * janela de 24h via API Oficial da Meta. Providers sem suporte a template
+   * (Z-API/Evolution) degradam: enviam o `textoFallback` como mensagem comum.
+   * Best-effort: após o envio, insere linha em whatsapp_template_envios para controle de cota.
+   */
+  async enviarTemplate(
+    numero: string,
+    template: TemplateInput,
+    textoFallback?: string,
+  ): Promise<{ id?: string }> {
+    const tenantId = TenantContext.tenantId();
+    if (!tenantId) throw new Error('TenantContext ausente ao enviar template WhatsApp.');
+    let status = 'enviado';
+    let r: SendResult = { ok: false };
+    try {
+      r = await this.enviarComResiliencia(
+        tenantId,
+        (p) =>
+          p.sendTemplate
+            ? p.sendTemplate(numero, template)
+            : p.sendText(numero, textoFallback ?? `(${template.nome})`),
+        numero,
+      );
+    } catch (e) {
+      status = 'falhou';
+      throw e;
+    } finally {
+      this.registrarEnvioTemplate(tenantId, null, template.nome, numero, status).catch(() => undefined);
+    }
+    return { id: r.id };
+  }
+
+  /**
    * Retorna o provider ativo do tenant (para status/provisioning no admin).
    */
   async providerDoTenant(tenantId: string): Promise<WhatsappProvider> {
     const cfg = await this.configService.configDoTenant(tenantId);
     return this.resolverProvider(cfg, cfg.provider);
+  }
+
+  // ---------------------------------------------------------------- API por canal (multi-número Meta)
+
+  /**
+   * Envia texto por um canal Meta específico (multi-número).
+   * As credenciais são lidas do canal (decifradas) via WhatsappCanaisService.
+   * Circuit breaker é keyed por canalId (independente dos providers de tenant).
+   * LGPD-safe: número mascarado na auditoria.
+   */
+  async enviarPorCanal(
+    canalId: string,
+    numero: string,
+    texto: string,
+  ): Promise<{ id?: string }> {
+    const r = await this.enviarPorCanalComResiliencia(
+      canalId,
+      (p) => p.sendText(numero, texto),
+      numero,
+    );
+    return { id: r.id };
+  }
+
+  async enviarMidiaPorCanal(
+    canalId: string,
+    numero: string,
+    media: MediaInput,
+    caption?: string,
+  ): Promise<{ id?: string }> {
+    const r = await this.enviarPorCanalComResiliencia(
+      canalId,
+      (p) => p.sendMedia(numero, media, caption),
+      numero,
+    );
+    return { id: r.id };
+  }
+
+  async enviarTemplatePorCanal(
+    canalId: string,
+    numero: string,
+    template: TemplateInput,
+    textoFallback?: string,
+  ): Promise<{ id?: string }> {
+    const tenantId = TenantContext.tenantId();
+    let status = 'enviado';
+    let r: SendResult = { ok: false };
+    try {
+      r = await this.enviarPorCanalComResiliencia(
+        canalId,
+        (p) =>
+          p.sendTemplate
+            ? p.sendTemplate(numero, template)
+            : p.sendText(numero, textoFallback ?? `(${template.nome})`),
+        numero,
+      );
+    } catch (e) {
+      status = 'falhou';
+      throw e;
+    } finally {
+      if (tenantId) {
+        this.registrarEnvioTemplate(tenantId, canalId, template.nome, numero, status).catch(() => undefined);
+      }
+    }
+    return { id: r.id };
+  }
+
+  // ---------------------------------------------------------------- Resiliência por canal
+
+  private async enviarPorCanalComResiliencia(
+    canalId: string,
+    operacao: (p: WhatsappProvider) => Promise<SendResult>,
+    numeroParaAudit: string,
+  ): Promise<SendResult> {
+    const tenantId = TenantContext.tenantId();
+    if (!tenantId) throw new Error('TenantContext ausente ao enviar por canal.');
+
+    const canal = await this.canaisService.configDoCanal(canalId, tenantId);
+    if (!canal.metaToken) {
+      throw new Error(`Canal ${canalId} (${canal.label}) sem token configurado.`);
+    }
+    // Tipo do canal para roteamento correto
+    const tipoCanalRaw = canal.tipo ?? 'whatsapp';
+
+    // Telegram não usa metaPhoneNumberId para envio — só metaToken é obrigatório.
+    if (tipoCanalRaw !== 'telegram' && !canal.metaPhoneNumberId) {
+      throw new Error(`Canal ${canalId} (${canal.label}) sem metaPhoneNumberId configurado.`);
+    }
+
+    // Circuit breaker keyed por canalId (independente do provider de tenant)
+    const cbKey = `canal:${canalId}`;
+    const aberto = await brekerAberto(tenantId, cbKey);
+
+    if (!aberto) {
+      const provider = this.resolverProviderCanal(canalId, canal, tipoCanalRaw);
+      let resultado: SendResult = { ok: false, erro: 'não tentado' };
+
+      for (let i = 0; i < 2; i++) {
+        try {
+          resultado = await operacao(provider);
+          if (resultado.ok) break;
+        } catch (e) {
+          resultado = { ok: false, erro: (e as Error).message };
+        }
+        if (i === 0) await new Promise((r) => setTimeout(r, 800));
+      }
+
+      if (resultado.ok) {
+        await registrarSucesso(tenantId, cbKey);
+        await this.auditarCanal(tenantId, canalId, canal.label, numeroParaAudit, 'WHATSAPP_CANAL_ENVIADO');
+        return resultado;
+      }
+
+      await registrarFalha(tenantId, cbKey);
+      this.log.warn(`Canal ${canalId} (${canal.label}) falhou: ${resultado.erro}`);
+      await this.auditarCanal(tenantId, canalId, canal.label, numeroParaAudit, 'WHATSAPP_CANAL_FALHA');
+      throw new Error(`Falha ao enviar pelo canal ${canal.label}: ${resultado.erro}`);
+    }
+
+    this.log.warn(`Circuit breaker ABERTO para canal ${canalId} (${canal.label}).`);
+    throw new Error(`Canal ${canal.label} temporariamente indisponível (circuit breaker).`);
+  }
+
+  private resolverProviderCanal(
+    canalId: string,
+    canal: { metaPhoneNumberId: string | null; metaToken?: string | null },
+    tipo = 'whatsapp',
+  ): WhatsappProvider {
+    const cacheKey = `canal:${canalId}`;
+    const sig = `${tipo}|${canal.metaPhoneNumberId}|${canal.metaToken}`;
+    const cached = this.providerCache.get(cacheKey);
+    if (cached && cached.assinatura === sig) return cached.provider;
+
+    if (!canal.metaToken) throw new Error(`Canal ${canalId}: token não configurado.`);
+
+    let provider: WhatsappProvider;
+
+    if (tipo === 'instagram') {
+      // metaPhoneNumberId é garantido não-nulo para Instagram pelo check anterior
+      provider = new InstagramProvider(this.http, {
+        pageOrIgId: canal.metaPhoneNumberId!,
+        token: canal.metaToken,
+        apiVersion: process.env.META_API_VERSION,
+      });
+    } else if (tipo === 'messenger') {
+      // metaPhoneNumberId é garantido não-nulo para Messenger pelo check anterior
+      provider = new MessengerProvider(this.http, {
+        pageId: canal.metaPhoneNumberId!,
+        token: canal.metaToken,
+        apiVersion: process.env.META_API_VERSION,
+      });
+    } else if (tipo === 'telegram') {
+      // Telegram usa apenas o token do bot (não usa metaPhoneNumberId)
+      provider = new TelegramProvider(this.http, {
+        token: canal.metaToken,
+      });
+    } else {
+      // 'whatsapp' e qualquer tipo desconhecido → Cloud API padrão
+      // metaPhoneNumberId é garantido não-nulo para WhatsApp pelo check anterior
+      provider = new MetaCloudProvider(this.http, {
+        phoneNumberId: canal.metaPhoneNumberId!,
+        token: canal.metaToken,
+        apiVersion: process.env.META_API_VERSION,
+      });
+    }
+
+    this.providerCache.set(cacheKey, { provider, assinatura: sig });
+    return provider;
+  }
+
+  // ---------------------------------------------------------------- Log de envio de template (cota)
+
+  /**
+   * Insere linha best-effort em whatsapp_template_envios para controle de cota.
+   * Nunca derruba o envio principal — erros são silenciados.
+   */
+  private async registrarEnvioTemplate(
+    tenantId: string,
+    canalId: string | null,
+    templateNome: string,
+    numero: string,
+    status: string,
+  ): Promise<void> {
+    const toMascarado = `••••${numero.replace(/\D/g, '').slice(-4)}`;
+    try {
+      await TenantContext.run({ tenantId }, () =>
+        this.prisma.db.whatsappTemplateEnvio.create({
+          data: {
+            tenantId,
+            canalId: canalId ?? null,
+            templateNome,
+            toMascarado,
+            status,
+          } as any,
+        }),
+      );
+    } catch (e) {
+      this.log.warn(`Falha ao registrar envio de template (best-effort): ${(e as Error).message}`);
+    }
+  }
+
+  // ---------------------------------------------------------------- Auditoria LGPD-safe (por canal)
+
+  private async auditarCanal(
+    tenantId: string,
+    canalId: string,
+    canalLabel: string,
+    numero: string,
+    acao: string,
+  ): Promise<void> {
+    const toMascarado = `••••${numero.replace(/\D/g, '').slice(-4)}`;
+    try {
+      await TenantContext.run({ tenantId }, () =>
+        this.prisma.db.auditLog.create({
+          data: {
+            tenantId,
+            acao,
+            entidade: 'whatsapp_canal',
+            entidadeId: canalId,
+            dados: { canalLabel, to_mascarado: toMascarado } as object,
+          } as any,
+        }),
+      );
+    } catch (e) {
+      this.log.warn(`Falha ao auditar envio por canal: ${(e as Error).message}`);
+    }
   }
 
   // ---------------------------------------------------------------- Resiliência
@@ -242,7 +509,14 @@ export class WhatsappService {
         apiKey: cfg.evolutionApiKey,
       });
     } else if (nome === 'meta') {
-      provider = new MetaCloudProvider();
+      if (!cfg.metaPhoneNumberId || !cfg.metaToken) {
+        throw new Error(`Meta Cloud API não configurada para o tenant ${cfg.tenantId}.`);
+      }
+      provider = new MetaCloudProvider(this.http, {
+        phoneNumberId: cfg.metaPhoneNumberId,
+        token: cfg.metaToken,
+        apiVersion: process.env.META_API_VERSION,
+      });
     } else {
       throw new Error(`Provider desconhecido: ${nome}`);
     }

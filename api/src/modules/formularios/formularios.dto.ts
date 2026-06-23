@@ -23,6 +23,11 @@ export class CriarFormularioDto {
   /** Schema como array de campos JSON. Validado no service. */
   @IsOptional()
   schema?: unknown;
+
+  /** Secretaria vinculada ao formulário (ADR-0005 Fase 4). Sobrescrito pelo escopo do usuário. */
+  @IsOptional()
+  @IsString()
+  secretariaId?: string;
 }
 
 export class AtualizarFormularioDto {
@@ -38,6 +43,11 @@ export class AtualizarFormularioDto {
 
   @IsOptional()
   schema?: unknown;
+
+  /** Secretaria vinculada ao formulário (ADR-0005 Fase 4). Sobrescrito pelo escopo do usuário. */
+  @IsOptional()
+  @IsString()
+  secretariaId?: string;
 
   @IsOptional()
   @IsIn(STATUS_VALIDOS)

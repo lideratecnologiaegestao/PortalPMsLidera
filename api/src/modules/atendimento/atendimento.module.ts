@@ -14,6 +14,9 @@ import { AtendimentoController } from './atendimento.controller';
 import { AtendimentoAdminController } from './atendimento-admin.controller';
 import { WebhookEvolutionController } from './webhook-evolution.controller';
 import { WhatsappWebhookController } from '../whatsapp/whatsapp-webhook.controller';
+import { WhatsappMetaWebhookController } from '../whatsapp/whatsapp-meta-webhook.controller';
+import { WhatsappMetaCanalWebhookController } from '../whatsapp/whatsapp-meta-canal-webhook.controller';
+import { TelegramWebhookController } from '../whatsapp/telegram-webhook.controller';
 
 /**
  * Módulo de Atendimento Omnichannel (chatbot + atendimento humano).
@@ -42,6 +45,9 @@ import { WhatsappWebhookController } from '../whatsapp/whatsapp-webhook.controll
     AtendimentoAdminController,
     WebhookEvolutionController,
     WhatsappWebhookController, // webhook de entrada Z-API (concern de atendimento)
+    WhatsappMetaWebhookController, // webhook de entrada Meta Cloud (config única, slug-based)
+    WhatsappMetaCanalWebhookController, // webhook de entrada Meta Cloud (multi-canal, /c/:secret)
+    TelegramWebhookController,           // webhook de entrada Telegram Bot API (/webhooks/telegram/:secret)
   ],
   providers: [
     AtendimentoGateway,

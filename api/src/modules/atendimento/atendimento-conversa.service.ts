@@ -59,7 +59,7 @@ export class AtendimentoConversaService {
 
   async iniciar(opts: {
     tenantId: string;
-    canal: 'widget' | 'whatsapp';
+    canal: 'widget' | 'whatsapp' | 'instagram' | 'messenger' | 'telegram';
     visitanteNome?: string;
     visitanteEmail?: string;
     visitanteTelefone?: string;
@@ -130,6 +130,84 @@ export class AtendimentoConversaService {
     return { id: conversa.id, token, status: conversa.status };
   }
 
+  /**
+   * Variante de `iniciar` que também persiste `canalId` (multi-número Meta, migration 081).
+   * Usado pelo WhatsappMetaCanalWebhookController para vincular a conversa ao canal de origem,
+   * de modo que as respostas saiam pelo mesmo número que originou o contato.
+   */
+  async iniciarComCanal(opts: {
+    tenantId: string;
+    canal: 'widget' | 'whatsapp' | 'instagram' | 'messenger' | 'telegram';
+    canalId: string;
+    visitanteNome?: string;
+    visitanteEmail?: string;
+    visitanteTelefone?: string;
+    visitanteIdentificador?: string;
+    secretariaId?: string;
+    assunto?: string;
+    origemUrl?: string;
+  }) {
+    const conversa = await TenantContext.run({ tenantId: opts.tenantId }, async () => {
+      const tenant = await this.prisma.db.tenant.findFirst({
+        select: {
+          atendimentoSaudacao: true,
+          atendimentoAvisoLgpd: true,
+          atendimentoHumanoAtivo: true,
+        },
+      });
+
+      const c = await this.prisma.db.atendimentoConversa.create({
+        data: {
+          tenantId: opts.tenantId,
+          canal: opts.canal,
+          canalId: opts.canalId,
+          status: 'bot',
+          visitanteNome: opts.visitanteNome,
+          visitanteEmail: opts.visitanteEmail,
+          visitanteTelefone: opts.visitanteTelefone,
+          visitanteIdentificador: opts.visitanteIdentificador,
+          secretariaId: opts.secretariaId,
+          assunto: opts.assunto,
+          origemUrl: opts.origemUrl,
+        } as any,
+      });
+
+      if (tenant?.atendimentoSaudacao) {
+        await this.prisma.db.atendimentoMensagem.create({
+          data: {
+            tenantId: opts.tenantId,
+            conversaId: c.id,
+            autorTipo: 'bot',
+            conteudo: tenant.atendimentoSaudacao,
+            interno: false,
+          },
+        });
+      }
+
+      if (tenant?.atendimentoAvisoLgpd) {
+        await this.prisma.db.atendimentoMensagem.create({
+          data: {
+            tenantId: opts.tenantId,
+            conversaId: c.id,
+            autorTipo: 'sistema',
+            conteudo: tenant.atendimentoAvisoLgpd,
+            interno: false,
+          },
+        });
+      }
+
+      await this.gravarEvento(c.id, opts.tenantId, 'iniciada', null, {
+        canal: opts.canal,
+        canalId: opts.canalId,
+      });
+
+      return c;
+    });
+
+    const token = await assinarVisitante(conversa.id, opts.tenantId);
+    return { id: conversa.id, token, status: conversa.status };
+  }
+
   // ------------------------------------------------------------------ mensagens
 
   async persistirMensagem(
@@ -141,6 +219,8 @@ export class AtendimentoConversaService {
       conteudo: string;
       anexos?: object[];
       interno?: boolean;
+      /** Botões de resposta rápida (transientes — só vão no socket, não persistem). */
+      opcoes?: { label: string; valor: string }[];
     },
   ) {
     return TenantContext.run({ tenantId }, async () => {
@@ -170,6 +250,7 @@ export class AtendimentoConversaService {
           conteudo: msg.conteudo,
           criadoEm: msg.criadoEm,
           interno: false,
+          ...(dados.opcoes?.length ? { opcoes: dados.opcoes } : {}),
         });
       } else {
         // Mensagens internas só para agentes (sala tenant não broadcasta para visitante)
@@ -211,6 +292,12 @@ export class AtendimentoConversaService {
 
   // ------------------------------------------------------------------ inbox admin
 
+  /**
+   * Roles que têm acesso ao canal 'ouvidoria' (ADR-0005).
+   * Qualquer outro papel só enxerga canais não-ouvidoria.
+   */
+  private static readonly ROLES_OUVIDORIA = new Set(['ouvidor', 'assistente_ouvidoria', 'super_admin']);
+
   async inbox(opts: {
     tenantId: string;
     userId: string;
@@ -240,7 +327,20 @@ export class AtendimentoConversaService {
     return TenantContext.run({ tenantId: opts.tenantId }, async () => {
       const where: Record<string, unknown> = {};
       if (opts.status) where.status = opts.status;
-      if (opts.canal) where.canal = opts.canal;
+
+      // ADR-0005: filtra canal 'ouvidoria' para papéis sem acesso à ouvidoria.
+      const podeVerOuvidoria = AtendimentoConversaService.ROLES_OUVIDORIA.has(opts.role);
+      if (opts.canal) {
+        // Se o papel não pode ver ouvidoria e o filtro pede exatamente 'ouvidoria', retorna vazio.
+        if (!podeVerOuvidoria && opts.canal === 'ouvidoria') {
+          return { items: [], total: 0, page, pageSize: take, totalPaginas: 0 };
+        }
+        where.canal = opts.canal;
+      } else if (!podeVerOuvidoria) {
+        // Sem filtro de canal: exclui 'ouvidoria' da listagem.
+        where.canal = { not: 'ouvidoria' };
+      }
+
       const sec = escopoSecretariaId ?? opts.secretariaId;
       if (sec) where.secretariaId = sec;
       if (opts.tagId) where.tagIds = { has: opts.tagId };

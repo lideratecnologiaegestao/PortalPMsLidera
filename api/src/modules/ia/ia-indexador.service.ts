@@ -125,6 +125,7 @@ export class IaIndexadorService {
         () => this.carregarSecretarias(),
         () => this.carregarDocumentos(),
         () => this.carregarConhecimento(),
+        () => this.carregarConteudos(),
       ];
 
       for (const carregarFonte of fontes) {
@@ -431,6 +432,96 @@ export class IaIndexadorService {
       url: '/assistente',
       textoCompleto: `Pergunta: ${r.pergunta}\n\nResposta: ${r.resposta}`,
     }));
+  }
+
+  /**
+   * Conteúdos longos de conhecimento (ia_conteudos) ativos, públicos e vigentes.
+   * Fonte `'conteudo'` — chunking e embeddings seguem o padrão das demais fontes.
+   */
+  private async carregarConteudos(): Promise<ItemFonte[]> {
+    const rows = await this.prisma.db.$queryRaw<
+      { id: string; titulo: string; categoria: string | null; conteudo: string }[]
+    >`
+      SELECT id::text, titulo, categoria, conteudo
+      FROM ia_conteudos
+      WHERE ativo = true
+        AND publico = true
+        AND (vigencia_inicio IS NULL OR vigencia_inicio <= now())
+        AND (vigencia_fim   IS NULL OR vigencia_fim   >= now())`;
+
+    return rows.map((r) => ({
+      fonte: 'conteudo',
+      refId: r.id,
+      titulo: r.titulo,
+      url: '/assistente',
+      textoCompleto: [
+        r.titulo,
+        r.categoria ? `Categoria: ${r.categoria}` : '',
+        r.conteudo,
+      ]
+        .filter(Boolean)
+        .join('\n\n'),
+    }));
+  }
+
+  /**
+   * Indexa UM item de ia_conteudos de forma incremental.
+   * Chamado pelo IaConteudosService após criar/atualizar um conteúdo ativo+público.
+   * Respeita embeddings.configuradoParaTenant — se off, no-op silencioso (o FTS cobre).
+   */
+  async indexarConteudo(tenantId: string, id: string): Promise<void> {
+    if (!(await this.embeddings.configuradoParaTenant(tenantId))) return;
+
+    const run = async () => {
+      const rows = await this.prisma.db.$queryRaw<
+        { id: string; titulo: string; categoria: string | null; conteudo: string }[]
+      >`
+        SELECT id::text, titulo, categoria, conteudo
+        FROM ia_conteudos
+        WHERE id = ${id}::uuid
+          AND ativo = true
+          AND publico = true
+          AND (vigencia_inicio IS NULL OR vigencia_inicio <= now())
+          AND (vigencia_fim   IS NULL OR vigencia_fim   >= now())`;
+
+      if (rows.length === 0) {
+        // Item não elegível — garante que não sobrem chunks antigos
+        await this.prisma.db.$executeRaw`
+          DELETE FROM ia_chunks
+          WHERE fonte = 'conteudo' AND ref_id = ${id}`;
+        return;
+      }
+
+      const r = rows[0];
+      const item: ItemFonte = {
+        fonte: 'conteudo',
+        refId: r.id,
+        titulo: r.titulo,
+        url: '/assistente',
+        textoCompleto: [
+          r.titulo,
+          r.categoria ? `Categoria: ${r.categoria}` : '',
+          r.conteudo,
+        ]
+          .filter(Boolean)
+          .join('\n\n'),
+      };
+
+      const chunks = chunkText(item.textoCompleto, CHUNK_SIZE, CHUNK_OVERLAP);
+      if (chunks.length === 0) return;
+
+      const vetores = await this.gerarEmbeddingsEmLotes(chunks);
+      if (!vetores) return; // falha ao gerar — degrada silenciosamente
+
+      await this.upsertChunks(tenantId, item, chunks, vetores);
+      this.log.log(`Indexação incremental conteudo/${id}: ${chunks.length} chunks.`);
+    };
+
+    if (TenantContext.tenantId() === tenantId) {
+      await run();
+    } else {
+      await TenantContext.run({ tenantId }, run);
+    }
   }
 }
 

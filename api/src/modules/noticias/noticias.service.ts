@@ -1,5 +1,6 @@
 import {
   ConflictException,
+  ForbiddenException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -80,8 +81,16 @@ export class NoticiasService {
     q?: string;
     page: number;
     pageSize: number;
+    /** undefined = sem escopo; null = gestor/servidor sem lotação; string = uuid da secretaria */
+    escopoSecretariaId?: string | null;
   }) {
+    // Escopo null = gestor/servidor sem lotação → lista vazia
+    if (opts.escopoSecretariaId === null) {
+      return { items: [], total: 0, page: opts.page, pageSize: opts.pageSize };
+    }
+
     const where: Record<string, unknown> = {};
+    if (opts.escopoSecretariaId !== undefined) where.secretariaId = opts.escopoSecretariaId;
     if (opts.categoria) where.categoria = opts.categoria;
     if (opts.publicado !== undefined) where.publicado = opts.publicado;
     if (opts.q) {
@@ -101,13 +110,26 @@ export class NoticiasService {
     return { items, total, page: opts.page, pageSize: opts.pageSize };
   }
 
-  async buscarAdmin(id: string) {
+  async buscarAdmin(id: string, escopoSecretariaId?: string | null) {
     const noticia = await this.prisma.db.noticia.findUnique({ where: { id } });
     if (!noticia) throw new NotFoundException('Notícia não encontrada.');
+    // Escopo null = sem lotação, não pode ver nenhuma notícia escopada
+    if (escopoSecretariaId === null) {
+      throw new ForbiddenException('Sem secretaria de lotação definida; solicite vínculo de secretaria.');
+    }
+    // Escopo uuid = só pode acessar notícias da sua secretaria
+    if (escopoSecretariaId !== undefined && noticia.secretariaId !== escopoSecretariaId) {
+      throw new ForbiddenException('Acesso negado: notícia pertence a outra secretaria.');
+    }
     return noticia;
   }
 
-  async criar(dto: CriarNoticiaDto, atorId?: string) {
+  async criar(dto: CriarNoticiaDto, atorId?: string, escopoSecretariaId?: string | null) {
+    // Escopo null = gestor/servidor sem lotação → 403
+    if (escopoSecretariaId === null) {
+      throw new ForbiddenException('Sem secretaria de lotação definida; solicite vínculo de secretaria.');
+    }
+
     const tenantId = TenantContext.tenantId()!;
 
     // Verifica slug duplicado dentro do tenant
@@ -120,6 +142,11 @@ export class NoticiasService {
 
     const agora = new Date();
     const publicado = dto.publicado ?? false;
+
+    // Escopo uuid = força secretariaId para a do usuário, ignorando o dto
+    const secretariaId = escopoSecretariaId !== undefined
+      ? escopoSecretariaId
+      : (dto.secretariaId || null);
 
     const noticia = await this.prisma.db.noticia.create({
       data: {
@@ -135,7 +162,7 @@ export class NoticiasService {
         legenda: dto.legenda,
         credito: dto.credito,
         encerraEm: dto.encerraEm ? new Date(dto.encerraEm) : null,
-        secretariaId: dto.secretariaId || null,
+        secretariaId,
         publicado,
         // Se está publicando de imediato, define publicadoEm
         publicadoEm: publicado ? agora : undefined,
@@ -159,9 +186,10 @@ export class NoticiasService {
     return noticia;
   }
 
-  async atualizar(id: string, dto: AtualizarNoticiaDto, atorId?: string) {
+  async atualizar(id: string, dto: AtualizarNoticiaDto, atorId?: string, escopoSecretariaId?: string | null) {
     const tenantId = TenantContext.tenantId()!;
-    const atual = await this.buscarAdmin(id);
+    // buscarAdmin já valida escopo e lança 403 se necessário
+    const atual = await this.buscarAdmin(id, escopoSecretariaId);
 
     // Se mudou o slug, verifica duplicata
     if (dto.slug && dto.slug !== atual.slug) {
@@ -185,7 +213,13 @@ export class NoticiasService {
     if (dto.legenda !== undefined) data.legenda = dto.legenda;
     if (dto.credito !== undefined) data.credito = dto.credito;
     if (dto.encerraEm !== undefined) data.encerraEm = dto.encerraEm ? new Date(dto.encerraEm) : null;
-    if (dto.secretariaId !== undefined) data.secretariaId = dto.secretariaId || null;
+    if (dto.secretariaId !== undefined) {
+      // Escopo uuid: não pode mover notícia para fora da sua secretaria
+      if (escopoSecretariaId !== undefined && dto.secretariaId !== escopoSecretariaId) {
+        throw new ForbiddenException('Não é permitido alterar a secretaria para fora do seu escopo.');
+      }
+      data.secretariaId = dto.secretariaId || null;
+    }
     if (dto.publicado !== undefined) {
       data.publicado = dto.publicado;
       // Seta publicadoEm na primeira publicação
@@ -216,9 +250,9 @@ export class NoticiasService {
     return atualizado;
   }
 
-  async excluir(id: string, atorId?: string) {
+  async excluir(id: string, atorId?: string, escopoSecretariaId?: string | null) {
     const tenantId = TenantContext.tenantId()!;
-    const noticia = await this.buscarAdmin(id);
+    const noticia = await this.buscarAdmin(id, escopoSecretariaId);
 
     await this.prisma.db.noticia.delete({ where: { id } });
 

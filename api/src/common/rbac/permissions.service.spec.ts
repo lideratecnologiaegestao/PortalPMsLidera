@@ -1,6 +1,10 @@
 /**
  * Unit tests para PermissionsService.
  * Testa lógica de permissões efetivas, curinga e herança por grupos.
+ *
+ * ADR-0005: admin_prefeitura não tem mais curinga '*'.
+ * Wildcard é exclusivo do super_admin.
+ * gestor não tem ouvidoria.gerenciar nem esic.gerenciar.
  */
 import { PermissionsService } from './permissions.service';
 
@@ -27,28 +31,61 @@ describe('PermissionsService', () => {
       expect(prisma.db.usuarioGrupo.findMany).not.toHaveBeenCalled();
     });
 
-    it('admin_prefeitura deve ter curinga *', async () => {
+    it('admin_prefeitura NÃO deve ter curinga * (ADR-0005)', async () => {
       const svc = new PermissionsService(buildPrisma() as any);
       const result = await svc.permissoesEfetivas(USER_ID, 'admin_prefeitura');
-      expect(result.has('*')).toBe(true);
+      // ADR-0005: admin_prefeitura tem lista explícita, sem wildcard
+      expect(result.has('*')).toBe(false);
     });
 
-    it('gestor deve ter permissões de conteúdo mas não usuarios/grupos', async () => {
+    it('admin_prefeitura deve ter permissões de conteúdo e usuários mas NÃO ouvidoria/esic (ADR-0005)', async () => {
+      const svc = new PermissionsService(buildPrisma() as any);
+      const result = await svc.permissoesEfetivas(USER_ID, 'admin_prefeitura');
+      expect(result.has('noticias.gerenciar')).toBe(true);
+      expect(result.has('usuarios.gerenciar')).toBe(true);
+      expect(result.has('grupos.gerenciar')).toBe(true);
+      // Exclusivos do ouvidor
+      expect(result.has('ouvidoria.gerenciar')).toBe(false);
+      expect(result.has('esic.gerenciar')).toBe(false);
+    });
+
+    it('gestor deve ter permissões de conteúdo mas não usuarios/grupos/ouvidoria/esic', async () => {
       const svc = new PermissionsService(buildPrisma() as any);
       const result = await svc.permissoesEfetivas(USER_ID, 'gestor');
       expect(result.has('noticias.gerenciar')).toBe(true);
       expect(result.has('banners.gerenciar')).toBe(true);
-      expect(result.has('ouvidoria.gerenciar')).toBe(true);
+      // ADR-0005: gestor não tem ouvidoria nem esic
+      expect(result.has('ouvidoria.gerenciar')).toBe(false);
+      expect(result.has('esic.gerenciar')).toBe(false);
       expect(result.has('usuarios.gerenciar')).toBe(false);
       expect(result.has('grupos.gerenciar')).toBe(false);
       expect(result.has('*')).toBe(false);
     });
 
-    it('ouvidor deve ter somente ouvidoria.gerenciar por padrão', async () => {
+    it('ouvidor deve ter ouvidoria.gerenciar e esic.gerenciar por padrão (ADR-0005)', async () => {
       const svc = new PermissionsService(buildPrisma() as any);
       const result = await svc.permissoesEfetivas(USER_ID, 'ouvidor');
       expect(result.has('ouvidoria.gerenciar')).toBe(true);
+      expect(result.has('esic.gerenciar')).toBe(true);
       expect(result.has('noticias.gerenciar')).toBe(false);
+    });
+
+    it('assistente_ouvidoria deve ter ouvidoria.gerenciar e esic.gerenciar (ADR-0005)', async () => {
+      const svc = new PermissionsService(buildPrisma() as any);
+      const result = await svc.permissoesEfetivas(USER_ID, 'assistente_ouvidoria');
+      expect(result.has('ouvidoria.gerenciar')).toBe(true);
+      expect(result.has('esic.gerenciar')).toBe(true);
+      expect(result.has('noticias.gerenciar')).toBe(false);
+    });
+
+    it('ti deve ter permissões de conteúdo e usuários mas NÃO ouvidoria/esic (ADR-0005)', async () => {
+      const svc = new PermissionsService(buildPrisma() as any);
+      const result = await svc.permissoesEfetivas(USER_ID, 'ti');
+      expect(result.has('noticias.gerenciar')).toBe(true);
+      expect(result.has('usuarios.gerenciar')).toBe(true);
+      expect(result.has('ouvidoria.gerenciar')).toBe(false);
+      expect(result.has('esic.gerenciar')).toBe(false);
+      expect(result.has('*')).toBe(false);
     });
 
     it('servidor sem grupos deve ter set vazio', async () => {
@@ -111,10 +148,17 @@ describe('PermissionsService', () => {
       expect(await svc.tem(USER_ID, 'servidor', [])).toBe(true);
     });
 
-    it('curinga deve conceder qualquer permissão', async () => {
+    it('super_admin (curinga) deve conceder qualquer permissão', async () => {
       const svc = new PermissionsService(buildPrisma() as any);
       expect(await svc.tem(USER_ID, 'super_admin', ['noticias.gerenciar'])).toBe(true);
+    });
+
+    it('admin_prefeitura sem wildcard: tem permissão explícita de grupos (ADR-0005)', async () => {
+      const svc = new PermissionsService(buildPrisma() as any);
+      // admin_prefeitura tem grupos.gerenciar na lista explícita
       expect(await svc.tem(USER_ID, 'admin_prefeitura', ['grupos.gerenciar'])).toBe(true);
+      // Mas NÃO tem ouvidoria
+      expect(await svc.tem(USER_ID, 'admin_prefeitura', ['ouvidoria.gerenciar'])).toBe(false);
     });
 
     it('deve retornar false se faltar alguma permissão requerida', async () => {

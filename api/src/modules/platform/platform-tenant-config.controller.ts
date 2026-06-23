@@ -1,6 +1,8 @@
 import {
+  BadRequestException,
   Body,
   Controller,
+  Delete,
   Get,
   NotFoundException,
   Param,
@@ -15,6 +17,11 @@ import { CurrentUser } from '../auth/current-user.decorator';
 import { AuthUser } from '../auth/jwt-auth.guard';
 import { PrismaService } from '../../prisma/prisma.service';
 import { WhatsappConfigService } from '../whatsapp/whatsapp-config.service';
+import {
+  WhatsappCanaisService,
+  CriarCanalDto,
+  AtualizarCanalDto,
+} from '../whatsapp/whatsapp-canais.service';
 import { TenantIaConfigService } from '../ia/tenant-ia-config.service';
 import { LgpdDocService, DadosLgpdEntidade } from '../lgpd/doc/lgpd-doc.service';
 import {
@@ -44,6 +51,7 @@ export class PlatformTenantConfigController {
   constructor(
     private readonly prisma: PrismaService,
     private readonly whatsappConfig: WhatsappConfigService,
+    private readonly whatsappCanais: WhatsappCanaisService,
     private readonly iaConfig: TenantIaConfigService,
     private readonly lgpdDoc: LgpdDocService,
   ) {}
@@ -84,6 +92,120 @@ export class PlatformTenantConfigController {
     await this.whatsappConfig.salvar(id, dto);
     await this.auditar(id, user, 'PLATFORM_CONFIG_WHATSAPP', dto);
     return this.whatsappConfig.configMascarada(id);
+  }
+
+  // ============================================================ Canais multi-número (WhatsApp / Instagram / Messenger / Telegram)
+
+  /**
+   * GET /_platform/tenants/:id/config/canais
+   * Lista os canais da entidade com campos mascarados (segredos nunca em claro).
+   */
+  @Get('canais')
+  async listarCanais(
+    @Param('id') id: string,
+    @CurrentUser() user: AuthUser,
+  ) {
+    await this.assertTenant(id);
+    return this.whatsappCanais.listar(id);
+  }
+
+  /**
+   * POST /_platform/tenants/:id/config/canais
+   * Cria novo canal para a entidade. Gera webhook_secret automaticamente.
+   */
+  @Post('canais')
+  async criarCanal(
+    @Param('id') id: string,
+    @Body() dto: CriarCanalDto,
+    @CurrentUser() user: AuthUser,
+  ) {
+    await this.assertTenant(id);
+
+    if (!dto.label?.trim()) throw new BadRequestException('label obrigatório.');
+    const tipo = dto.tipo ?? 'whatsapp';
+    if (tipo !== 'telegram' && !dto.metaPhoneNumberId?.trim()) {
+      throw new BadRequestException('metaPhoneNumberId obrigatório para este tipo de canal.');
+    }
+    if (!dto.metaToken) throw new BadRequestException('metaToken obrigatório na criação.');
+
+    const result = await this.whatsappCanais.criar(id, dto);
+    await this.auditar(id, user, 'PLATFORM_CONFIG_CANAL_CRIADO', {
+      canalId: result.id,
+      label: dto.label,
+      tipo,
+    });
+    return { ok: true, id: result.id };
+  }
+
+  /**
+   * PUT /_platform/tenants/:id/config/canais/:canalId
+   * Atualização parcial do canal. Segredos só são substituídos se enviados.
+   */
+  @Put('canais/:canalId')
+  async atualizarCanal(
+    @Param('id') id: string,
+    @Param('canalId') canalId: string,
+    @Body() dto: AtualizarCanalDto,
+    @CurrentUser() user: AuthUser,
+  ) {
+    await this.assertTenant(id);
+    await this.whatsappCanais.atualizar(id, canalId, dto);
+    await this.auditar(id, user, 'PLATFORM_CONFIG_CANAL_ATUALIZADO', {
+      canalId,
+      campos: Object.keys(dto).filter((k) => !['metaToken', 'metaAppSecret'].includes(k)),
+    });
+    return { ok: true };
+  }
+
+  /**
+   * DELETE /_platform/tenants/:id/config/canais/:canalId
+   * Remove o canal da entidade.
+   */
+  @Delete('canais/:canalId')
+  async excluirCanal(
+    @Param('id') id: string,
+    @Param('canalId') canalId: string,
+    @CurrentUser() user: AuthUser,
+  ) {
+    await this.assertTenant(id);
+    await this.whatsappCanais.excluir(id, canalId);
+    await this.auditar(id, user, 'PLATFORM_CONFIG_CANAL_EXCLUIDO', { canalId });
+    return { ok: true };
+  }
+
+  /**
+   * GET /_platform/tenants/:id/config/canais/:canalId/webhook-info
+   * Retorna dados de configuração do webhook (callbackUrl, flags de prontidão).
+   * Nunca retorna segredos em claro.
+   */
+  @Get('canais/:canalId/webhook-info')
+  async canalWebhookInfo(
+    @Param('id') id: string,
+    @Param('canalId') canalId: string,
+  ) {
+    await this.assertTenant(id);
+    return this.whatsappCanais.webhookInfo(id, canalId);
+  }
+
+  /**
+   * POST /_platform/tenants/:id/config/canais/:canalId/telegram-setwebhook
+   * Registra automaticamente o webhook no Telegram via Bot API.
+   * O BotToken é decifrado internamente e jamais retornado.
+   */
+  @Post('canais/:canalId/telegram-setwebhook')
+  async telegramSetWebhook(
+    @Param('id') id: string,
+    @Param('canalId') canalId: string,
+    @CurrentUser() user: AuthUser,
+  ) {
+    await this.assertTenant(id);
+    const result = await this.whatsappCanais.telegramSetWebhook(id, canalId);
+    await this.auditar(id, user, 'PLATFORM_CONFIG_TELEGRAM_SETWEBHOOK', {
+      canalId,
+      ok: result.ok,
+      descricao: result.descricao,
+    });
+    return result;
   }
 
   // ============================================================ Atendimento

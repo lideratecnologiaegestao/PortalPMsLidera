@@ -1,8 +1,9 @@
 /**
  * Unit tests para NoticiasService.
  * Testa isolamento de tenant, lógica de publicação e slug duplicado.
+ * ADR-0005 Fase 4: testa aplicação do escopoSecretariaId.
  */
-import { ConflictException, NotFoundException } from '@nestjs/common';
+import { ConflictException, ForbiddenException, NotFoundException } from '@nestjs/common';
 import { NoticiasService } from './noticias.service';
 
 const mockNoticia = {
@@ -44,13 +45,15 @@ jest.mock('../../common/tenant/tenant.context', () => ({
   TenantContext: { tenantId: () => 'tenant-a' },
 }));
 
+const mockBuscaSync = { enqueue: jest.fn().mockResolvedValue(undefined) };
+
 describe('NoticiasService', () => {
   let service: NoticiasService;
   let mockPrisma: ReturnType<typeof buildPrisma>;
 
   beforeEach(() => {
     mockPrisma = buildPrisma();
-    service = new NoticiasService(mockPrisma as any);
+    service = new NoticiasService(mockPrisma as any, mockBuscaSync as any);
   });
 
   describe('listarPublicas', () => {
@@ -146,6 +149,68 @@ describe('NoticiasService', () => {
       await expect(
         service.atualizar('noticia-uuid-1', { slug: 'slug-existente' }, 'user-id'),
       ).rejects.toThrow(ConflictException);
+    });
+  });
+
+  // ---------------------------------------------------------------- escopo (ADR-0005 Fase 4)
+  describe('escopo de secretaria', () => {
+    const SEC_A = 'sec-aaaa-0000-0000-0000-000000000000';
+    const SEC_B = 'sec-bbbb-0000-0000-0000-000000000000';
+
+    it('criar: gestor/servidor sem lotação (null) deve lançar ForbiddenException', async () => {
+      await expect(
+        service.criar({ slug: 'x', titulo: 'X' }, 'user-id', null),
+      ).rejects.toThrow(ForbiddenException);
+    });
+
+    it('criar: gestor com escopo uuid deve forçar secretariaId da secretaria dele', async () => {
+      mockPrisma.db.noticia.findUnique = jest.fn().mockResolvedValue(null); // slug livre
+      await service.criar({ slug: 'nova', titulo: 'Nova', secretariaId: SEC_B }, 'user-id', SEC_A);
+      const chamada = (mockPrisma.db.noticia.create as jest.Mock).mock.calls[0][0];
+      // deve usar SEC_A (escopo), ignorando SEC_B do dto
+      expect(chamada.data.secretariaId).toBe(SEC_A);
+    });
+
+    it('criar: admin sem escopo (undefined) respeita secretariaId do dto', async () => {
+      mockPrisma.db.noticia.findUnique = jest.fn().mockResolvedValue(null);
+      await service.criar({ slug: 'nova2', titulo: 'Nova2', secretariaId: SEC_B }, 'user-id', undefined);
+      const chamada = (mockPrisma.db.noticia.create as jest.Mock).mock.calls[0][0];
+      expect(chamada.data.secretariaId).toBe(SEC_B);
+    });
+
+    it('buscarAdmin: gestor com escopo deve rejeitar notícia de outra secretaria', async () => {
+      mockPrisma.db.noticia.findUnique = jest.fn().mockResolvedValue({
+        ...mockNoticia,
+        secretariaId: SEC_B,
+      });
+      await expect(service.buscarAdmin('noticia-uuid-1', SEC_A)).rejects.toThrow(ForbiddenException);
+    });
+
+    it('buscarAdmin: gestor sem lotação (null) deve lançar ForbiddenException', async () => {
+      mockPrisma.db.noticia.findUnique = jest.fn().mockResolvedValue(mockNoticia);
+      await expect(service.buscarAdmin('noticia-uuid-1', null)).rejects.toThrow(ForbiddenException);
+    });
+
+    it('listarAdmin: escopo null retorna lista vazia sem tocar no banco', async () => {
+      const result = await service.listarAdmin({ page: 1, pageSize: 10, escopoSecretariaId: null });
+      expect(result.items).toHaveLength(0);
+      expect(result.total).toBe(0);
+      expect(mockPrisma.db.noticia.findMany).not.toHaveBeenCalled();
+    });
+
+    it('listarAdmin: escopo uuid filtra por secretariaId', async () => {
+      await service.listarAdmin({ page: 1, pageSize: 10, escopoSecretariaId: SEC_A });
+      expect(mockPrisma.db.noticia.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({ secretariaId: SEC_A }),
+        }),
+      );
+    });
+
+    it('listarAdmin: undefined não adiciona filtro de secretaria', async () => {
+      await service.listarAdmin({ page: 1, pageSize: 10, escopoSecretariaId: undefined });
+      const chamada = (mockPrisma.db.noticia.findMany as jest.Mock).mock.calls[0][0];
+      expect(chamada.where).not.toHaveProperty('secretariaId');
     });
   });
 });

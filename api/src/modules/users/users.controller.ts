@@ -144,7 +144,7 @@ export class UsersController {
 
   @Post()
   criar(@Body() dto: CriarUserDto, @CurrentUser() user?: AuthUser) {
-    return this.service.criar(dto, user?.sub);
+    return this.service.criar(dto, user?.sub, user?.role);
   }
 
   @Patch(':id')
@@ -153,7 +153,7 @@ export class UsersController {
     @Body() dto: AtualizarUserDto,
     @CurrentUser() user?: AuthUser,
   ) {
-    return this.service.atualizar(id, dto, user?.sub);
+    return this.service.atualizar(id, dto, user?.sub, user?.role);
   }
 
   @Delete(':id')

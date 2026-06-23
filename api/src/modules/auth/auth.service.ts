@@ -10,6 +10,7 @@ import { signSession } from './session-token';
 import { computarCpfHash } from './cpf-hash';
 import { verificarSenha } from './password';
 import { SessionsService } from '../sessions/sessions.service';
+import { EulaService } from '../eula/eula.service';
 
 export interface LoginCtx {
   ip?: string;
@@ -30,6 +31,7 @@ export class AuthService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly sessions: SessionsService,
+    private readonly eulaService: EulaService,
   ) {}
 
   /** Upsert do cidadão + emissão da sessão. Retorna o JWT de sessão. */
@@ -100,7 +102,7 @@ export class AuthService {
     email: string,
     senha: string,
     ctx: LoginCtx = {},
-  ): Promise<{ token: string; mfaRequired: boolean; senhaExpirada: boolean }> {
+  ): Promise<{ token: string; mfaRequired: boolean; senhaExpirada: boolean; eulaRequired: boolean }> {
     const tenantId = TenantContext.tenantId();
     if (!tenantId) {
       throw new BadRequestException('Login deve ocorrer no domínio de uma prefeitura.');
@@ -146,6 +148,9 @@ export class AuthService {
       .registrar(jti, { userId: user.id, tenantId, ip: ctx.ip, userAgent: ctx.userAgent, expiraEm })
       .catch(() => undefined);
 
-    return { token, mfaRequired: user.mfaHabilitado, senhaExpirada };
+    // eulaRequired: ouvidor/assistente_ouvidoria que ainda não aceitou a versão vigente
+    const eulaRequired = await this.eulaService.eulaRequired(user.id, user.role);
+
+    return { token, mfaRequired: user.mfaHabilitado, senhaExpirada, eulaRequired };
   }
 }

@@ -2,8 +2,10 @@ import { BullModule } from '@nestjs/bullmq';
 import { Global, Module } from '@nestjs/common';
 import { redisConnection, bullPrefix } from './redis.config';
 import {
+  QUEUE_APP_BUILD,
   QUEUE_ATENDIMENTO,
   QUEUE_BUSCA,
+  QUEUE_ELEVATION,
   QUEUE_EXPURGO,
   QUEUE_IA,
   QUEUE_INTEGRACOES,
@@ -40,6 +42,9 @@ const pesado = {
       { name: QUEUE_EXPURGO, defaultJobOptions: pesado },
       { name: QUEUE_INTEGRACOES, defaultJobOptions: pesado },
       { name: QUEUE_BUSCA, defaultJobOptions: pesado },
+      { name: QUEUE_ELEVATION, defaultJobOptions: pesado },
+      // app-build: heavy, long-running (EAS build pode levar 10-45 min)
+      { name: QUEUE_APP_BUILD, defaultJobOptions: { attempts: 1, removeOnComplete: { count: 100 }, removeOnFail: { count: 200 } } },
     ),
   ],
   exports: [BullModule],

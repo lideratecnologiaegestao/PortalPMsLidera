@@ -9,11 +9,16 @@ import { IaConhecimentoService } from './ia-conhecimento.service';
 import { IaConhecimentoController } from './ia-conhecimento.controller';
 import { IaIndexadorService } from './ia-indexador.service';
 import { IaAdminController } from './ia-admin.controller';
+import { IaConteudosService } from './ia-conteudos.service';
+import { IaConteudosController } from './ia-conteudos.controller';
 import { TenantIaConfigService } from './tenant-ia-config.service';
 import { RerankService } from './rerank.service';
 import { AplicModule } from '../aplic/aplic.module';
 import { PlatformSettingsModule } from '../platform-settings/platform-settings.module';
 import { QUEUE_IA } from '../queue/queue.constants';
+import { IaGlobalService } from './ia-global.service';
+import { IaGlobalController } from './ia-global.controller';
+import { IaIndexadorGlobalService } from './ia-indexador-global.service';
 
 /**
  * Camada de IA: triagem de manifestações, busca/RAG multi-fonte e chatbot (API Anthropic).
@@ -21,6 +26,13 @@ import { QUEUE_IA } from '../queue/queue.constants';
  *
  * IaModule NÃO importa DocumentosModule — o worker de reindexação vive em
  * DocumentosModule que importa IaModule (sentido único, sem ciclo).
+ *
+ * IaConteudosService depende de IaIndexadorService (indexação incremental).
+ * Ambos estão no mesmo módulo — sem ciclo de importação.
+ *
+ * IaGlobalService + IaIndexadorGlobalService gerem o acervo GLOBAL de
+ * legislação/normas compartilhado por todos os tenants — sem tenant_id,
+ * acessível pelo Console Lidera (super_admin, rota /_platform/ia/...).
  */
 @Module({
   imports: [
@@ -28,7 +40,13 @@ import { QUEUE_IA } from '../queue/queue.constants';
     AplicModule, // consultas fiscais precisas (tool use do assistente)
     PlatformSettingsModule, // IA global do painel (chaves/modelo) com fallback ao .env
   ],
-  controllers: [IaController, IaConhecimentoController, IaAdminController],
+  controllers: [
+    IaController,
+    IaConhecimentoController,
+    IaAdminController,
+    IaConteudosController,
+    IaGlobalController,
+  ],
   providers: [
     IaService,
     AnthropicService,
@@ -36,9 +54,22 @@ import { QUEUE_IA } from '../queue/queue.constants';
     EmbeddingsService,
     IaConhecimentoService,
     IaIndexadorService,
+    IaConteudosService,
     TenantIaConfigService,
     RerankService,
+    IaGlobalService,
+    IaIndexadorGlobalService,
   ],
-  exports: [IaService, IaConhecimentoService, IaIndexadorService, EmbeddingsService, TenantIaConfigService, AnthropicService, RerankService],
+  exports: [
+    IaService,
+    IaConhecimentoService,
+    IaIndexadorService,
+    EmbeddingsService,
+    TenantIaConfigService,
+    AnthropicService,
+    RerankService,
+    IaGlobalService,
+    IaIndexadorGlobalService,
+  ],
 })
 export class IaModule {}

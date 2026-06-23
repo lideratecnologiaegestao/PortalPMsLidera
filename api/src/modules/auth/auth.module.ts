@@ -25,6 +25,6 @@ import { NotificacoesModule } from '../notificacoes/notificacoes.module';
   imports: [NotificacoesModule],
   controllers: [AuthController, MfaController, LoginController, PerfilController, CidadaoAuthController],
   providers: [AuthService, GovbrOidcService, MfaService, PerfilService, CidadaoAuthService],
-  exports: [AuthService, MfaService],
+  exports: [AuthService, MfaService, CidadaoAuthService],
 })
 export class AuthModule {}

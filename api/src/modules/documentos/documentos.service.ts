@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ForbiddenException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { randomBytes } from 'node:crypto';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
@@ -647,10 +647,26 @@ export class DocumentosService {
   }
 
   // ───────────────────────────── Admin: documentos ─────────────────────────
-  async listarDocumentosAdmin(p: { cadastroId?: string; tipoId?: string; q?: string; page?: number; pageSize?: number }) {
+  async listarDocumentosAdmin(p: {
+    cadastroId?: string;
+    tipoId?: string;
+    q?: string;
+    page?: number;
+    pageSize?: number;
+    /** undefined = sem escopo; null = sem lotação → lista vazia; string = uuid */
+    escopoSecretariaId?: string | null;
+  }) {
+    // Escopo null = gestor/servidor sem lotação → lista vazia
+    if (p.escopoSecretariaId === null) {
+      const page = Math.max(1, p.page ?? 1);
+      const pageSize = Math.min(60, Math.max(1, p.pageSize ?? 20));
+      return { total: 0, page, pageSize, items: [] };
+    }
+
     const page = Math.max(1, p.page ?? 1);
     const pageSize = Math.min(60, Math.max(1, p.pageSize ?? 20));
     const where: any = {};
+    if (p.escopoSecretariaId !== undefined) where.secretariaId = p.escopoSecretariaId;
     if (p.cadastroId) where.cadastroId = p.cadastroId;
     if (p.tipoId) where.tipoId = p.tipoId;
     if (p.q && p.q.trim()) {
@@ -680,10 +696,19 @@ export class DocumentosService {
     return { total, page, pageSize, items };
   }
 
-  obterDocumento(id: string) {
-    return this.prisma.db.documento.findUniqueOrThrow({ where: { id } }).catch(() => {
+  async obterDocumento(id: string, escopoSecretariaId?: string | null) {
+    const doc = await this.prisma.db.documento.findUniqueOrThrow({ where: { id } }).catch(() => {
       throw new NotFoundException('Documento não encontrado.');
     });
+    // Escopo null = sem lotação
+    if (escopoSecretariaId === null) {
+      throw new ForbiddenException('Sem secretaria de lotação definida; solicite vínculo de secretaria.');
+    }
+    // Escopo uuid = só pode ver documentos da sua secretaria
+    if (escopoSecretariaId !== undefined && doc.secretariaId !== escopoSecretariaId) {
+      throw new ForbiddenException('Acesso negado: documento pertence a outra secretaria.');
+    }
+    return doc;
   }
 
   /**
@@ -734,13 +759,24 @@ export class DocumentosService {
       titulo: string; ementa?: string; orgao?: string; situacao?: string; arquivoUrl?: string; tags?: string[];
     },
     atorId?: string,
+    escopoSecretariaId?: string | null,
   ) {
+    // Escopo null = gestor/servidor sem lotação → 403
+    if (escopoSecretariaId === null) {
+      throw new ForbiddenException('Sem secretaria de lotação definida; solicite vínculo de secretaria.');
+    }
+
+    // Escopo uuid = força secretariaId; undefined = respeita dto
+    const secretariaId = escopoSecretariaId !== undefined
+      ? escopoSecretariaId
+      : (dto.secretariaId || null);
+
     const tenantId = TenantContext.tenantId()!;
     const base = dto.numero || dto.titulo;
     const slug = await this.slugUnicoDocumento(slugify(dto.ano ? `${base}-${dto.ano}` : base), dto.cadastroId);
     const doc = await this.prisma.db.documento.create({
       data: {
-        tenantId, cadastroId: dto.cadastroId, tipoId: dto.tipoId ?? null, secretariaId: dto.secretariaId || null,
+        tenantId, cadastroId: dto.cadastroId, tipoId: dto.tipoId ?? null, secretariaId,
         numero: dto.numero ?? null, ano: dto.ano ?? null,
         dataDocumento: dto.dataDocumento ? new Date(dto.dataDocumento) : null,
         titulo: dto.titulo, ementa: dto.ementa ?? null, orgao: dto.orgao ?? null,
@@ -760,11 +796,21 @@ export class DocumentosService {
       titulo?: string; ementa?: string; orgao?: string; situacao?: string; arquivoUrl?: string; tags?: string[]; ativo?: boolean;
     },
     atorId?: string,
+    escopoSecretariaId?: string | null,
   ) {
+    // obterDocumento já valida escopo e lança 403 se necessário
+    await this.obterDocumento(id, escopoSecretariaId);
+
     const tenantId = TenantContext.tenantId()!;
     const data: any = {};
     if (dto.tipoId !== undefined) data.tipoId = dto.tipoId;
-    if (dto.secretariaId !== undefined) data.secretariaId = dto.secretariaId || null;
+    if (dto.secretariaId !== undefined) {
+      // Escopo uuid: não pode mover documento para fora da sua secretaria
+      if (escopoSecretariaId !== undefined && dto.secretariaId !== escopoSecretariaId) {
+        throw new ForbiddenException('Não é permitido alterar a secretaria para fora do seu escopo.');
+      }
+      data.secretariaId = dto.secretariaId || null;
+    }
     if (dto.numero !== undefined) data.numero = dto.numero;
     if (dto.ano !== undefined) data.ano = dto.ano;
     if (dto.dataDocumento !== undefined) data.dataDocumento = dto.dataDocumento ? new Date(dto.dataDocumento) : null;
@@ -786,7 +832,9 @@ export class DocumentosService {
     return doc;
   }
 
-  async excluirDocumento(id: string, atorId?: string) {
+  async excluirDocumento(id: string, atorId?: string, escopoSecretariaId?: string | null) {
+    // obterDocumento valida escopo antes de excluir
+    await this.obterDocumento(id, escopoSecretariaId);
     const tenantId = TenantContext.tenantId()!;
     await this.prisma.db.documento.delete({ where: { id } });
     await this.audit(tenantId, atorId, 'DOCUMENTO_EXCLUIDO', 'documentos', id, {});

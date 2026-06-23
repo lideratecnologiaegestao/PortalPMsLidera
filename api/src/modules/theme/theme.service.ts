@@ -48,6 +48,13 @@ export const themeTokensSchema = z.object({
   rodapeTitulo: z.string().max(120).optional(),
   rodapeDescricao: z.string().max(300).optional(),
   favicon: urlOuCaminho,
+  /**
+   * Ícone do PWA (instalação do portal no celular). DEVE ser PNG quadrado
+   * (recomendado 512×512) — SVG não é aceito pelos navegadores como ícone
+   * instalável. Quando ausente, o ícone do PWA cai no ícone do App do Cidadão,
+   * depois no brasão e por fim nas iniciais (ver PwaService).
+   */
+  pwaIcon: z.object({ url: urlOuCaminho, alt: z.string() }).optional(),
   iconSet: z.string().default('lucide'),
 });
 
@@ -205,6 +212,7 @@ export class ThemeService {
       rodapeTitulo: tokenAtual?.rodapeTitulo,
       rodapeDescricao: tokenAtual?.rodapeDescricao,
       favicon: tokenAtual?.favicon ?? template.tokens.favicon,
+      pwaIcon: tokenAtual?.pwaIcon, // presets não definem ícone PWA; preserva o do tenant
     };
 
     // Valida WCAG (bloqueante — acessibilidade é requisito legal)

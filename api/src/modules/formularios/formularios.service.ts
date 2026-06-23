@@ -1,6 +1,7 @@
 import {
   BadRequestException,
   ConflictException,
+  ForbiddenException,
   Injectable,
   Logger,
   NotFoundException,
@@ -91,8 +92,15 @@ export class FormulariosService {
 
   // ---------------------------------------------------------------- admin CRUD
 
-  async listar() {
+  async listar(escopoSecretariaId?: string | null) {
+    // Escopo null = gestor/servidor sem lotação → lista vazia
+    if (escopoSecretariaId === null) return [];
+
+    const where: Record<string, unknown> = {};
+    if (escopoSecretariaId !== undefined) where.secretariaId = escopoSecretariaId;
+
     const rows = await this.prisma.db.formulario.findMany({
+      where,
       orderBy: { atualizadoEm: 'desc' },
       select: {
         id: true,
@@ -100,13 +108,24 @@ export class FormulariosService {
         titulo: true,
         status: true,
         totalEnvios: true,
+        secretariaId: true,
         atualizadoEm: true,
       },
     });
     return rows;
   }
 
-  async criar(dto: CriarFormularioDto) {
+  async criar(dto: CriarFormularioDto, escopoSecretariaId?: string | null) {
+    // Escopo null = gestor/servidor sem lotação → 403
+    if (escopoSecretariaId === null) {
+      throw new ForbiddenException('Sem secretaria de lotação definida; solicite vínculo de secretaria.');
+    }
+
+    // Escopo uuid = força secretariaId; undefined = respeita dto
+    const secretariaId = escopoSecretariaId !== undefined
+      ? escopoSecretariaId
+      : (dto.secretariaId || null);
+
     const tenantId = TenantContext.tenantId()!;
     const schema = dto.schema ? validarSchema(dto.schema) : [];
     const slug = await gerarSlugUnico(this.prisma.db.formulario, dto.titulo);
@@ -117,19 +136,38 @@ export class FormulariosService {
         titulo: dto.titulo,
         descricao: dto.descricao ?? null,
         schema: schema as any,
+        secretariaId,
       },
     });
   }
 
-  async obterPorId(id: string) {
+  async obterPorId(id: string, escopoSecretariaId?: string | null) {
     const form = await this.prisma.db.formulario.findUnique({ where: { id } });
     if (!form) throw new NotFoundException('Formulário não encontrado.');
+    // Escopo null = sem lotação
+    if (escopoSecretariaId === null) {
+      throw new ForbiddenException('Sem secretaria de lotação definida; solicite vínculo de secretaria.');
+    }
+    // Escopo uuid = só pode acessar formulários da sua secretaria
+    if (escopoSecretariaId !== undefined && form.secretariaId !== escopoSecretariaId) {
+      throw new ForbiddenException('Acesso negado: formulário pertence a outra secretaria.');
+    }
     return form;
   }
 
-  async atualizar(id: string, dto: AtualizarFormularioDto) {
-    await this.obterPorId(id); // verifica existência e RLS
+  async atualizar(id: string, dto: AtualizarFormularioDto, escopoSecretariaId?: string | null) {
+    await this.obterPorId(id, escopoSecretariaId); // verifica existência, RLS e escopo
     const schema = dto.schema !== undefined ? validarSchema(dto.schema) : undefined;
+
+    let secretariaId: string | null | undefined;
+    if (dto.secretariaId !== undefined) {
+      // Escopo uuid: não pode mover formulário para fora da sua secretaria
+      if (escopoSecretariaId !== undefined && dto.secretariaId !== escopoSecretariaId) {
+        throw new ForbiddenException('Não é permitido alterar a secretaria para fora do seu escopo.');
+      }
+      secretariaId = dto.secretariaId || null;
+    }
+
     return this.prisma.db.formulario.update({
       where: { id },
       data: {
@@ -145,12 +183,13 @@ export class FormulariosService {
         ...(dto.notificarEmails !== undefined && { notificarEmails: dto.notificarEmails }),
         ...(dto.notificarCc !== undefined && { notificarCc: dto.notificarCc }),
         ...(dto.notificarBcc !== undefined && { notificarBcc: dto.notificarBcc }),
+        ...(secretariaId !== undefined && { secretariaId }),
       },
     });
   }
 
-  async remover(id: string) {
-    await this.obterPorId(id);
+  async remover(id: string, escopoSecretariaId?: string | null) {
+    await this.obterPorId(id, escopoSecretariaId); // verifica escopo antes de excluir
     await this.prisma.db.formulario.delete({ where: { id } });
     return { ok: true };
   }
@@ -390,8 +429,9 @@ export class FormulariosService {
       page?: number;
       pageSize?: number;
     },
+    escopoSecretariaId?: string | null,
   ) {
-    await this.obterPorId(formularioId);
+    await this.obterPorId(formularioId, escopoSecretariaId);
 
     const page = Math.max(1, opts.page ?? 1);
     const pageSize = Math.min(100, Math.max(1, opts.pageSize ?? 20));
@@ -454,8 +494,8 @@ export class FormulariosService {
     };
   }
 
-  async obterEnvio(formularioId: string, envioId: string) {
-    await this.obterPorId(formularioId);
+  async obterEnvio(formularioId: string, envioId: string, escopoSecretariaId?: string | null) {
+    await this.obterPorId(formularioId, escopoSecretariaId);
     const envio = await this.prisma.db.formularioEnvio.findFirst({
       where: { id: envioId, formularioId },
       include: { cidadao: { select: { id: true, nome: true } } },
@@ -464,16 +504,16 @@ export class FormulariosService {
     return envio;
   }
 
-  async atualizarEnvio(formularioId: string, envioId: string, dto: { lido?: boolean }) {
-    await this.obterEnvio(formularioId, envioId);
+  async atualizarEnvio(formularioId: string, envioId: string, dto: { lido?: boolean }, escopoSecretariaId?: string | null) {
+    await this.obterEnvio(formularioId, envioId, escopoSecretariaId);
     return this.prisma.db.formularioEnvio.update({
       where: { id: envioId },
       data: { ...(dto.lido !== undefined && { lido: dto.lido }) },
     });
   }
 
-  async removerEnvio(formularioId: string, envioId: string) {
-    await this.obterEnvio(formularioId, envioId);
+  async removerEnvio(formularioId: string, envioId: string, escopoSecretariaId?: string | null) {
+    await this.obterEnvio(formularioId, envioId, escopoSecretariaId);
     await this.prisma.db.formularioEnvio.delete({ where: { id: envioId } });
     await this.prisma.db.formulario.update({
       where: { id: formularioId },
@@ -485,8 +525,9 @@ export class FormulariosService {
   async listarEnviosParaExport(
     formularioId: string,
     opts: { q?: string; de?: string; ate?: string },
+    escopoSecretariaId?: string | null,
   ) {
-    await this.obterPorId(formularioId);
+    await this.obterPorId(formularioId, escopoSecretariaId);
     const where: Prisma.FormularioEnvioWhereInput = { formularioId };
     if (opts.de || opts.ate) {
       where.criadoEm = {

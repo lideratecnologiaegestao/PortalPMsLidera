@@ -19,6 +19,13 @@ export interface TenantWhatsappConfigDecifrada {
   evolutionApiUrl?: string;
   evolutionInstance?: string;
   evolutionApiKey?: string;
+  // Meta Cloud (API Oficial)
+  metaPhoneNumberId?: string;
+  metaWabaId?: string;
+  metaToken?: string;
+  metaAppSecret?: string;
+  metaVerifyToken?: string;
+  metaWebhookSecret?: string;
   ativo: boolean;
 }
 
@@ -31,6 +38,11 @@ export interface SalvarConfigDto {
   evolutionApiUrl?: string;
   evolutionInstance?: string;
   evolutionApiKey?: string;
+  metaPhoneNumberId?: string;
+  metaWabaId?: string;
+  metaToken?: string;
+  metaAppSecret?: string;
+  metaVerifyToken?: string;
   ativo?: boolean;
 }
 
@@ -93,6 +105,12 @@ export class WhatsappConfigService {
       evolutionApiUrl: row?.evolutionApiUrl ?? process.env.EVOLUTION_API_URL ?? null,
       evolutionInstance: row?.evolutionInstance ?? process.env.EVOLUTION_INSTANCE ?? null,
       evolutionApiKeyDefinida: !!(row?.evolutionApiKeyCifrado ?? process.env.EVOLUTION_API_KEY),
+      metaPhoneNumberId: row?.metaPhoneNumberId ?? process.env.META_PHONE_NUMBER_ID ?? null,
+      metaWabaId: row?.metaWabaId ?? process.env.META_WABA_ID ?? null,
+      metaTokenDefinido: !!(row?.metaTokenCifrado ?? process.env.META_TOKEN),
+      metaAppSecretDefinido: !!(row?.metaAppSecretCifrado ?? process.env.META_APP_SECRET),
+      metaVerifyTokenDefinido: !!(row?.metaVerifyToken ?? process.env.META_VERIFY_TOKEN),
+      metaWebhookSecretDefinido: !!(row?.metaWebhookSecret ?? process.env.META_WEBHOOK_SECRET),
       ativo: row?.ativo ?? true,
     };
   }
@@ -105,7 +123,9 @@ export class WhatsappConfigService {
       this.prisma.db.tenantWhatsappConfig.findFirst(),
     );
 
-    const isZapi = (dto.provider ?? atual?.provider ?? 'evolution') === 'zapi';
+    const providerFinal = dto.provider ?? atual?.provider ?? 'evolution';
+    const isZapi = providerFinal === 'zapi';
+    const isMeta = providerFinal === 'meta';
 
     // Gera webhook secret se provider for Z-API e ainda não existe
     let webhookSecret = atual?.zapiWebhookSecret ?? undefined;
@@ -113,12 +133,22 @@ export class WhatsappConfigService {
       webhookSecret = randomBytes(32).toString('hex');
     }
 
+    // Gera o segredo de path do webhook da Meta se provider for Meta e ausente
+    let metaWebhookSecret = atual?.metaWebhookSecret ?? undefined;
+    if (isMeta && !metaWebhookSecret) {
+      metaWebhookSecret = randomBytes(32).toString('hex');
+    }
+
     const data: Record<string, unknown> = {
-      provider: dto.provider ?? atual?.provider ?? 'evolution',
+      provider: providerFinal,
       fallbackProvider: dto.fallbackProvider ?? atual?.fallbackProvider ?? null,
       zapiInstanceId: dto.zapiInstanceId ?? atual?.zapiInstanceId ?? null,
       evolutionApiUrl: dto.evolutionApiUrl ?? atual?.evolutionApiUrl ?? null,
       evolutionInstance: dto.evolutionInstance ?? atual?.evolutionInstance ?? null,
+      metaPhoneNumberId: dto.metaPhoneNumberId ?? atual?.metaPhoneNumberId ?? null,
+      metaWabaId: dto.metaWabaId ?? atual?.metaWabaId ?? null,
+      metaVerifyToken: dto.metaVerifyToken ?? atual?.metaVerifyToken ?? null,
+      metaWebhookSecret: metaWebhookSecret ?? null,
       ativo: dto.ativo ?? atual?.ativo ?? true,
       zapiWebhookSecret: webhookSecret ?? null,
     };
@@ -127,6 +157,8 @@ export class WhatsappConfigService {
     if (dto.zapiToken) data.zapiTokenCifrado = cifrar(dto.zapiToken);
     if (dto.zapiClientToken) data.zapiClientTokenCifrado = cifrar(dto.zapiClientToken);
     if (dto.evolutionApiKey) data.evolutionApiKeyCifrado = cifrar(dto.evolutionApiKey);
+    if (dto.metaToken) data.metaTokenCifrado = cifrar(dto.metaToken);
+    if (dto.metaAppSecret) data.metaAppSecretCifrado = cifrar(dto.metaAppSecret);
 
     await TenantContext.run({ tenantId }, async () => {
       if (atual) {
@@ -156,6 +188,12 @@ export class WhatsappConfigService {
       evolutionApiUrl?: string | null;
       evolutionInstance?: string | null;
       evolutionApiKeyCifrado?: string | null;
+      metaPhoneNumberId?: string | null;
+      metaWabaId?: string | null;
+      metaTokenCifrado?: string | null;
+      metaAppSecretCifrado?: string | null;
+      metaVerifyToken?: string | null;
+      metaWebhookSecret?: string | null;
       ativo: boolean;
     } | null,
   ): TenantWhatsappConfigDecifrada {
@@ -174,6 +212,12 @@ export class WhatsappConfigService {
       evolutionApiUrl: row?.evolutionApiUrl ?? process.env.EVOLUTION_API_URL ?? undefined,
       evolutionInstance: row?.evolutionInstance ?? process.env.EVOLUTION_INSTANCE ?? undefined,
       evolutionApiKey: row?.evolutionApiKeyCifrado ? this.decifrarSafe(row.evolutionApiKeyCifrado) : (process.env.EVOLUTION_API_KEY ?? undefined),
+      metaPhoneNumberId: row?.metaPhoneNumberId ?? process.env.META_PHONE_NUMBER_ID ?? undefined,
+      metaWabaId: row?.metaWabaId ?? process.env.META_WABA_ID ?? undefined,
+      metaToken: row?.metaTokenCifrado ? this.decifrarSafe(row.metaTokenCifrado) : (process.env.META_TOKEN ?? undefined),
+      metaAppSecret: row?.metaAppSecretCifrado ? this.decifrarSafe(row.metaAppSecretCifrado) : (process.env.META_APP_SECRET ?? undefined),
+      metaVerifyToken: row?.metaVerifyToken ?? process.env.META_VERIFY_TOKEN ?? undefined,
+      metaWebhookSecret: row?.metaWebhookSecret ?? process.env.META_WEBHOOK_SECRET ?? undefined,
       ativo: row?.ativo ?? true,
     };
   }

@@ -1,9 +1,10 @@
-import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ForbiddenException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { randomBytes } from 'crypto';
 import { PrismaService } from '../../prisma/prisma.service';
 import { TenantContext } from '../../common/tenant/tenant.context';
 import { MediaStorageService } from '../media/media-storage.service';
 import { ChatGateway } from './chat.gateway';
+import { ChatBotService } from './chat-bot.service';
 
 const importDinamico = new Function('m', 'return import(m)') as <T = any>(m: string) => Promise<T>;
 const MAX_BYTES = 15 * 1024 * 1024;
@@ -23,10 +24,13 @@ interface AnexoRec { key: string; nome: string; mime: string; tamanho: number }
  */
 @Injectable()
 export class ChatService {
+  private readonly log = new Logger(ChatService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly storage: MediaStorageService,
     private readonly gateway: ChatGateway,
+    private readonly botService: ChatBotService,
   ) {}
 
   private me(): string {
@@ -53,21 +57,49 @@ export class ChatService {
 
   // ----------------------------------------------------------- usuários
   async usuariosInternos(q?: string) {
+    const tenantId = this.tenant();
+
+    // Garante que o bot user existe (get-or-create) antes de listar
+    let botUser: { id: string; nome: string } | null = null;
+    try {
+      botUser = await this.botService.ensureBotUser(tenantId);
+    } catch (err) {
+      this.log.warn(`Não foi possível garantir bot user: ${(err as Error).message}`);
+    }
+
     const rows = await this.prisma.db.user.findMany({
       where: {
         ativo: true,
         role: { not: 'cidadao' as any },
+        isBot: false, // usuários humanos — bots aparecem separados
         ...(q ? { OR: [{ nome: { contains: q, mode: 'insensitive' } }, { email: { contains: q, mode: 'insensitive' } }] } : {}),
       },
       select: { id: true, nome: true, role: true, avatarStorageKey: true },
       orderBy: { nome: 'asc' },
       take: 50,
     });
+
     const online = this.gateway.online();
-    return rows.map((u) => ({
+    const humanUsers = rows.map((u) => ({
       id: u.id, nome: u.nome, role: u.role,
       avatar: this.avatarUrl(u), online: online.has(u.id),
+      isBot: false,
     }));
+
+    // Bot sempre no topo, sempre online=true (não aparece no filtro de busca por e-mail)
+    const filtroBot = !q || 'assistente do portal'.includes(q.toLowerCase());
+    const botEntry = botUser && filtroBot
+      ? [{
+          id: botUser.id,
+          nome: botUser.nome,
+          role: 'servidor' as any,
+          avatar: null,
+          online: true,
+          isBot: true,
+        }]
+      : [];
+
+    return [...botEntry, ...humanUsers];
   }
 
   // ---------------------------------------------------------- conversas
@@ -242,8 +274,9 @@ export class ChatService {
 
   private async persistir(conversaId: string, conteudo: string, anexos: AnexoRec[], respondendoA?: string) {
     const me = this.me();
+    const tenantId = this.tenant();
     const msg = await this.prisma.db.chatMensagem.create({
-      data: { tenantId: this.tenant(), conversaId, autorId: me, conteudo: conteudo || null, anexos: anexos as any, respondendoA: respondendoA ?? null },
+      data: { tenantId, conversaId, autorId: me, conteudo: conteudo || null, anexos: anexos as any, respondendoA: respondendoA ?? null },
     });
     await this.prisma.db.chatConversa.update({ where: { id: conversaId }, data: { atualizadoEm: new Date() } });
     // marca como lido para o autor
@@ -252,6 +285,18 @@ export class ChatService {
     const autor = await this.prisma.db.user.findUnique({ where: { id: me }, select: { id: true, nome: true, avatarStorageKey: true } });
     const dto = this.toDto(msg, new Map([[me, autor]]));
     this.gateway.emitirConversa(conversaId, 'mensagem', dto);
+
+    // Se a conversa tem o bot como participante e o autor é humano → enfileira resposta do bot
+    try {
+      const botUserId = await this.botService.conversaTembBot(conversaId);
+      if (botUserId && botUserId !== me) {
+        await this.botService.enfileirarResposta(conversaId, msg.id, tenantId);
+      }
+    } catch (err) {
+      // best-effort — não interrompe o envio da mensagem humana
+      this.log.warn(`Não foi possível enfileirar resposta do bot: ${(err as Error).message}`);
+    }
+
     return dto;
   }
 

@@ -3,15 +3,17 @@ import { AsyncLocalStorage } from 'node:async_hooks';
 /**
  * Contexto de execução por requisição. Carrega o tenant resolvido pelo
  * middleware e o usuário autenticado. É lido pelo PrismaService para
- * definir o GUC `app.current_tenant_id` (RLS) sem precisar passar o
- * tenantId manualmente em cada chamada de service.
+ * definir os GUCs de RLS (`app.current_tenant_id`, `app.current_user_role`,
+ * `app.current_user_id`, `app.current_secretaria_id`) sem precisar passar
+ * esses valores manualmente em cada chamada de service.
  */
 export interface RequestContext {
-  tenantId?: string;     // UUID do tenant (undefined em rotas de plataforma)
-  isPlatform?: boolean;  // true quando super_admin opera cross-tenant
-  userId?: string;
-  role?: string;
-  requestId?: string;    // correlaciona logs da mesma requisição
+  tenantId?: string;       // UUID do tenant (undefined em rotas de plataforma)
+  isPlatform?: boolean;    // true quando super_admin opera cross-tenant
+  userId?: string;         // UUID do usuário autenticado
+  role?: string;           // role do usuário (ex.: 'ouvidor', 'admin_prefeitura')
+  secretariaId?: string;   // UUID da secretaria do usuário (para RLS de papel por área)
+  requestId?: string;      // correlaciona logs da mesma requisição
 }
 
 const storage = new AsyncLocalStorage<RequestContext>();

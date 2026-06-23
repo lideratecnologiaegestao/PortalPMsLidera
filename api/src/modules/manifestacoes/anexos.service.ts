@@ -91,8 +91,15 @@ export class AnexosService {
     return { id: anexo.id, nomeArquivo: anexo.nomeArquivo, mime, tamanhoBytes: buffer.length };
   }
 
-  async listar(manifestacaoId: string) {
-    const rows = await this.prisma.db.manifestacaoAnexo.findMany({
+  /**
+   * Lista os anexos de uma manifestação.
+   *
+   * @param publico - quando true, usa dbPublica() (fluxo do cidadão após
+   *   validar protocolo+chave em TramitacaoService.autorizar).
+   */
+  async listar(manifestacaoId: string, publico = false) {
+    const db = publico ? this.prisma.dbPublica() : this.prisma.db;
+    const rows = await db.manifestacaoAnexo.findMany({
       where: { manifestacaoId },
       orderBy: { criadoEm: 'asc' },
       select: { id: true, nomeArquivo: true, mime: true, origem: true, tamanhoBytes: true, criadoEm: true },
@@ -100,9 +107,14 @@ export class AnexosService {
     return rows.map((a) => ({ ...a, tamanhoBytes: Number(a.tamanhoBytes) }));
   }
 
-  /** Stream do anexo. Se `manifestacaoId` for informado, valida o vínculo. */
-  async stream(anexoId: string, manifestacaoId?: string) {
-    const a = await this.prisma.db.manifestacaoAnexo.findUnique({ where: { id: anexoId } });
+  /**
+   * Stream de um anexo para o cidadão (valida protocolo+chave e vínculo).
+   *
+   * @param publico - quando true, usa dbPublica() (fluxo do cidadão).
+   */
+  async stream(anexoId: string, manifestacaoId?: string, publico = false) {
+    const db = publico ? this.prisma.dbPublica() : this.prisma.db;
+    const a = await db.manifestacaoAnexo.findUnique({ where: { id: anexoId } });
     if (!a || (manifestacaoId && a.manifestacaoId !== manifestacaoId)) {
       throw new NotFoundException('Anexo não encontrado.');
     }

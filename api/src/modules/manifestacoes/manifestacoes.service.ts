@@ -49,6 +49,9 @@ export class ManifestacoesService {
    * LGPD: envia a lista de protocolos vinculados ao e-mail para o próprio titular,
    * nunca exibe na resposta HTTP. Resposta SEMPRE genérica (sem revelar existência).
    * Auditado sem PII (apenas qtd).
+   *
+   * Usa dbPublica() pois o cidadão não tem papel de staff — o GUC público permite
+   * a leitura por tenant (isolamento de tenant mantido).
    */
   async recuperarProtocolos(email: string): Promise<{ ok: boolean; mensagem: string }> {
     const MENSAGEM_GENERICA =
@@ -57,7 +60,8 @@ export class ManifestacoesService {
     const tenantId = TenantContext.tenantId()!;
 
     // Busca as últimas 200 manifestações não-anônimas do tenant onde o e-mail coincide.
-    const manifestacoes = await this.prisma.db.manifestacao.findMany({
+    // dbPublica(): GUC app.public_ouvidoria='on' — permite SELECT sem papel de staff.
+    const manifestacoes = await this.prisma.dbPublica().manifestacao.findMany({
       where: {
         anonima: false,
         solicitanteEmail: { equals: email, mode: 'insensitive' },
@@ -167,7 +171,10 @@ export class ManifestacoesService {
 
     const tenantId = TenantContext.tenantId()!;
     // ATÔMICO: cria a manifestação e seu evento inicial na mesma transação.
-    const m = await this.prisma.tx(async (tx) => {
+    // txPublicaOuvidoria(): ativa GUC app.public_ouvidoria='on' para que o
+    // RETURNING implícito do CREATE e o INSERT do evento não sejam bloqueados
+    // pelo RLS de papel (cidadão não tem role de staff). Tenant permanece filtrado.
+    const m = await this.prisma.txPublicaOuvidoria(async (tx) => {
       const created = await tx.manifestacao.create({
         data: {
           tenantId,
@@ -220,12 +227,22 @@ export class ManifestacoesService {
   }
 
   // -------------------------------------------------------------- transições
+  /**
+   * Aplica uma transição de estado na FSM.
+   *
+   * @param opts.publico - quando true, usa txPublicaOuvidoria() em vez de tx()
+   *   para fluxos do cidadão que não têm papel de staff (retomada de SLA por
+   *   resposta do cidadão, recurso e-SIC). A validação de acesso (protocolo+chave)
+   *   deve ter ocorrido ANTES pelo chamador (TramitacaoService).
+   */
   async aplicarEvento(
     manifestacaoId: string,
     evento: Evento,
-    opts: { atorId?: string; observacao?: string } = {},
+    opts: { atorId?: string; observacao?: string; publico?: boolean } = {},
   ) {
-    const m = await this.prisma.db.manifestacao.findUnique({ where: { id: manifestacaoId } });
+    // Leitura da manifestação atual: usa dbPublica se o contexto é público.
+    const dbLeitura = opts.publico ? this.prisma.dbPublica() : this.prisma.db;
+    const m = await dbLeitura.manifestacao.findUnique({ where: { id: manifestacaoId } });
     if (!m) throw new NotFoundException('Manifestação não encontrada.');
 
     const r = transicionar(m.status as Status, evento, m.canal as Canal);
@@ -266,8 +283,13 @@ export class ManifestacoesService {
     }
 
     // ATÔMICO: muda o status e grava o evento na mesma transação.
+    // Escolhe o método de transação correto conforme o contexto (staff vs cidadão).
     const tenantId = TenantContext.tenantId()!;
-    const atualizada = await this.prisma.tx(async (tx) => {
+    const txFn = opts.publico
+      ? (fn: (tx: any) => Promise<any>) => this.prisma.txPublicaOuvidoria(fn)
+      : (fn: (tx: any) => Promise<any>) => this.prisma.tx(fn);
+
+    const atualizada = await txFn(async (tx) => {
       const a = await tx.manifestacao.update({
         where: { id: manifestacaoId },
         data: patch as any,
@@ -288,9 +310,15 @@ export class ManifestacoesService {
     return atualizada;
   }
 
-  /** Eventos que a UI pode oferecer para o estado atual. */
-  async acoesDisponiveis(manifestacaoId: string) {
-    const m = await this.prisma.db.manifestacao.findUnique({ where: { id: manifestacaoId } });
+  /**
+   * Eventos que a UI pode oferecer para o estado atual.
+   *
+   * @param publico - quando true, usa dbPublica() (fluxo do cidadão via
+   *   TramitacaoService após validar protocolo+chave).
+   */
+  async acoesDisponiveis(manifestacaoId: string, publico = false) {
+    const db = publico ? this.prisma.dbPublica() : this.prisma.db;
+    const m = await db.manifestacao.findUnique({ where: { id: manifestacaoId } });
     if (!m) throw new NotFoundException('Manifestação não encontrada.');
     return eventosValidos(m.status as Status, m.canal as Canal);
   }

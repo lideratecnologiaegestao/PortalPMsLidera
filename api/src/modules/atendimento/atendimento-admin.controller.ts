@@ -25,11 +25,17 @@ import { WhatsappService } from '../whatsapp/whatsapp.service';
 
 /**
  * Console de administração do atendimento omnichannel.
- * RBAC: OUVIDOR, SERVIDOR (escopado à secretaria), ADMIN_PREFEITURA.
+ *
+ * ADR-0005 — Isolamento da Ouvidoria:
+ *   Conversas com canal='ouvidoria' (ou vinculadas a manifestação) são visíveis
+ *   SOMENTE por OUVIDOR e ASSISTENTE_OUVIDORIA. As demais roles (ADMIN_PREFEITURA,
+ *   GESTOR, SERVIDOR, TI) só veem canais não-ouvidoria ('widget', 'whatsapp', etc.).
+ *   O filtro é aplicado no inbox() do service. O acesso ao controller continua
+ *   aberto para todas as roles de staff do tenant; o que muda é O QUE elas veem.
  */
 @Controller('admin/atendimento')
 @UseGuards(RolesGuard)
-@Roles(Role.OUVIDOR, Role.SERVIDOR, Role.ADMIN_PREFEITURA)
+@Roles(Role.OUVIDOR, Role.ASSISTENTE_OUVIDORIA, Role.SERVIDOR, Role.ADMIN_PREFEITURA, Role.GESTOR, Role.TI)
 export class AtendimentoAdminController {
   constructor(
     private readonly conversaService: AtendimentoConversaService,
@@ -66,11 +72,21 @@ export class AtendimentoAdminController {
     });
   }
 
-  /** GET /admin/atendimento/conversas/:id */
+  /**
+   * GET /admin/atendimento/conversas/:id
+   * Devolve no formato { conversa, mensagens, eventos } esperado pelo painel
+   * (achatando a relação `agente` em `agenteNome`).
+   */
   @Get('conversas/:id')
   async detalhe(@Param('id') id: string) {
     const tenantId = TenantContext.tenantId()!;
-    return this.conversaService.detalhe(id, tenantId);
+    const c = (await this.conversaService.detalhe(id, tenantId)) as Record<string, any>;
+    const { mensagens, eventos, agente, cidadao, ...rest } = c;
+    return {
+      conversa: { ...rest, agenteNome: agente?.nome ?? null },
+      mensagens: mensagens ?? [],
+      eventos: eventos ?? [],
+    };
   }
 
   /** POST /admin/atendimento/conversas/:id/mensagens — responder ou nota interna. */
@@ -93,17 +109,32 @@ export class AtendimentoAdminController {
       interno: body.interno ?? false,
     });
 
-    // Se canal whatsapp e não-interno, envia via WhatsApp
+    // Se canal whatsapp e não-interno, envia via WhatsApp pelo canal de origem (se definido).
+    // Roteamento: canalId presente → enviarPorCanal (multi-número Meta, migration 081).
+    //             senão → enviar (config única, retrocompat).
     if (!body.interno) {
       try {
         const c = await TenantContext.run({ tenantId }, () =>
           this.prisma.db.atendimentoConversa.findUnique({
             where: { id: conversaId },
-            select: { canal: true, visitanteTelefone: true },
+            select: { canal: true, visitanteTelefone: true, visitanteIdentificador: true, canalId: true },
           }),
         );
-        if (c?.canal === 'whatsapp' && c?.visitanteTelefone) {
-          await this.whatsapp.enviar(c.visitanteTelefone, conteudo).catch(() => undefined);
+        // Roteamento para todos os canais externos (migration 083: messenger + telegram)
+        if (c && ['whatsapp', 'instagram', 'messenger', 'telegram'].includes(c.canal)) {
+          // Telegram usa visitanteIdentificador (chat_id); demais usam visitanteTelefone.
+          const destino = c.canal === 'telegram'
+            ? (c.visitanteIdentificador ?? c.visitanteTelefone)
+            : c.visitanteTelefone;
+          if (destino) {
+            if (c.canalId) {
+              // Messenger/Telegram/Instagram/WhatsApp: sempre via canalId (provider resolvido pelo tipo)
+              await this.whatsapp.enviarPorCanal(c.canalId, destino, conteudo).catch(() => undefined);
+            } else if (c.canal === 'whatsapp') {
+              // Fallback retrocompat somente para WhatsApp sem canalId
+              await this.whatsapp.enviar(destino, conteudo).catch(() => undefined);
+            }
+          }
         }
       } catch {
         // best-effort
@@ -120,9 +151,9 @@ export class AtendimentoAdminController {
     return this.conversaService.assumir(conversaId, tenantId, req.user?.id);
   }
 
-  /** POST /admin/atendimento/conversas/:id/atribuir (OUVIDOR/ADMIN) */
+  /** POST /admin/atendimento/conversas/:id/atribuir (OUVIDOR/ASSISTENTE/ADMIN/TI) */
   @Post('conversas/:id/atribuir')
-  @Roles(Role.OUVIDOR, Role.ADMIN_PREFEITURA)
+  @Roles(Role.OUVIDOR, Role.ASSISTENTE_OUVIDORIA, Role.ADMIN_PREFEITURA, Role.TI)
   async atribuir(
     @Param('id') conversaId: string,
     @Body() body: { agenteId: string; secretariaId?: string },

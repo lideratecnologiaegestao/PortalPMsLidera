@@ -12,6 +12,7 @@ import { TramitacaoService } from './tramitacao.service';
 import { SlaWorker } from './workers/sla.worker';
 import { SlaScheduler } from './sla-scheduler';
 import { ThemeModule } from '../theme/theme.module';
+import { EulaGuard } from '../eula/eula.guard';
 
 @Module({
   imports: [
@@ -21,7 +22,7 @@ import { ThemeModule } from '../theme/theme.module';
     ThemeModule, // ThemeService para logo nos relatórios PDF
   ],
   controllers: [ManifestacoesController, ManifestacoesAdminController],
-  providers: [ManifestacoesService, ManifestacoesAdminService, TramitacaoService, AnexosService, SlaWorker, SlaScheduler],
+  providers: [ManifestacoesService, ManifestacoesAdminService, TramitacaoService, AnexosService, SlaWorker, SlaScheduler, EulaGuard],
   exports: [ManifestacoesService, ManifestacoesAdminService, TramitacaoService],
 })
 export class ManifestacoesModule {}

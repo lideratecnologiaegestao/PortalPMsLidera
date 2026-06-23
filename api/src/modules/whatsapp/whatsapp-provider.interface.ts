@@ -26,6 +26,21 @@ export interface ButtonsInput {
   buttons: { id: string; label: string }[];
 }
 
+/**
+ * Mensagem de template aprovado pela Meta (HSM). Único formato permitido para
+ * INICIAR conversa fora da janela de 24h. `componentes` segue o formato da
+ * Graph API (header/body/button com parameters). Só o provider Meta suporta;
+ * Z-API/Evolution caem para texto.
+ */
+export interface TemplateInput {
+  /** Nome do template aprovado no Business Manager. */
+  nome: string;
+  /** Código do idioma (ex.: 'pt_BR'). */
+  idioma: string;
+  /** Componentes da Graph API (parameters de header/body/botões). Opcional. */
+  componentes?: unknown[];
+}
+
 export interface InboundMessage {
   /** ID único da mensagem no provider — usado para idempotência. */
   messageId: string;
@@ -53,6 +68,12 @@ export interface WhatsappProvider {
 
   /** Opcional — providers que não suportam botões interativos podem omitir. */
   sendButtons?(to: string, payload: ButtonsInput): Promise<SendResult>;
+
+  /**
+   * Opcional — envia template aprovado (HSM). Necessário para iniciar conversa
+   * fora da janela de 24h via API Oficial da Meta. Providers sem suporte omitem.
+   */
+  sendTemplate?(to: string, template: TemplateInput): Promise<SendResult>;
 
   getStatus(): Promise<{ conectado: boolean; detalhe?: string }>;
 

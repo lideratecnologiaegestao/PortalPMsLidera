@@ -53,3 +53,15 @@ export const QUEUE_BUSCA = 'busca';
 export const JOB_BUSCA_SYNC_ITEM = 'busca.sync-item';           // indexa/remove um item específico
 export const JOB_BUSCA_REINDEX_TENANT = 'busca.reindex-tenant'; // reindexa todas as fontes públicas do tenant
 export const JOB_BUSCA_CLEANUP_ORPHANS = 'busca.cleanup-orphans'; // remove itens órfãos ou despublicados
+
+// Elevação de papel (ADR-0005 Fase 2) — expiração de solicitações pendentes.
+export const QUEUE_ELEVATION = 'elevation';
+export const JOB_ELEVATION_EXPIRE = 'elevation.expire-pending'; // varre cross-tenant 1x/dia
+
+// Chat interno (funcionários) — Assistente do Portal (bot IA).
+export const QUEUE_CHAT = 'chat';
+export const JOB_CHAT_BOT_RESPONDER = 'chat.bot-responder'; // gera resposta do Assistente do Portal
+
+// Build do App do Cidadão via EAS CLI (ADR-0006 Fase 2).
+export const QUEUE_APP_BUILD = 'app-build';
+export const JOB_APP_BUILD = 'app-build.gerar'; // aciona eas build na nuvem

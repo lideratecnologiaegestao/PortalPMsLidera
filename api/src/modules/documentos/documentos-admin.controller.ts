@@ -3,6 +3,9 @@ import { Roles } from '../../common/rbac/roles.decorator';
 import { Role } from '../../common/rbac/roles.enum';
 import { RolesGuard } from '../../common/rbac/roles.guard';
 import { TenantContext } from '../../common/tenant/tenant.context';
+import { CurrentUser } from '../auth/current-user.decorator';
+import { AuthUser } from '../auth/jwt-auth.guard';
+import { EscopoSecretariaService } from '../../common/escopo/escopo-secretaria.service';
 import { DocumentosService } from './documentos.service';
 
 const ator = () => TenantContext.get().userId as string | undefined;
@@ -10,6 +13,8 @@ const ator = () => TenantContext.get().userId as string | undefined;
 /**
  * Administração do Cadastro de Documentos. RBAC: gestor/admin. RLS por tenant.
  * Gerencia cadastros (com auto-menu), seus tipos (taxonomia) e os documentos.
+ *
+ * ADR-0005 Fase 4: gestor/servidor só veem/editam documentos da SUA secretaria.
  *
  * Campos novos:
  *  - POST/PUT cadastros: `visibilidade` ('publico'|'restrito'), `grupoIds` (uuid[])
@@ -19,7 +24,10 @@ const ator = () => TenantContext.get().userId as string | undefined;
 @UseGuards(RolesGuard)
 @Roles(Role.GESTOR, Role.ADMIN_PREFEITURA)
 export class DocumentosAdminController {
-  constructor(private readonly service: DocumentosService) {}
+  constructor(
+    private readonly service: DocumentosService,
+    private readonly escopoSvc: EscopoSecretariaService,
+  ) {}
 
   // ── cadastros (rotas literais antes de :id) ──
   @Get('cadastros')
@@ -128,32 +136,44 @@ export class DocumentosAdminController {
 
   // ── documentos ──
   @Get()
-  listar(
+  async listar(
     @Query('cadastroId') cadastroId?: string,
     @Query('tipoId') tipoId?: string,
     @Query('q') q?: string,
     @Query('page') page?: string,
+    @CurrentUser() user?: AuthUser,
   ) {
-    return this.service.listarDocumentosAdmin({ cadastroId, tipoId, q, page: page ? Number(page) : undefined });
+    const escopo = await this.escopoSvc.resolver(user?.sub, user?.role);
+    return this.service.listarDocumentosAdmin({
+      cadastroId,
+      tipoId,
+      q,
+      page: page ? Number(page) : undefined,
+      escopoSecretariaId: escopo,
+    });
   }
 
   @Get(':id')
-  obter(@Param('id') id: string) {
-    return this.service.obterDocumento(id);
+  async obter(@Param('id') id: string, @CurrentUser() user?: AuthUser) {
+    const escopo = await this.escopoSvc.resolver(user?.sub, user?.role);
+    return this.service.obterDocumento(id, escopo);
   }
 
   @Post()
-  criar(@Body() b: any) {
-    return this.service.criarDocumento(b, ator());
+  async criar(@Body() b: any, @CurrentUser() user?: AuthUser) {
+    const escopo = await this.escopoSvc.resolver(user?.sub, user?.role);
+    return this.service.criarDocumento(b, ator(), escopo);
   }
 
   @Put(':id')
-  atualizar(@Param('id') id: string, @Body() b: any) {
-    return this.service.atualizarDocumento(id, b, ator());
+  async atualizar(@Param('id') id: string, @Body() b: any, @CurrentUser() user?: AuthUser) {
+    const escopo = await this.escopoSvc.resolver(user?.sub, user?.role);
+    return this.service.atualizarDocumento(id, b, ator(), escopo);
   }
 
   @Delete(':id')
-  excluir(@Param('id') id: string) {
-    return this.service.excluirDocumento(id, ator());
+  async excluir(@Param('id') id: string, @CurrentUser() user?: AuthUser) {
+    const escopo = await this.escopoSvc.resolver(user?.sub, user?.role);
+    return this.service.excluirDocumento(id, ator(), escopo);
   }
 }

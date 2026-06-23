@@ -25,15 +25,21 @@ import { enviarExport } from '../../common/export/export.util';
 import { relatorioCsvRows, relatorioDoc, relatorioPdf, relatorioXlsx } from './manifestacoes-relatorio.util';
 import { ThemeService } from '../theme/theme.service';
 import { carregarLogoRelatorio } from '../theme/logo-relatorio.util';
+import { EulaGuard } from '../eula/eula.guard';
 
 /**
  * Painel administrativo de manifestações (ESIC + Ouvidoria).
  * LGPD: identidade mascarada para manifestações anônimas. CPF nunca exposto.
- * RBAC: OUVIDOR, SERVIDOR, GESTOR, ADMIN_PREFEITURA.
+ *
+ * ADR-0005 — Isolamento da Ouvidoria:
+ *   Somente OUVIDOR e ASSISTENTE_OUVIDORIA acessam manifestações/e-SIC.
+ *   admin_prefeitura, gestor, servidor e ti são explicitamente excluídos.
+ *   A segunda camada de proteção é a policy RLS db/065 que lê
+ *   app.current_user_role e bloqueia no banco mesmo que o RBAC falhe.
  */
 @Controller('admin/manifestacoes')
-@UseGuards(RolesGuard)
-@Roles(Role.OUVIDOR, Role.SERVIDOR, Role.GESTOR, Role.ADMIN_PREFEITURA)
+@UseGuards(RolesGuard, EulaGuard)
+@Roles(Role.OUVIDOR, Role.ASSISTENTE_OUVIDORIA)
 export class ManifestacoesAdminController {
   constructor(
     private readonly service: ManifestacoesAdminService,
@@ -41,6 +47,21 @@ export class ManifestacoesAdminController {
     private readonly anexos: AnexosService,
     private readonly theme: ThemeService,
   ) {}
+
+  /**
+   * Dashboard consolidado do ouvidor (ADR-0005 Fase 3).
+   *
+   * GET /api/admin/manifestacoes/dashboard
+   *
+   * Retorna KPIs de SLA, distribuições por status/tipo/canal/secretaria,
+   * série mensal dos últimos 6 meses e distribuição de satisfação.
+   * Dados exclusivamente agregados — sem exposição de informações individuais.
+   * RLS-por-papel (migration 065) garante isolamento mesmo que o RBAC falhe.
+   */
+  @Get('dashboard')
+  async dashboard() {
+    return this.service.dashboard();
+  }
 
   @Get()
   async listar(

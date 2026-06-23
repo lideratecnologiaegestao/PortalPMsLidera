@@ -4,6 +4,7 @@ import { TenantContext } from '../../common/tenant/tenant.context';
 import { COOKIE_SESSION } from './govbr.config';
 import { verifySession } from './session-token';
 import { SessionsService } from '../sessions/sessions.service';
+import { PrismaService } from '../../prisma/prisma.service';
 
 export interface AuthUser {
   id: string;
@@ -36,6 +37,7 @@ export class JwtAuthGuard implements CanActivate {
 
   constructor(
     @Optional() private readonly sessions?: SessionsService,
+    @Optional() private readonly prisma?: PrismaService,
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
@@ -76,10 +78,26 @@ export class JwtAuthGuard implements CanActivate {
       };
       (req as any).user = user;
 
-      // enriquece o contexto da request (mesma referência usada pelo Prisma)
+      // Enriquece o contexto da request (mesma referência usada pelo Prisma).
+      // secretariaId é carregado do banco (best-effort) para que o PrismaService
+      // possa injetá-lo no GUC app.current_secretaria_id usado pela policy RLS-0065.
       const ctx = TenantContext.get();
       ctx.userId = claims.sub;
       ctx.role = claims.role;
+
+      if (this.prisma && claims.tenantId && claims.sub) {
+        TenantContext.run({ tenantId: claims.tenantId, isPlatform: false }, async () => {
+          try {
+            const u = await this.prisma!.db.user.findUnique({
+              where: { id: claims.sub },
+              select: { secretariaId: true },
+            });
+            if (u?.secretariaId) ctx.secretariaId = u.secretariaId;
+          } catch {
+            // best-effort — falha silenciosa; GUC ficará vazio (RLS fail-safe)
+          }
+        }).catch(() => undefined);
+      }
 
       // Heartbeat fire-and-forget (atualiza presença online + ultima_atividade_em)
       if (claims.jti && this.sessions) {

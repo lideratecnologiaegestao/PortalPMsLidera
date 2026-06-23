@@ -2,6 +2,11 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { TenantContext } from '../../common/tenant/tenant.context';
 
+/** Status encerrados (copiam a constante do PainelService para evitar dep circular). */
+const ENCERRADAS_DASH = ['respondida', 'indeferida', 'parcialmente_atendida', 'concluida', 'arquivada'];
+
+const numDash = (v: unknown) => (v == null ? 0 : Number(v));
+
 export interface FiltroManifestacao {
   canal?: string;
   status?: string;
@@ -245,6 +250,113 @@ export class ManifestacoesAdminService {
         media: sats.length ? Number((somaSat / sats.length).toFixed(2)) : 0,
         distribuicao: distrib,
       },
+    };
+  }
+
+  // ----------------------------------------------- dashboard do ouvidor
+  /**
+   * Dashboard consolidado — KPIs de SLA + distribuições agregadas.
+   * ADR-0005 Fase 3. Sem dado pessoal; apenas contadores e médias.
+   */
+  async dashboard() {
+    const db = this.prisma.db;
+
+    // ---- KPIs de SLA (raw SQL para aproveitar filtros de timestamp no BD)
+    const [kpi] = await db.$queryRaw<any[]>`
+      SELECT
+        count(*)::int                                                                         AS total,
+        count(*) FILTER (WHERE status::text <> ALL(${ENCERRADAS_DASH}))::int                 AS abertas,
+        count(*) FILTER (WHERE status::text <> ALL(${ENCERRADAS_DASH}) AND prazo_em < now())::int AS vencidas,
+        count(*) FILTER (
+          WHERE status::text <> ALL(${ENCERRADAS_DASH})
+            AND prazo_em >= now()
+            AND prazo_em <  now() + interval '48 hours'
+        )::int AS vencendo48h,
+        count(*) FILTER (WHERE respondido_em IS NOT NULL)::int                               AS respondidas,
+        count(*) FILTER (WHERE respondido_em IS NOT NULL AND respondido_em <= prazo_em)::int AS no_prazo,
+        avg(EXTRACT(EPOCH FROM (respondido_em - criado_em)) / 86400.0)
+          FILTER (WHERE respondido_em IS NOT NULL)                                           AS tempo_medio_dias
+      FROM manifestacoes`;
+
+    // ---- Satisfação
+    const [sat] = await db.$queryRaw<any[]>`
+      SELECT count(*)::int AS total, avg(nota)::numeric(10,2) AS media FROM pesquisa_satisfacao`;
+    const satDist = await db.$queryRaw<any[]>`
+      SELECT nota::int AS nota, count(*)::int AS total
+      FROM pesquisa_satisfacao GROUP BY nota ORDER BY nota`;
+
+    // ---- Distribuições
+    const [porStatusRaw, porTipoRaw, porCanalRaw] = await Promise.all([
+      db.manifestacao.groupBy({ by: ['status'], _count: { _all: true } }),
+      db.manifestacao.groupBy({ by: ['tipo'],   _count: { _all: true } }),
+      db.manifestacao.groupBy({ by: ['canal'],  _count: { _all: true } }),
+    ]);
+
+    // ---- Por Secretaria (com nome)
+    const porSecRaw = await db.$queryRaw<any[]>`
+      SELECT COALESCE(s.nome, 'Não atribuída') AS secretaria, count(*)::int AS total
+      FROM manifestacoes mf
+      LEFT JOIN secretarias s ON s.id = mf.secretaria_id
+      GROUP BY COALESCE(s.nome, 'Não atribuída')
+      ORDER BY total DESC`;
+
+    // ---- Série mensal (últimos 6 meses, somente total de abertas)
+    const serieMensalRaw = await db.$queryRaw<any[]>`
+      SELECT to_char(date_trunc('month', criado_em), 'YYYY-MM') AS mes,
+             count(*)::int AS total
+      FROM manifestacoes
+      WHERE criado_em >= date_trunc('month', now()) - interval '5 months'
+      GROUP BY 1
+      ORDER BY 1`;
+
+    // Garante todos os 6 meses mesmo sem dados
+    const base = new Date();
+    base.setDate(1);
+    const meses6: string[] = [];
+    for (let i = 5; i >= 0; i--) {
+      const d = new Date(base.getFullYear(), base.getMonth() - i, 1);
+      meses6.push(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`);
+    }
+    const serieMap = new Map((serieMensalRaw).map((r) => [r.mes as string, numDash(r.total)]));
+    const serieMensal = meses6.map((mes) => ({ mes, total: serieMap.get(mes) ?? 0 }));
+
+    const respondidas = numDash(kpi.respondidas);
+    const noPrazo     = numDash(kpi.no_prazo);
+
+    // Distribuição de satisfação — preenche notas 1..5 mesmo com zero votos
+    const satDistMap = new Map((satDist).map((r) => [Number(r.nota), numDash(r.total)]));
+    const satisfacaoDistribuicao = [1, 2, 3, 4, 5].map((nota) => ({
+      nota,
+      total: satDistMap.get(nota) ?? 0,
+    }));
+
+    return {
+      kpis: {
+        total:          numDash(kpi.total),
+        abertas:        numDash(kpi.abertas),
+        vencidas:       numDash(kpi.vencidas),
+        vencendo48h:    numDash(kpi.vencendo48h),
+        noPrazoPct:     respondidas ? Math.round((noPrazo / respondidas) * 100) : null,
+        tempoMedioDias: kpi.tempo_medio_dias != null
+          ? Math.round(numDash(kpi.tempo_medio_dias) * 10) / 10
+          : null,
+        satisfacaoMedia:  sat.media != null ? Number(sat.media) : null,
+        satisfacaoTotal:  numDash(sat.total),
+      },
+      porStatus: porStatusRaw
+        .map((r) => ({ status: r.status as string, total: r._count._all }))
+        .sort((a, b) => b.total - a.total),
+      porTipo: porTipoRaw
+        .map((r) => ({ tipo: r.tipo as string, total: r._count._all }))
+        .sort((a, b) => b.total - a.total),
+      porCanal: porCanalRaw
+        .map((r) => ({ canal: r.canal as string, total: r._count._all })),
+      porSecretaria: porSecRaw.map((r) => ({
+        secretaria: r.secretaria as string,
+        total: numDash(r.total),
+      })),
+      serieMensal,
+      satisfacaoDistribuicao,
     };
   }
 

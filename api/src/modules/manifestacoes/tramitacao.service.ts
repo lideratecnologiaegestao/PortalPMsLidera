@@ -62,9 +62,13 @@ export class TramitacaoService {
   /**
    * Resolve a manifestação garantindo que o requisitante pode vê-la:
    * dono logado (cidadaoId === userId) OU chave de acompanhamento correta.
+   *
+   * Usa dbPublica() porque o cidadão não tem papel de staff — o GUC
+   * app.public_ouvidoria='on' permite o SELECT sem bloquear por papel.
+   * O isolamento de tenant permanece via tenant_id = app_current_tenant().
    */
   private async autorizar(protocolo: string, chave?: string) {
-    const m = await this.prisma.db.manifestacao.findFirst({
+    const m = await this.prisma.dbPublica().manifestacao.findFirst({
       where: { protocolo },
     });
     if (!m) throw new NotFoundException('Protocolo não encontrado.');
@@ -86,7 +90,10 @@ export class TramitacaoService {
     return this.montarDetalhePublico(m.id);
   }
 
-  /** Painel do cidadão logado: lista suas manifestações por canal. */
+  /**
+   * Painel do cidadão logado: lista suas manifestações por canal.
+   * Usa dbPublica() — cidadão autenticado não tem papel de staff.
+   */
   async minhas(canal?: string) {
     const userId = TenantContext.get().userId;
     if (!userId) throw new ForbiddenException('Autenticação necessária.');
@@ -94,7 +101,7 @@ export class TramitacaoService {
     const where: Record<string, unknown> = { cidadaoId: userId };
     if (canal) where.canal = canal;
 
-    const rows = await this.prisma.db.manifestacao.findMany({
+    const rows = await this.prisma.dbPublica().manifestacao.findMany({
       where,
       orderBy: { criadoEm: 'desc' },
       select: {
@@ -124,7 +131,9 @@ export class TramitacaoService {
       throw new BadRequestException('Esta manifestação já foi encerrada.');
     }
 
-    await this.prisma.db.manifestacaoMensagem.create({
+    // dbPublica(): cidadão sem papel de staff — GUC público permite o INSERT
+    // na tabela manifestacao_mensagens (tenant isolado pelo tenant_id).
+    await this.prisma.dbPublica().manifestacaoMensagem.create({
       data: {
         tenantId: m.tenantId,
         manifestacaoId: m.id,
@@ -136,9 +145,11 @@ export class TramitacaoService {
     });
 
     // Se aguardava complemento do cidadão, a resposta RETOMA o SLA.
+    // publico:true → txPublicaOuvidoria() dentro de aplicarEvento.
     if (m.status === 'aguardando_cidadao') {
       await this.manifestacoes.aplicarEvento(m.id, 'retomar', {
         observacao: 'Cidadão respondeu (retomada automática).',
+        publico: true,
       });
     }
 
@@ -169,7 +180,9 @@ export class TramitacaoService {
     if (!respondida) {
       throw new BadRequestException('A avaliação fica disponível após a resposta.');
     }
-    await this.prisma.db.pesquisaSatisfacao.upsert({
+    // dbPublica(): cidadão sem papel de staff — GUC público permite o upsert
+    // em pesquisa_satisfacao (tenant isolado pelo tenant_id).
+    await this.prisma.dbPublica().pesquisaSatisfacao.upsert({
       where: { manifestacaoId: m.id },
       create: {
         tenantId: m.tenantId,
@@ -189,13 +202,14 @@ export class TramitacaoService {
       throw new BadRequestException('Esta manifestação já foi encerrada.');
     }
     const anexo = await this.anexos.upload(m.id, file, 'cidadao');
-    await this.prisma.db.manifestacaoMensagem.create({
+    // dbPublica(): mensagem de notificação de anexo pelo cidadão (sem papel de staff).
+    await this.prisma.dbPublica().manifestacaoMensagem.create({
       data: {
         tenantId: m.tenantId,
         manifestacaoId: m.id,
         autorTipo: 'cidadao',
         autorId: m.cidadaoId ?? undefined,
-        conteudo: `📎 Anexei o arquivo: ${anexo.nomeArquivo}`,
+        conteudo: `Arquivo anexado: ${anexo.nomeArquivo}`,
         interno: false,
       },
     });
@@ -205,7 +219,8 @@ export class TramitacaoService {
   /** Stream de um anexo para o cidadão (valida protocolo+chave e o vínculo). */
   async anexoStreamCidadao(protocolo: string, chave: string | undefined, anexoId: string) {
     const m = await this.autorizar(protocolo, chave);
-    return this.anexos.stream(anexoId, m.id);
+    // publico:true → dbPublica() dentro de AnexosService.stream
+    return this.anexos.stream(anexoId, m.id, true);
   }
 
   // ----------------------------------------------- recurso e-SIC (cidadão)
@@ -218,7 +233,8 @@ export class TramitacaoService {
       throw new BadRequestException('Recurso só se aplica a pedidos de acesso à informação (e-SIC).');
     }
 
-    const validos = await this.manifestacoes.acoesDisponiveis(m.id);
+    // acoesDisponiveis com publico:true — usa dbPublica() internamente.
+    const validos = await this.manifestacoes.acoesDisponiveis(m.id, true);
     const evento = validos.includes('abrir_recurso_1a')
       ? 'abrir_recurso_1a'
       : validos.includes('abrir_recurso_2a')
@@ -226,7 +242,8 @@ export class TramitacaoService {
       : null;
     if (!evento) throw new BadRequestException('Não há recurso disponível para este pedido no momento.');
 
-    await this.prisma.db.manifestacaoMensagem.create({
+    // dbPublica(): mensagem do recurso pelo cidadão (sem papel de staff).
+    await this.prisma.dbPublica().manifestacaoMensagem.create({
       data: {
         tenantId: m.tenantId,
         manifestacaoId: m.id,
@@ -236,7 +253,8 @@ export class TramitacaoService {
         interno: false,
       },
     });
-    await this.manifestacoes.aplicarEvento(m.id, evento as any, { observacao: texto });
+    // publico:true → txPublicaOuvidoria() dentro de aplicarEvento.
+    await this.manifestacoes.aplicarEvento(m.id, evento as any, { observacao: texto, publico: true });
 
     // notifica a ouvidoria/autoridade superior
     this.notificacoes
@@ -378,8 +396,13 @@ export class TramitacaoService {
   }
 
   // ----------------------------------------------------------- helpers
+  /**
+   * Monta o detalhe público de uma manifestação (visão do cidadão).
+   * Usa dbPublica() — o cidadão não tem papel de staff; o GUC público permite
+   * a leitura. O tenant_id nas policies garante o isolamento.
+   */
   private async montarDetalhePublico(manifestacaoId: string) {
-    const m = await this.prisma.db.manifestacao.findUnique({
+    const m = await this.prisma.dbPublica().manifestacao.findUnique({
       where: { id: manifestacaoId },
       include: {
         mensagens: { where: { interno: false }, orderBy: { criadoEm: 'asc' } },
@@ -389,7 +412,8 @@ export class TramitacaoService {
     });
     if (!m) throw new NotFoundException('Manifestação não encontrada.');
 
-    const anexos = await this.anexos.listar(m.id);
+    // publico:true → dbPublica() dentro de AnexosService.listar
+    const anexos = await this.anexos.listar(m.id, true);
     const validos = eventosValidos(m.status as Status, m.canal as Canal);
     const recursoDisponivel =
       m.canal === 'esic' &&

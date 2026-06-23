@@ -6,6 +6,7 @@ import { TenantMiddleware } from './common/tenant/tenant.middleware';
 import { CacheModule } from './common/cache/cache.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { RbacModule } from './common/rbac/rbac.module';
+import { EscopoModule } from './common/escopo/escopo.module';
 import { GruposModule } from './modules/grupos/grupos.module';
 import { QueueModule } from './modules/queue/queue.module';
 import { ThemeModule } from './modules/theme/theme.module';
@@ -51,6 +52,12 @@ import { WhatsappModule } from './modules/whatsapp/whatsapp.module';
 import { RedirectsModule } from './modules/redirects/redirects.module';
 import { EsicModule } from './modules/esic/esic.module';
 import { BuscaModule } from './modules/busca/busca.module';
+import { ElevationRequestsModule } from './modules/elevation-requests/elevation-requests.module';
+import { EulaModule } from './modules/eula/eula.module';
+import { TurnstileModule } from './modules/turnstile/turnstile.module';
+import { AppConfigModule } from './modules/app-config/app-config.module';
+import { DashboardModule } from './modules/dashboard/dashboard.module';
+import { PwaModule } from './modules/pwa/pwa.module';
 
 @Module({
   imports: [
@@ -59,9 +66,12 @@ import { BuscaModule } from './modules/busca/busca.module';
     ThrottlerModule.forRoot([{ ttl: 60_000, limit: 120 }]),
     PrismaModule, // global
     RbacModule,   // global (PermissionsService + PermissionsGuard)
+    EscopoModule, // global (EscopoSecretariaService — escopo de conteúdo por secretaria, ADR-0005 Fase 4)
     CacheModule, // global (cache Redis compartilhado)
     QueueModule, // global (Redis + filas)
     SessionsModule, // global (sessoes stateful — deve vir ANTES do AuthModule)
+    EulaModule,    // global (EulaService disponível em AuthModule e guards de ouvidoria)
+    TurnstileModule, // global (TurnstileService para validação em login/cadastro/comentários)
     AuthModule, // gov.br OIDC
     ThemeModule,
     ManifestacoesModule,
@@ -104,6 +114,10 @@ import { BuscaModule } from './modules/busca/busca.module';
     RedirectsModule, // redirects 301 administráveis por tenant (migração Joomla → slugs)
     EsicModule, // relatório público de transparência ativa do e-SIC (LAI)
     BuscaModule, // buscador unificado cross-módulo (ADR-0004, índice search_index)
+    ElevationRequestsModule, // ADR-0005 Fase 2: solicitações de elevação de papel
+    AppConfigModule,         // ADR-0006 Fase 1: config white-label do App do Cidadão
+    DashboardModule,         // Painel BI administrativo (agregado multi-módulo)
+    PwaModule,               // ícone PWA por tenant (GET /api/pwa/icon)
   ],
   providers: [
     // ordem importa: rate limit → autenticação (popula req.user) → RolesGuard das rotas
