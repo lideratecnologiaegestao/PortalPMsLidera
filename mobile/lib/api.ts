@@ -189,6 +189,89 @@ export async function responderOuvidoria(
   return res.json();
 }
 
+// ─── Galeria ─────────────────────────────────────────────────────────────────
+export type GaleriaTipo = 'foto' | 'video';
+export type GaleriaFonte = 'upload' | 'youtube';
+
+export interface GaleriaItem {
+  id: string;
+  tipo: 'foto' | 'video' | 'audio';
+  fonte: GaleriaFonte;
+  titulo: string;
+  url: string;
+  youtubeId?: string | null;
+  ordem: number;
+}
+
+export interface GaleriaResponse {
+  items: GaleriaItem[];
+  total: number;
+  page: number;
+  pageSize: number;
+}
+
+export async function getGaleria(
+  tipo: GaleriaTipo,
+  page = 1,
+  pageSize = 24,
+): Promise<GaleriaResponse> {
+  const res = await fetch(
+    `${API_URL}/api/galeria?tipo=${tipo}&page=${page}&pageSize=${pageSize}`,
+  );
+  if (!res.ok) throw new Error(`Galeria HTTP ${res.status}`);
+  return res.json();
+}
+
+// ─── Documentos oficiais ──────────────────────────────────────────────────────
+export interface CadastroDocumento {
+  slug: string;
+  nome: string;
+  descricao?: string | null;
+  icone?: string | null;
+}
+
+export interface DocumentoItem {
+  id: string;
+  numero?: string | null;
+  ano?: number | null;
+  titulo: string;
+  ementa?: string | null;
+  dataDocumento?: string | null;
+  arquivoUrl?: string | null;
+  tipo: { nome: string };
+}
+
+export interface DocumentosResponse {
+  cadastro: { nome: string; tipos: { slug: string; nome: string }[] };
+  documentos: {
+    total: number;
+    page: number;
+    pageSize: number;
+    items: DocumentoItem[];
+  };
+}
+
+export async function getCadastrosDocumentos(): Promise<CadastroDocumento[]> {
+  const res = await fetch(`${API_URL}/api/documentos/cadastros`);
+  if (!res.ok) throw new Error(`Cadastros HTTP ${res.status}`);
+  return res.json();
+}
+
+export async function getDocumentos(
+  cadastroSlug: string,
+  opts: { q?: string; ano?: string; page?: number } = {},
+): Promise<DocumentosResponse> {
+  const params = new URLSearchParams();
+  if (opts.q) params.set('q', opts.q);
+  if (opts.ano) params.set('ano', opts.ano);
+  params.set('page', String(opts.page ?? 1));
+  const res = await fetch(
+    `${API_URL}/api/documentos/${encodeURIComponent(cadastroSlug)}?${params}`,
+  );
+  if (!res.ok) throw new Error(`Documentos HTTP ${res.status}`);
+  return res.json();
+}
+
 export async function estatisticasOuvidoria(): Promise<{ total: number; taxaNoPrazo: number | null; tempoMedioDias: number | null; abertos: number } | null> {
   try {
     const res = await fetch(`${API_URL}/api/manifestacoes/estatisticas`);

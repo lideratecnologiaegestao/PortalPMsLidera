@@ -39,9 +39,10 @@ export function Card({ children, onPress, style }: { children: React.ReactNode; 
   return <View style={[s, style]}>{children}</View>;
 }
 
-export function Btn({ titulo, onPress, variante = 'primario', carregando, disabled, icone, style }: {
+export function Btn({ titulo, onPress, variante = 'primario', carregando, disabled, icone, style, accessibilityLabel }: {
   titulo: string; onPress?: () => void; variante?: 'primario' | 'contorno' | 'sutil';
   carregando?: boolean; disabled?: boolean; icone?: NomeIcone; style?: StyleProp<ViewStyle>;
+  accessibilityLabel?: string;
 }) {
   const { c } = useTheme();
   const bg = variante === 'primario' ? c.primary : variante === 'sutil' ? c.muted + '22' : 'transparent';
@@ -52,6 +53,7 @@ export function Btn({ titulo, onPress, variante = 'primario', carregando, disabl
       onPress={onPress}
       disabled={disabled || carregando}
       accessibilityRole="button"
+      accessibilityLabel={accessibilityLabel ?? titulo}
       style={({ pressed }) => [
         { backgroundColor: bg, borderColor: borda, borderWidth: variante === 'contorno' ? 1.5 : 0,
           paddingVertical: 13, paddingHorizontal: 16, borderRadius: 12, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 8 },

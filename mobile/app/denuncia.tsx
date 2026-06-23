@@ -6,7 +6,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { Screen, Titulo, Subtitulo, Card, Btn, Campo, Aviso, SecaoTitulo } from '../components/ui';
 import { Icone } from '../components/icone';
 import { useTheme } from '../lib/theme';
-import { CATEGORIAS } from '../lib/config';
+import { useAppConfig } from '../lib/appConfig';
 import { criarChamado, SemRedeError } from '../lib/api';
 import { enfileirar } from '../lib/fila-offline';
 
@@ -14,6 +14,10 @@ export default function Denuncia() {
   const { c } = useTheme();
   const router = useRouter();
   const params = useLocalSearchParams<{ categoria?: string }>();
+  const { config } = useAppConfig();
+
+  // Usa categorias da app-config (já tem fallback para os defaults estáticos).
+  const categorias = config.categoriasChamados;
 
   const [categoria, setCategoria] = useState<string>(params.categoria ?? '');
   const [descricao, setDescricao] = useState('');
@@ -35,7 +39,9 @@ export default function Denuncia() {
   useEffect(() => { pegarLocal(); }, []);
 
   async function tirarFoto(camera: boolean) {
-    const perm = camera ? await ImagePicker.requestCameraPermissionsAsync() : await ImagePicker.requestMediaLibraryPermissionsAsync();
+    const perm = camera
+      ? await ImagePicker.requestCameraPermissionsAsync()
+      : await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!perm.granted) { setErro('Permissão de câmera/galeria negada.'); return; }
     const r = camera
       ? await ImagePicker.launchCameraAsync({ quality: 0.6 })
@@ -50,17 +56,13 @@ export default function Denuncia() {
     setEnviando(true); setErro('');
     const input = { categoria, descricao: descricao.trim(), lat: coords.lat, lng: coords.lng, anonimo, fotoUri };
     try {
-      // offline-first: tenta enviar de verdade. Só cai na fila se for falha de REDE
-      // (não usamos getNetworkStateAsync: é impreciso com VoWiFi/dual-SIM/VPN).
       const r = await criarChamado(input);
       setOk({ protocolo: r.protocolo });
     } catch (e) {
       if (e instanceof SemRedeError) {
-        // sem internet de fato → guarda para reenviar quando voltar a conexão
         try { await enfileirar(input); setOk({ protocolo: '', offline: true }); }
         catch { setErro('Não foi possível salvar a denúncia. Tente novamente.'); }
       } else {
-        // erro do servidor (HTTP) → mostra o motivo real em vez de fingir "offline"
         setErro(e instanceof Error ? e.message : 'Falha ao enviar. Tente novamente.');
       }
     } finally {
@@ -83,7 +85,13 @@ export default function Denuncia() {
           </Card>
         ) : null}
         <Btn titulo="Voltar ao início" onPress={() => router.replace('/')} />
-        {ok.protocolo ? <Btn titulo="Acompanhar" variante="contorno" onPress={() => router.replace({ pathname: '/acompanhar', params: { protocolo: ok.protocolo } })} /> : null}
+        {ok.protocolo ? (
+          <Btn
+            titulo="Acompanhar"
+            variante="contorno"
+            onPress={() => router.replace({ pathname: '/acompanhar', params: { protocolo: ok.protocolo } })}
+          />
+        ) : null}
       </Screen>
     );
   }
@@ -96,12 +104,22 @@ export default function Denuncia() {
 
       <SecaoTitulo>Categoria</SecaoTitulo>
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
-        {CATEGORIAS.map((cat) => {
+        {categorias.map((cat) => {
           const ativo = categoria === cat.value;
           return (
-            <Pressable key={cat.value} onPress={() => setCategoria(cat.value)}
-              style={{ flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, paddingVertical: 9, borderRadius: 999,
-                borderWidth: 1.5, borderColor: ativo ? c.primary : c.border, backgroundColor: ativo ? c.primary + '15' : c.card }}>
+            <Pressable
+              key={cat.value}
+              onPress={() => setCategoria(cat.value)}
+              accessibilityLabel={cat.label}
+              accessibilityRole="radio"
+              accessibilityState={{ selected: ativo }}
+              style={{
+                flexDirection: 'row', alignItems: 'center', gap: 6,
+                paddingHorizontal: 12, paddingVertical: 9, borderRadius: 999,
+                borderWidth: 1.5, borderColor: ativo ? c.primary : c.border,
+                backgroundColor: ativo ? c.primary + '15' : c.card,
+              }}
+            >
               <Icone nome={cat.icone} tamanho={16} cor={ativo ? c.primary : c.muted} />
               <Text style={{ color: ativo ? c.primary : c.fg, fontWeight: '600', fontSize: 13 }}>{cat.label}</Text>
             </Pressable>
@@ -109,12 +127,23 @@ export default function Denuncia() {
         })}
       </View>
 
-      <Campo label="Descrição" valor={descricao} onChange={setDescricao} multiline
-        placeholder="Descreva o problema (local de referência, há quanto tempo…)" />
+      <Campo
+        label="Descrição"
+        valor={descricao}
+        onChange={setDescricao}
+        multiline
+        placeholder="Descreva o problema (local de referência, há quanto tempo…)"
+      />
 
       {/* Foto */}
       <SecaoTitulo>Foto (opcional)</SecaoTitulo>
-      {fotoUri ? <Image source={{ uri: fotoUri }} style={{ width: '100%', height: 180, borderRadius: 12 }} /> : null}
+      {fotoUri ? (
+        <Image
+          source={{ uri: fotoUri }}
+          style={{ width: '100%', height: 180, borderRadius: 12 }}
+          accessibilityLabel="Foto da denúncia selecionada"
+        />
+      ) : null}
       <View style={{ flexDirection: 'row', gap: 10 }}>
         <Btn titulo="Câmera" icone="camera-outline" variante="contorno" style={{ flex: 1 }} onPress={() => tirarFoto(true)} />
         <Btn titulo="Galeria" icone="image-multiple-outline" variante="contorno" style={{ flex: 1 }} onPress={() => tirarFoto(false)} />
@@ -139,7 +168,12 @@ export default function Denuncia() {
             <Text style={{ color: c.fg, fontWeight: '600' }}>Enviar anonimamente</Text>
             <Subtitulo>Não vinculamos sua identidade à denúncia (LGPD).</Subtitulo>
           </View>
-          <Switch value={anonimo} onValueChange={setAnonimo} trackColor={{ true: c.primary }} />
+          <Switch
+            value={anonimo}
+            onValueChange={setAnonimo}
+            trackColor={{ true: c.primary }}
+            accessibilityLabel="Enviar anonimamente"
+          />
         </View>
       </Card>
 
