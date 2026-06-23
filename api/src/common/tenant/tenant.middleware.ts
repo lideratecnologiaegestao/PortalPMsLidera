@@ -70,14 +70,33 @@ export class TenantMiddleware implements NestMiddleware {
     TenantContext.run({ tenantId, requestId }, () => next());
   }
 
+  /** Domínio base da plataforma (subdomínios são automáticos via curinga CF). */
+  private get baseDominio(): string {
+    return process.env.PLATFORM_BASE_DOMAIN ?? 'lidera.app.br';
+  }
+
   private async resolve(host: string): Promise<string | undefined> {
     const key = `tenant:host:${host}`;
     const cached = await this.cache.get<string>(key);
     if (cached) return cached;
 
+    // O Host chega completo ("prefeiturademo.lidera.app.br"), mas o formulário
+    // de criação grava o subdomínio como prefixo ("prefeiturademo"). Aceitamos
+    // ambas as formas: host completo (domínio próprio ou subdomínio gravado por
+    // extenso) e o prefixo do subdomínio da plataforma.
+    const sufixo = `.${this.baseDominio}`;
+    const prefixo = host.endsWith(sufixo) ? host.slice(0, -sufixo.length) : null;
+
     // Consulta a tabela-registro em modo plataforma (sem RLS de tenant).
     const tenant = await this.prisma.platform().tenant.findFirst({
-      where: { OR: [{ dominio: host }, { subdominio: host }], ativo: true },
+      where: {
+        ativo: true,
+        OR: [
+          { dominio: host },
+          { subdominio: host },
+          ...(prefixo ? [{ subdominio: prefixo }] : []),
+        ],
+      },
       select: { id: true },
     });
     if (tenant) await this.cache.set(key, tenant.id, TTL_TENANT);
