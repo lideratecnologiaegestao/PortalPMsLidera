@@ -9,6 +9,7 @@ Material de apresentação para **vender o Portal de Prefeitura** (plataforma Sa
 | **`Apresentacao-Portal-Prefeitura.pptx`** | **Apresentação de slides (14 telas, 16:9)** — pronta para o **Google Apresentações** (importação abaixo) ou PowerPoint. Use em reuniões/projetor. |
 | **`Portfolio-Portal-Prefeitura.docx`** | Portfólio em Word (A4), com capa, 14 seções e gráficos. Edite/imprima/envie por e-mail. |
 | **`index.html`** | Mesma apresentação em página web — abre offline (duplo clique), responsiva, ideal para projetar numa reunião ou gerar PDF (Ctrl+P → Salvar como PDF). |
+| **`Atendimento-Omnichannel.md`** | One-pager comercial do módulo de Atendimento Omnichannel com IA (5 canais). Use em propostas, e-mail comercial ou para compor seção em apresentações. |
 | `assets/` | Gráficos (PNG) usados no `.docx` e no `.pptx` — gerados automaticamente. |
 | `gerar_portfolio_docx.py` | Script que **gera os gráficos e o `.docx`**. Reexecute após editar o conteúdo. |
 | `gerar_slides_pptx.py` | Script que **gera o `.pptx`** (reaproveita os gráficos de `assets/`). |
@@ -54,13 +55,14 @@ Para editar o HTML, altere diretamente `index.html` (CSS e SVG estão embutidos 
 5. Conformidade legal nativa (LAI, Lei 13.460, LC 131/LRF, LGPD, WCAG/eMAG, PNTP, gov.br)
 6. Transparência e PNTP (selo Diamante)
 7. Segurança & privacidade (RLS, RBAC, LGPD, auditoria)
-8. App do Cidadão (mobile)
-9. Inteligência Artificial aplicada
-10. Prova de entrega — caso real (Barão de Melgaço: 455 notícias + 1.180 documentos)
-11. Implantação flexível (nuvem GCP/AWS ou on-premise)
-12. Roadmap
-13. Por que a Lidera
-14. Chamada para ação / contato
+8. **Atendimento Omnichannel com IA (5 canais)** — Widget, WhatsApp API Oficial, Instagram Direct, Messenger, Telegram; bot 24h; caixa unificada; LGPD nativo
+9. App do Cidadão (mobile)
+10. Inteligência Artificial aplicada
+11. Prova de entrega — caso real (Barão de Melgaço: 455 notícias + 1.180 documentos)
+12. Implantação flexível (nuvem GCP/AWS ou on-premise)
+13. Roadmap
+14. Por que a Lidera
+15. Chamada para ação / contato
 
 ## Observações
 

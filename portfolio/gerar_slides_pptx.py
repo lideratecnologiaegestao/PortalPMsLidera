@@ -121,7 +121,7 @@ textbox(s, Inches(1.4), Inches(4.3), Inches(10.5), Inches(1.0),
         [[("A plataforma digital completa, acessível e em conformidade com a lei para o seu município.",
            18, RGBColor(0xDD,0xE6,0xF6), False, False)]], align=PP_ALIGN.CENTER)
 textbox(s, Inches(1), Inches(5.7), Inches(11.3), Inches(1.0),
-        [[("Selo Diamante (PNTP) · Multi-tenant · Gov.br · LGPD", 14, AMARELO, True, False)],
+        [[("Selo Diamante (PNTP) · Multi-tenant · Gov.br · LGPD · IA em Produção", 14, AMARELO, True, False)],
          [(f"{EMAIL}   ·   {SITE}   ·   Demo: {DEMO}", 13, RGBColor(0xCF,0xDA,0xEE), False, False)]],
         align=PP_ALIGN.CENTER)
 
@@ -131,8 +131,9 @@ textbox(s, Inches(1), Inches(5.7), Inches(11.3), Inches(1.0),
 s = slide(); header(s, "Agenda", "O que você vai ver")
 col1 = ["O desafio das prefeituras hoje", "A plataforma e a arquitetura",
         "Modelo SaaS multi-tenant", "Catálogo de 20+ módulos", "Conformidade legal nativa"]
-col2 = ["Transparência: 100% PNTP (Diamante)", "Segurança, privacidade e LGPD",
-        "App do Cidadão e Inteligência Artificial", "Caso real e implantação", "Próximos passos"]
+col2 = ["Atendimento Omnichannel com IA (5 canais)", "Transparência: 100% PNTP (Diamante)",
+        "Segurança, privacidade e LGPD", "App do Cidadão e Inteligência Artificial",
+        "Caso real, implantação e próximos passos"]
 bullets(s, col1, x=Inches(0.7),  y=Inches(2.1), w=Inches(6), size=17, gap=12)
 bullets(s, col2, x=Inches(6.9),  y=Inches(2.1), w=Inches(6), size=17, gap=12)
 footer(s)
@@ -203,12 +204,12 @@ footer(s)
 # 7 — MÓDULOS
 # =====================================================================
 s = slide(); header(s, "Produto", "20+ módulos integrados, em 6 áreas")
-grupos = [("Cidadão & Participação", AZUL, "Ouvidoria/e-SIC · Atendimento omnichannel · Enquetes · Formulários · App do Cidadão"),
+grupos = [("Cidadão & Participação", AZUL, "Ouvidoria/e-SIC · Bot agêntico 24h · WhatsApp · Enquetes · Formulários · Moderação IA · App do Cidadão"),
           ("Transparência & Contas", VERDE, "Portal da Transparência · APLIC/TCE-MT · PNTP Diamante · Diário Oficial"),
           ("Conteúdo & Comunicação", RGBColor(0xB3,0x53,0x1D), "CMS drag-drop · Notícias · Secretarias · Galeria · Documentos · Carta de Serviços"),
-          ("Gestão & Administração", RGBColor(0x6f,0x42,0xc1), "Gerenciador multi-tenant · Usuários/Grupos/Sessões · Chat interno · Configurações"),
-          ("Inteligência Artificial", RGBColor(0x15,0x5F,0x8A), "Chatbot RAG · Triagem de manifestações · Busca com OCR · IA fiscal"),
-          ("Conformidade & Segurança", RGBColor(0xE5,0x22,0x07), "LGPD self-service · RLS · RBAC · WCAG/VLibras · Login gov.br")]
+          ("Gestão & Administração", RGBColor(0x6f,0x42,0xc1), "Gerenciador multi-tenant · Usuários/Grupos/Sessões · Escopo por secretaria · Chat interno"),
+          ("Inteligência Artificial", RGBColor(0x15,0x5F,0x8A), "Chatbot híbrido RAG+semântico · Base treinável pelo gestor · OCR PDFs · Assistente de servidores · IA fiscal"),
+          ("Conformidade & Segurança", RGBColor(0xE5,0x22,0x07), "LGPD self-service · Sigilo ouvidoria (RBAC+RLS) · Turnstile anti-robô · WCAG/VLibras · Login gov.br")]
 gx = Inches(0.65); gw = Inches(3.95); gh = Inches(2.15); gxg = Inches(0.1); gyg = Inches(0.16)
 for i,(t,c,d) in enumerate(grupos):
     col = i % 3; row = i // 3
@@ -223,7 +224,38 @@ for i,(t,c,d) in enumerate(grupos):
 footer(s)
 
 # =====================================================================
-# 8 — CONFORMIDADE (imagem)
+# 8 — ATENDIMENTO OMNICHANNEL
+# =====================================================================
+s = slide(); header(s, "Módulo Destaque", "Atendimento Omnichannel com IA — 5 canais")
+# Painel esquerdo: canais
+rect(s, Inches(0.7), Inches(2.0), Inches(5.85), Inches(4.5), CINZA_BG)
+rect(s, Inches(0.7), Inches(2.0), Inches(5.85), Inches(0.5), AZUL)
+textbox(s, Inches(0.9), Inches(2.05), Inches(5.5), Inches(0.45),
+        [[ ("5 canais · 1 caixa unificada", 16, BRANCO, True, False) ]], anchor=MSO_ANCHOR.MIDDLE)
+bullets(s, [
+    "Site / Widget — ativo por padrao, sem configuracao.",
+    "WhatsApp API Oficial (Meta) — conformidade com editais.",
+    "Instagram Direct — perfil profissional da prefeitura.",
+    "Facebook Messenger — pagina oficial integrada.",
+    "Telegram — webhook automatico pelo sistema.",
+], x=Inches(0.95), y=Inches(2.65), w=Inches(5.4), size=13, gap=8)
+# Painel direito: bot + console
+rect(s, Inches(6.75), Inches(2.0), Inches(5.85), Inches(4.5), CINZA_BG)
+rect(s, Inches(6.75), Inches(2.0), Inches(5.85), Inches(0.5), VERDE)
+textbox(s, Inches(6.95), Inches(2.05), Inches(5.5), Inches(0.45),
+        [[ ("Bot de IA 24h + Console do Atendente", 16, BRANCO, True, False) ]], anchor=MSO_ANCHOR.MIDDLE)
+bullets(s, [
+    "Responde, abre protocolo e consulta andamento por linguagem natural.",
+    "Transfere para humano com notificacao imediata.",
+    "Fila por canal e por secretaria — historico completo.",
+    "Multi-numero. Alerta de creditos de template WhatsApp.",
+    "Chaves cifradas AES-256-GCM. Isolamento por prefeitura (RLS).",
+    "API Oficial Meta — diferencial em editais.",
+], x=Inches(7.0), y=Inches(2.65), w=Inches(5.4), size=13, gap=8)
+footer(s)
+
+# =====================================================================
+# 9 — CONFORMIDADE (imagem)
 # =====================================================================
 s = slide(); header(s, "Conformidade", "A lei está no núcleo do produto")
 pic_contain(s, os.path.join(ASSETS, "conformidade.png"), Inches(0.7), Inches(1.9),
@@ -259,13 +291,14 @@ textbox(s, Inches(0.9), Inches(5.85), Inches(11.5), Inches(0.6),
 # =====================================================================
 s = slide(); header(s, "Segurança & Privacidade", "Dados protegidos e isolados")
 bullets(s, [
- "Isolamento por RLS: cada consulta é restrita ao município.",
- "RBAC: papéis (administrador, gestor, ouvidor, servidor, cidadão) controlam cada ação.",
- "LGPD por projeto: base legal por finalidade e logs de acesso a dados pessoais.",
- "Auditoria de toda ação sensível e de falhas de processamento.",
- "Borda protegida: nada exposto direto à internet — proxy + WAF + TLS.",
- "Login gov.br: identidade forte sem o município guardar senha.",
-], size=16, gap=11)
+ "Isolamento por RLS: cada consulta é restrita ao município — impossível cruzar dados entre prefeituras.",
+ "Sigilo jurídico da ouvidoria: RBAC + RLS por papel — denúncias invisíveis até para o administrador da prefeitura.",
+ "Autocadastro de usuário + solicitação de elevação por cargo; ouvidor exige aprovação da operadora e assina termo de sigilo.",
+ "Escopo por secretaria: servidor só gerencia o conteúdo da sua área.",
+ "Cloudflare Turnstile: proteção anti-robô em logins e formulários sem CAPTCHA incômodo.",
+ "LGPD por projeto: base legal por finalidade, logs de acesso, auditoria completa.",
+ "Borda protegida: Cloudflare Zero Trust + WAF + TLS. Login gov.br para cidadãos.",
+], size=15, gap=10)
 footer(s)
 
 # =====================================================================
@@ -285,10 +318,10 @@ rect(s, Inches(6.75), Inches(2.0), Inches(5.85), Inches(4.5), CINZA_BG)
 rect(s, Inches(6.75), Inches(2.0), Inches(5.85), Inches(0.5), VERDE)
 textbox(s, Inches(6.95), Inches(2.05), Inches(5.5), Inches(0.45),
         [[("🤖  Inteligência Artificial", 16, BRANCO, True, False)]], anchor=MSO_ANCHOR.MIDDLE)
-bullets(s, ["Chatbot que responde da base oficial da prefeitura (RAG).",
-            "Triagem automática de manifestações, com revisão humana.",
-            "Busca unificada com OCR de PDFs digitalizados.",
-            "IA fiscal sobre os dados da transparência."],
+bullets(s, ["Chatbot com busca híbrida (palavra + significado) + OCR de PDFs antigos.",
+            "Base treinável pelo gestor: artigos livres viram conhecimento da IA.",
+            "Bot agêntico: executa ações por linguagem natural (abre protocolo, consulta status).",
+            "Moderação automática de comentários e IA fiscal na transparência."],
         x=Inches(7.0), y=Inches(2.7), w=Inches(5.4), size=13.5, gap=10)
 footer(s)
 
@@ -315,12 +348,13 @@ footer(s)
 # =====================================================================
 # 13 — IMPLANTAÇÃO + ROADMAP
 # =====================================================================
-s = slide(); header(s, "Implantação", "Roda onde a prefeitura precisar")
+s = slide(); header(s, "Implantação & Roadmap", "Roda onde a prefeitura precisar")
 bullets(s, ["Nuvem gerenciada (Google Cloud / AWS) — provisionada por Terraform.",
             "On-premise (Windows / Linux / Docker) — no servidor da prefeitura.",
             "Migração do site atual sem perder histórico nem SEO.",
-            "Treinamento das equipes e suporte continuado."],
-        x=Inches(0.7), y=Inches(2.0), w=Inches(12), size=16, gap=10)
+            "Treinamento das equipes e suporte continuado.",
+            "Fases concluídas: Fundação · Transparência · Serviços+CMS · Diário Oficial · IA."],
+        x=Inches(0.7), y=Inches(2.0), w=Inches(12), size=15, gap=9)
 pic_contain(s, os.path.join(ASSETS, "roadmap.png"), Inches(0.8), Inches(4.7),
             Inches(11.7), Inches(2.2), align="center")
 footer(s)

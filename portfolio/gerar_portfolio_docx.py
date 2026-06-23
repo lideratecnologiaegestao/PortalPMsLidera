@@ -180,11 +180,11 @@ def fig_pntp():
 
 def fig_roadmap():
     fases = [("Fundação\n(RLS, núcleo, e-SIC)", True),
-             ("Transparência\n(ETL, dados abertos)", False),
-             ("Serviços + CMS", False),
+             ("Transparência\n(ETL, dados abertos)", True),
+             ("Serviços + CMS", True),
+             ("Diário Oficial\n(ICP-Brasil)", True),
+             ("Inteligência\nArtificial", True),
              ("App do Cidadão", False),
-             ("Diário Oficial\n(ICP-Brasil)", False),
-             ("Inteligência\nArtificial", False),
              ("Escala /\nMulti-região", False)]
     fig, ax = plt.subplots(figsize=(10, 2.7), dpi=200)
     ax.set_xlim(0, len(fases)); ax.set_ylim(0, 2); ax.axis("off")
@@ -206,7 +206,7 @@ def fig_kpis():
     kpis = [("100% PNTP", "Selo Diamante\nem transparência"),
             ("1 → N", "uma plataforma,\ninfinitas prefeituras"),
             ("20+", "módulos\nintegrados"),
-            ("455 + 1.180", "notícias e documentos\njá migrados"),
+            ("IA + RAG", "busca semântica\ne respostas da base oficial"),
             ("WCAG 2.1 AA", "acessibilidade\npor padrão")]
     fig, axes = plt.subplots(1, 5, figsize=(11, 2.3), dpi=200)
     for ax, (n, d) in zip(axes, kpis):
@@ -368,10 +368,11 @@ para("Mais de 20 módulos integrados, organizados em seis grandes áreas. Tudo n
      "no mesmo painel e com os mesmos dados.")
 MOD = [
  ("Cidadão & Participação", AZUL, [
-    "Ouvidoria + e-SIC (LAI e Lei 13.460) com máquina de estados, prazos/SLA, chat de tramitação e painel do ouvidor",
-    "Atendimento omnichannel: widget 24h + bot de IA que escala para atendente + WhatsApp + caixa unificada",
-    "Enquetes (consulta pública anônima) e Construtor de formulários (drag-drop, captcha, exportação CSV/XML/Excel)",
+    "Ouvidoria + e-SIC (LAI e Lei 13.460) com máquina de estados, prazos/SLA, chat de tramitação e painel do ouvidor — sigilo da fonte garantido por duas camadas de controle",
+    "Atendimento omnichannel: bot 24h que EXECUTA ações (abre manifestação com protocolo, consulta andamento, chama atendente) + WhatsApp multi-provedor com redundância + caixa unificada",
+    "Enquetes (consulta pública anônima) e Construtor de formulários (drag-drop, captcha anti-robô Cloudflare Turnstile, exportação CSV/XML/Excel)",
     "App do Cidadão: chamados georreferenciados (buracos, terrenos, animais) com foto e GPS",
+    "Comentários em notícias com moderação automática por IA (barra ofensas e código malicioso, preserva crítica legítima)",
  ]),
  ("Transparência & Prestação de Contas", VERDE, [
     "Portal da Transparência (LC 131/LRF): receitas, despesas, licitações, contratos e folha, com dados abertos (CSV/JSON)",
@@ -392,16 +393,18 @@ MOD = [
     "Chat interno entre servidores e Home configurável (Acesso Rápido)",
  ]),
  ("Inteligência Artificial", "#155F8A", [
-    "Chatbot com RAG em camadas sobre a base oficial da prefeitura (busca semântica, isolado por município)",
-    "Triagem automática de manifestações, com revisão humana",
-    "Busca unificada com OCR de PDFs (Tesseract/Claude) e ranking híbrido",
-    "IA fiscal sobre os dados da transparência",
+    "Chatbot com busca híbrida (FTS + semântica/embeddings + reranking Voyage): responde a partir da base oficial combinando palavra e significado, lê PDFs digitalizados via OCR — isolado por município",
+    "Base de conhecimento treinável pelo gestor: além de FAQs, o servidor cadastra Artigos livres (normas, eventos, materiais educativos) que a IA passa a usar — sem programação",
+    "Bot agêntico na ouvidoria: executa por linguagem natural (abre manifestação e devolve protocolo, consulta andamento, chama atendente humano)",
+    "Assistente interno que ensina servidores a usar o sistema + Manual do Sistema integrado ao painel",
+    "Triagem automática de manifestações (sempre com revisão humana) e IA fiscal sobre a transparência",
  ]),
  ("Conformidade & Segurança", VERMELHO, [
-    "LGPD self-service: direitos do titular, portabilidade, anonimização, incidentes e geração de documentos",
-    "Isolamento multi-tenant por RLS e controle de acesso por papéis (RBAC)",
-    "Acessibilidade WCAG 2.1 AA / eMAG + VLibras + Design System gov.br",
-    "Login do cidadão via gov.br (Login Único / OIDC)",
+    "LGPD self-service: direitos do titular, portabilidade, anonimização, incidentes e geração de documentos (prefeitura = controladora / Lidera = operadora)",
+    "Sigilo multicamadas (RBAC + RLS por papel): denúncias da ouvidoria visíveis só ao ouvidor e equipe — nem o administrador da prefeitura acessa",
+    "Autocadastro de usuário + solicitação de elevação por cargo/lotação; papéis sensíveis (ouvidor) aprovados pela operadora; termo de sigilo no primeiro acesso",
+    "Escopo por secretaria: servidor lotado numa área só edita o conteúdo da sua secretaria",
+    "Proteção anti-robô Cloudflare Turnstile em logins e formulários + RBAC + RLS + WCAG 2.1 AA / eMAG + VLibras",
  ]),
 ]
 for titulo, cor, itens in MOD:
@@ -455,6 +458,10 @@ h1("Segurança & Privacidade")
 bullets([
  "Isolamento por RLS: cada consulta ao banco é restrita ao município; uma prefeitura nunca enxerga dados de outra.",
  "RBAC: papéis de domínio (administrador, gestor, ouvidor, servidor, cidadão) controlam cada ação.",
+ "Sigilo jurídico da ouvidoria: denúncias acessíveis SOMENTE ao ouvidor e sua equipe — RBAC + RLS por papel; o administrador da prefeitura não tem acesso.",
+ "Autocadastro + elevação de papel por autoridade: servidores declaram cargo e lotação; papéis sensíveis (ouvidor) exigem aprovação da operadora e termo de sigilo.",
+ "Escopo por secretaria: cada servidor gerencia apenas o conteúdo da sua área.",
+ "Proteção anti-robô Cloudflare Turnstile em logins e formulários — sem CAPTCHA tradicional.",
  "LGPD por projeto: minimização de dados, base legal por finalidade e logs de acesso a dados pessoais.",
  "Auditoria: toda ação sensível e toda falha de processamento são registradas.",
  "Borda protegida: nada exposto direto à internet — proxy reverso + WAF + TLS obrigatório.",
@@ -468,13 +475,56 @@ para("Aplicativo em React Native (Expo) para o cidadão abrir chamados georrefer
      "detecta duplicados por proximidade e o cidadão acompanha o andamento e recebe notificações. "
      "Login via gov.br. Tema e identidade da prefeitura aplicados ao app (white-label).")
 
+# ---------------- 8b. ATENDIMENTO OMNICHANNEL ----------------
+h1("Atendimento Omnichannel com IA — 5 canais, uma caixa unificada")
+para("O cidadão escolhe o canal. A prefeitura atende em todos — sem trocar de tela, sem perder historico. "
+     "O bot de IA responde 24 horas, abre protocolos, consulta andamentos e escala para humano quando necessario.")
+h2("5 canais integrados")
+bullets([
+ "Site / Widget: chat flutuante no proprio portal da prefeitura. Ativo por padrao, sem configuracao extra.",
+ "WhatsApp API Oficial (Cloud API Meta): numero profissional homologado. Conformidade com editais que exigem API oficial.",
+ "Instagram Direct: mensagens do perfil profissional da prefeitura chegam na mesma fila de atendimento.",
+ "Facebook Messenger: pagina oficial da prefeitura integrada ao painel sem troca de tela.",
+ "Telegram: bot via @BotFather. Webhook registrado automaticamente pelo sistema — sem configuracao manual.",
+])
+h2("Bot de IA 24 horas")
+bullets([
+ "Responde perguntas sobre servicos, documentos, horarios e requisitos com base no conteudo real da prefeitura.",
+ "Abre manifestacoes de ouvidoria por linguagem natural e devolve protocolo + chave na hora.",
+ "Consulta andamento de protocolos existentes sem o cidadao precisar ligar ou ir presencialmente.",
+ "Reconhece quando precisa de atendente humano e transfere a conversa com notificacao imediata.",
+ "Aprende com FAQs e Artigos cadastrados pelo gestor — sem codigo e sem TI.",
+])
+h2("Console do atendente — caixa unificada")
+bullets([
+ "Todos os canais (Widget, WhatsApp, Instagram, Messenger, Telegram) em uma unica tela.",
+ "Fila de conversas com filtro por canal e por secretaria.",
+ "Historico completo da conversa com o bot antes de cada transferencia.",
+ "Distribuicao por secretaria: saude para equipe de saude, obras para obras.",
+ "Relatorios de volume, tempo de resposta e canais mais usados.",
+])
+h2("Outros destaques")
+bullets([
+ "Multi-numero: 1 numero para toda a prefeitura ou varios por secretaria — gerenciados na mesma tela.",
+ "Alerta de creditos de template WhatsApp (HSM): monitoramento do consumo com aviso de limite baixo.",
+ "App instalavel (PWA): o cidadao instala o portal na tela do celular sem App Store; o chat funciona na PWA.",
+ "API Oficial Meta — diferencial em editais que vedam versoes nao autorizadas.",
+ "Chaves cifradas em repouso (AES-256-GCM). Isolamento por prefeitura via RLS. LGPD nativo.",
+ "Incluido no Portal de Prefeitura sem custo adicional de modulo.",
+])
+doc.add_page_break()
+
 # ---------------- 9. IA ----------------
 h1("Inteligência Artificial aplicada")
+para("A IA não é um chatbot genérico colado ao portal: está integrada ao núcleo, treinada com os dados reais da prefeitura e isolada por município. O gestor treina sem programação; o cidadão recebe respostas da base oficial.")
 bullets([
- "Chatbot que responde a partir da base oficial da prefeitura (RAG), sem inventar — e isolado por município.",
+ "Chatbot com busca híbrida avançada (FTS + semântica/embeddings com reranking Voyage): responde combinando busca por palavra e por significado — incluindo conteúdo de PDFs digitalizados via OCR (documentos antigos escaneados incluídos).",
+ "Base de conhecimento treinável pelo gestor: além de FAQs, cadastre Artigos livres (normas de saúde, regimentos, materiais para alunos, eventos) e a IA começa a responder sobre o tema — sem programação.",
+ "Bot agêntico no atendimento: além de responder, o bot EXECUTA por linguagem natural — abre manifestação de ouvidoria com protocolo+chave, consulta andamento e transfere para atendente humano.",
+ "Assistente interno (\"Como faço X?\") que ensina os próprios servidores a usar o sistema, com Manual do Sistema integrado ao painel administrativo.",
+ "Moderação inteligente de comentários em notícias: a IA barra ofensas, baixo calão e código malicioso sem censurar crítica ou opinião legítima — o que passa vai para aprovação humana.",
  "Triagem automática de manifestações de ouvidoria/e-SIC, sempre com revisão humana.",
- "Busca unificada que enxerga dentro de PDFs digitalizados (OCR) com ranking híbrido.",
- "IA fiscal sobre a transparência, com consulta estruturada aos dados contábeis.",
+ "IA fiscal sobre a transparência, com consulta estruturada aos dados contábeis do APLIC/TCE-MT.",
 ])
 
 # ---------------- 10. PROVA ----------------
@@ -511,8 +561,9 @@ for a,b in [
 
 # ---------------- 12. ROADMAP ----------------
 h1("Evolução contínua (roadmap)")
-para("O produto evolui em fases com critérios de saída objetivos. A fundação está concluída e "
-     "em produção; as próximas fases ampliam transparência, serviços, app e IA.")
+para("O produto evolui em fases com critérios de saída objetivos. As fases de Fundação, "
+     "Transparência, Serviços+CMS, Diário Oficial e Inteligência Artificial estão concluídas e "
+     "em produção. As próximas fases ampliam o App do Cidadão e a escala multi-região.")
 img("roadmap", width=Inches(6.4))
 
 # ---------------- 13. POR QUE LIDERA ----------------
