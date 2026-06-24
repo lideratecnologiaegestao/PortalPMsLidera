@@ -59,12 +59,13 @@ export const BIBLIOTECA_PRESETS: BibliotecaPreset[] = [
       efeito: {
         nome: 'aedes-overlay',
         params: {
-          quantidadeMosquitos: 5,
+          quantidadeMosquitos: 6,
+          kills: 3,
           corPrimaria: '#294961',
-          corDestaque: '#f0a830',
+          corDestaque: '#16B6C4',
           zIndex: 9000,
-          titulo: 'Combate ao Aedes aegypti',
-          subtitulo: '10 minutos contra a dengue',
+          titulo: 'Pegue a raquete e elimine os pernilongos',
+          subtitulo: 'Campanha contra a dengue',
           descricao: 'Elimine criadouros de água parada em sua casa e ajude a proteger toda a comunidade.',
           bullets: [
             'Verifique vasos, pneus, caixas d\'água e calhas',

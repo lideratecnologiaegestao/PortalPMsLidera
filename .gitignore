@@ -59,6 +59,7 @@ portfolio/Propostas/
 # Artefatos de build e screenshots de desenvolvimento (não versionar)
 *.tsbuildinfo
 /campanhas-*.png
+/barao-aedes-*.jpeg
 
 # Terraform — artefatos locais (providers, state, locks gerados no validate/apply)
 .terraform/

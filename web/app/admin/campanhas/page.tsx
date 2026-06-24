@@ -208,8 +208,9 @@ const FORM_VAZIO = {
   efeito: {
     nome: 'aedes-overlay' as 'aedes-overlay' | 'copa-overlay',
     // aedes params
-    aedesQtd: 5, aedesCorPrimaria: '#294961', aedesCorDestaque: '#f0a830',
-    aedesTitulo: 'Combate ao Aedes aegypti', aedesSubtitulo: '10 minutos contra a dengue',
+    aedesQtd: 6, aedesKills: 3, aedesLockScroll: true,
+    aedesCorPrimaria: '#294961', aedesCorDestaque: '#16B6C4',
+    aedesTitulo: 'Pegue a raquete e elimine os pernilongos', aedesSubtitulo: 'Campanha contra a dengue',
     aedesDescricao: '', aedesBullets: [''],
     aedesCtaLabel: 'Denunciar foco do mosquito', aedesCtaUrl: '#', aedesReobrirDias: 7,
     // copa params
@@ -389,7 +390,9 @@ export default function CampanhasAdminPage() {
       efeitoDuracaoSegundos: (cfg.efeito?.duracaoSegundos as number) ?? 0,
       efeito: {
         nome: (cfg.efeito?.nome as 'aedes-overlay' | 'copa-overlay') ?? 'aedes-overlay',
-        aedesQtd: (cfg.efeito?.params as Record<string, unknown>)?.quantidadeMosquitos as number ?? 5,
+        aedesQtd: (cfg.efeito?.params as Record<string, unknown>)?.quantidadeMosquitos as number ?? 6,
+        aedesKills: (cfg.efeito?.params as Record<string, unknown>)?.kills as number ?? 3,
+        aedesLockScroll: (cfg.efeito?.params as Record<string, unknown>)?.lockScroll !== false,
         aedesCorPrimaria: (cfg.efeito?.params as Record<string, unknown>)?.corPrimaria as string ?? '#294961',
         aedesCorDestaque: (cfg.efeito?.params as Record<string, unknown>)?.corDestaque as string ?? '#f0a830',
         aedesTitulo: (cfg.efeito?.params as Record<string, unknown>)?.titulo as string ?? 'Combate ao Aedes aegypti',
@@ -476,7 +479,9 @@ export default function CampanhasAdminPage() {
         config.efeito = {
           nome: 'aedes-overlay',
           params: {
-            quantidadeMosquitos: Number(f.efeito.aedesQtd) || 5,
+            quantidadeMosquitos: Number(f.efeito.aedesQtd) || 6,
+            kills: Number(f.efeito.aedesKills) || 3,
+            lockScroll: f.efeito.aedesLockScroll,
             corPrimaria: f.efeito.aedesCorPrimaria,
             corDestaque: f.efeito.aedesCorDestaque,
             titulo: f.efeito.aedesTitulo,
@@ -1390,15 +1395,25 @@ export default function CampanhasAdminPage() {
 
                 {form.efeito.nome === 'aedes-overlay' && (
                   <div className="space-y-3 rounded border border-border p-3">
-                    <p className="text-xs font-semibold text-fg/60 uppercase tracking-wide">Parâmetros — Aedes Overlay</p>
+                    <p className="text-xs font-semibold text-fg/60 uppercase tracking-wide">Parâmetros — Aedes Overlay (jogo da raquete)</p>
                     <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                       <div>
-                        <label htmlFor="aedes-qtd" className={ui.label}>Qtd. mosquitos (1–8)</label>
-                        <input id="aedes-qtd" type="number" min={1} max={8} className={ui.input} value={form.efeito.aedesQtd} onChange={(e) => sfObj('efeito', { aedesQtd: Number(e.target.value) })} />
+                        <label htmlFor="aedes-qtd" className={ui.label}>Qtd. mosquitos (1–12)</label>
+                        <input id="aedes-qtd" type="number" min={1} max={12} className={ui.input} value={form.efeito.aedesQtd} onChange={(e) => sfObj('efeito', { aedesQtd: Number(e.target.value) })} />
+                      </div>
+                      <div>
+                        <label htmlFor="aedes-kills" className={ui.label}>Meta de eliminações</label>
+                        <input id="aedes-kills" type="number" min={1} max={30} className={ui.input} value={form.efeito.aedesKills} onChange={(e) => sfObj('efeito', { aedesKills: Number(e.target.value) })} />
                       </div>
                       <div>
                         <label htmlFor="aedes-reabrir" className={ui.label}>Reabrir após (dias)</label>
                         <input id="aedes-reabrir" type="number" min={0} className={ui.input} value={form.efeito.aedesReobrirDias} onChange={(e) => sfObj('efeito', { aedesReobrirDias: Number(e.target.value) })} />
+                      </div>
+                      <div className="flex items-center">
+                        <label className="flex items-center gap-2 text-sm">
+                          <input type="checkbox" checked={form.efeito.aedesLockScroll} onChange={(e) => sfObj('efeito', { aedesLockScroll: e.target.checked })} />
+                          Travar a navegação até eliminar / pular
+                        </label>
                       </div>
                       <div>
                         <label htmlFor="aedes-cor-primaria" className={ui.label}>Cor primária</label>
