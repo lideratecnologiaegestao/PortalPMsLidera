@@ -27,9 +27,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       # gate real de SCA: falha o CI em vulnerabilidade HIGH/CRITICAL.
-      # Falsos-positivos conhecidos → documentar waiver explícito (não usar || true).
-      - name: npm audit (api)
-        run: cd api && npm audit --audit-level=high
+      # Falsos-positivos/aceites conhecidos → waiver explícito e justificado em
+      # api/.audit-allowlist.json (não usar || true). O gate falha em qualquer
+      # HIGH/CRITICAL fora do allowlist.
+      - name: npm audit (api) — gate com waiver explícito
+        run: cd api && node scripts/audit-gate.mjs
       - name: npm audit (web)
         run: cd web && npm audit --audit-level=high
       - name: Trivy filesystem

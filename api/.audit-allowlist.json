@@ -1,0 +1,14 @@
+{
+  "_comment": "Waivers explícitos de `npm audit` (gate em scripts/audit-gate.mjs). Cada pacote HIGH/CRITICAL listado aqui é ACEITO conscientemente, com justificativa. Sem isenção em massa, sem `|| true`. Revisar na data `reviewBy`.",
+  "reviewBy": "2026-09-30",
+  "packages": {
+    "@nestjs/cli": "Ferramenta de build (devDependency). NÃO vai para a imagem de produção (Dockerfile faz `npm prune --omit=dev`). Risco de produção ~0.",
+    "glob": "Transitiva de tooling de build (@nestjs/cli / @angular-devkit / schematics). devDependency — fora da imagem de produção.",
+    "lodash": "Transitiva de tooling de build (CLI/schematics). devDependency — fora da imagem de produção.",
+    "picomatch": "Transitiva de tooling de build (@angular-devkit). devDependency — fora da imagem de produção.",
+    "tmp": "Transitiva de tooling de build (inquirer / @nestjs/cli). devDependency — fora da imagem de produção.",
+    "@nestjs/platform-express": "Advisory herdado de @nestjs/core (injection). A correção exige Nest 11 (mudança major/breaking) — upgrade planejado e rastreado. Mitigação: entradas validadas por DTO/ValidationPipe e saída escapada.",
+    "multer": "DoS por limpeza incompleta em multipart. Uploads ficam atrás de autenticação, com limite de tamanho e varredura antivírus (ClamAV). Resolve no upgrade para Nest 11 (multer 2.x).",
+    "nodemailer": "Advisory de e-mail para domínio não pretendido. Envio só para destinatários internos/controlados (SMTP do tenant/plataforma). Corrigir no bump para nodemailer 7.x com teste de regressão de e-mail."
+  }
+}
