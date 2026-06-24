@@ -243,6 +243,7 @@ const MENU_GROUPS: MenuGroup[] = [
       { href: '/admin/banners', label: 'Banners', icon: <IconBanner /> },
       { href: '/admin/popups', label: 'Pop-ups', icon: <IconBanner /> },
       { href: '/admin/enquetes', label: 'Enquetes', icon: <IconList /> },
+      { href: '/admin/campanhas', label: 'Campanhas', icon: <IconAlert /> },
     ],
   },
   {

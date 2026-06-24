@@ -154,7 +154,11 @@ tolerante no front (ignora capacidade malformada, nunca quebra o portal).
   //     Respeita prefers-reduced-motion + "pular". params variam por efeito.
   "efeito": {
     "nome": "aedes-overlay",         // "aedes-overlay" | "copa-overlay"
-    "params": { /* ver §3 */ }
+    "params": { /* ver §3 */ },
+    // Controles de comportamento (nível do efeito, não dos params):
+    "paginaAlvo": "/",               // ''/ausente = todas; "/" = só a home; "/rota" = exata + sub-rotas
+    "permitirParar": true,           // mostra botão "Parar efeito" ao visitante (default true; a11y)
+    "duracaoSegundos": 0             // encerra após N s (0/ausente = enquanto estiver na página)
   },
 
   // 2.7 SELO / BLOCO (opcional, simples na Fase 1)

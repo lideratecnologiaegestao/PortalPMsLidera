@@ -108,7 +108,7 @@ export class CampanhasService {
         endsAt: dto.endsAt ? new Date(dto.endsAt) : null,
         prioridade: dto.prioridade ?? 100,
         config: config as object,
-        recorrencia: dto.recorrencia ? (dto.recorrencia as object) : null,
+        recorrencia: dto.recorrencia ? (dto.recorrencia as object) : undefined,
         criadoPor: atorId,
       },
     });
@@ -252,7 +252,7 @@ export class CampanhasService {
         endsAt,
         prioridade: (sugestao.prioridade as number | undefined) ?? template.prioridadeSugerida,
         config,
-        recorrencia: sugestao.recorrencia ? (sugestao.recorrencia as object) : null,
+        recorrencia: sugestao.recorrencia ? (sugestao.recorrencia as object) : undefined,
         autonomous: false,
         criadoPor: atorId,
       },
@@ -411,13 +411,21 @@ export class CampanhasService {
         b.criadoEm.getTime() - a.criadoEm.getTime(),
     );
 
-    let tema: ReturnType<typeof this.extrairTema> | null = null;
-    const faixas: ReturnType<typeof this.extrairFaixa>[] = [];
-    const banners: ReturnType<typeof this.extrairBanner>[] = [];
-    let popup: ReturnType<typeof this.extrairPopup> | null = null;
-    const efeitos: ReturnType<typeof this.extrairEfeito>[] = [];
-    const selos: ReturnType<typeof this.extrairSelo>[] = [];
-    const paginas: ReturnType<typeof this.extrairPagina>[] = [];
+    type Tema = NonNullable<ReturnType<typeof this.extrairTema>>;
+    type Faixa = NonNullable<ReturnType<typeof this.extrairFaixa>>;
+    type Banner = NonNullable<ReturnType<typeof this.extrairBanner>>;
+    type Popup = NonNullable<ReturnType<typeof this.extrairPopup>>;
+    type Efeito = NonNullable<ReturnType<typeof this.extrairEfeito>>;
+    type Selo = NonNullable<ReturnType<typeof this.extrairSelo>>;
+    type Pagina = NonNullable<ReturnType<typeof this.extrairPagina>>;
+
+    let tema: Tema | null = null;
+    const faixas: Faixa[] = [];
+    const banners: Banner[] = [];
+    let popup: Popup | null = null;
+    const efeitos: Efeito[] = [];
+    const selos: Selo[] = [];
+    const paginas: Pagina[] = [];
 
     for (const c of sorted) {
       const cfg = this.parseConfig(c.config);
@@ -559,6 +567,14 @@ export class CampanhasService {
         campaignId,
         nome: x.nome as string,
         params: (x.params ?? {}) as Record<string, unknown>,
+        // Controles de comportamento do efeito (escopo / parar / duração).
+        paginaAlvo: typeof x.paginaAlvo === 'string' && x.paginaAlvo ? x.paginaAlvo : undefined,
+        // Default true: o visitante sempre pode parar o efeito (acessibilidade).
+        permitirParar: x.permitirParar === undefined ? true : !!x.permitirParar,
+        duracaoSegundos:
+          typeof x.duracaoSegundos === 'number' && x.duracaoSegundos > 0
+            ? x.duracaoSegundos
+            : undefined,
       };
     } catch {
       return null;

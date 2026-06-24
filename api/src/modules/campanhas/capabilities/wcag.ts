@@ -4,6 +4,8 @@
  * Razão mínima 4.5:1 para texto normal sobre fundo colorido.
  */
 
+import { BadRequestException } from '@nestjs/common';
+
 /** Parseia um hex (#rgb ou #rrggbb) para [r,g,b] ∈ [0,255]. */
 export function hexToRgb(hex: string): [number, number, number] {
   const h = hex.replace('#', '');
@@ -62,7 +64,7 @@ export function validarContrasteWcagAA(
   if (corPrimariaFg) {
     const ratio = contrastRatio(corPrimaria, corPrimariaFg);
     if (ratio < LIMITE) {
-      throw new Error(
+      throw new BadRequestException(
         `Contraste insuficiente entre corPrimaria "${corPrimaria}" e corPrimariaFg "${corPrimariaFg}": ` +
           `razão ${ratio.toFixed(2)}:1 (mínimo WCAG AA: ${LIMITE}:1). ` +
           `Omita corPrimariaFg para derivação automática.`,

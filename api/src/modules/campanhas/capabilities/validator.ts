@@ -59,6 +59,12 @@ export interface PaginaCap {
 export interface EfeitoCap {
   nome: 'aedes-overlay' | 'copa-overlay';
   params: Record<string, unknown>;
+  /** Escopo de página: vazio/ausente = todas; '/' = só a home; '/rota' = exata/prefixo. */
+  paginaAlvo?: string;
+  /** Mostra ao visitante um botão para parar o efeito. Default true (acessibilidade). */
+  permitirParar?: boolean;
+  /** Encerra o efeito automaticamente após N segundos (0/ausente = enquanto na página). */
+  duracaoSegundos?: number;
 }
 
 export interface SeloCap {
@@ -268,7 +274,29 @@ function validarEfeito(efeito: unknown): EfeitoCap {
   if (e.nome === 'aedes-overlay') validarParamsAedes(params);
   if (e.nome === 'copa-overlay') validarParamsCopa(params);
 
-  return { nome: e.nome as EfeitoCap['nome'], params };
+  const out: EfeitoCap = { nome: e.nome as EfeitoCap['nome'], params };
+
+  // Escopo de página (ex.: '/' = só a home).
+  if (e.paginaAlvo !== undefined && e.paginaAlvo !== null && e.paginaAlvo !== '') {
+    if (typeof e.paginaAlvo !== 'string') {
+      throw new BadRequestException('config.efeito.paginaAlvo deve ser texto (ex.: "/" para só a home).');
+    }
+    out.paginaAlvo = e.paginaAlvo.trim();
+  }
+
+  // Botão de parar (visitante). Default true.
+  if (e.permitirParar !== undefined) out.permitirParar = !!e.permitirParar;
+
+  // Duração automática do efeito (segundos).
+  if (e.duracaoSegundos !== undefined && e.duracaoSegundos !== null && e.duracaoSegundos !== '') {
+    const d = Number(e.duracaoSegundos);
+    if (!Number.isFinite(d) || d < 0 || d > 86_400) {
+      throw new BadRequestException('config.efeito.duracaoSegundos deve ser ∈ [0, 86400] (0 = sem limite).');
+    }
+    out.duracaoSegundos = Math.round(d);
+  }
+
+  return out;
 }
 
 function validarSelo(selo: unknown): SeloCap {

@@ -4,6 +4,7 @@ import './globals.css';
 import { getThemeData, getThemeTokens, tokensToCss } from '../lib/theme';
 import { isPlatformHost } from '../lib/platform-host';
 import { getMenus, getHome } from '../lib/portal-api';
+import { getCampanhasAtivas } from '../lib/campanhas';
 
 // Portal público — novos componentes
 import UtilityBar from '../components/portal/UtilityBar';
@@ -15,6 +16,7 @@ import PopupModal from '../components/portal/PopupModal';
 import VLibras from '../components/VLibras';
 import AtendimentoWidget from '../components/portal/AtendimentoWidget';
 import PwaRegister from '../components/portal/PwaRegister';
+import CampanhaRenderer from '../components/campanhas/CampanhaRenderer';
 
 // (SiteFooter legado mantido para eventual uso em admin customizado)
 
@@ -147,10 +149,12 @@ export default async function RootLayout({
   // Busca os menus do tenant em paralelo com o tema (já carregado acima).
   // Cache ISR por 120 s; chave de cache única por tenant via __h= na URL
   // (garante isolamento: um tenant não recebe o menu de outro).
-  const [menuTopo, menuRodape, home] = await Promise.all([
+  // getCampanhasAtivas: revalidate 30s, tolerante (retorna vazio em falha).
+  const [menuTopo, menuRodape, home, campanhas] = await Promise.all([
     getMenus('cabecalho'),
     getMenus('rodape'),
     getHome(),
+    getCampanhasAtivas(),
   ]);
 
   const cfg = home?.config;
@@ -235,6 +239,13 @@ export default async function RootLayout({
 
         {/* Popups do portal (por página, com datas e frequência) */}
         <PopupModal />
+
+        {/* Render de campanhas ativas (tema, faixas, popup, efeitos, selos).
+            Montado após PopupModal para z-index adequado: campanhas ficam
+            abaixo do cookie consent (z-50) mas acima do conteúdo principal.
+            Efeitos visuais (copa/aedes) têm pointer-events:none e nunca
+            bloqueiam cliques. Nunca aparece em /admin ou /plataforma. */}
+        <CampanhaRenderer contexto={campanhas} tenantHost={host} />
 
         {/* Cookie consent LGPD */}
         <CookieConsent />

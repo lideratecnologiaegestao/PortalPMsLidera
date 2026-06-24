@@ -160,6 +160,14 @@ portal-prefeitura/
 
 ---
 
+## Módulo Campanhas
+
+Motor de campanhas institucionais multi-tenant (migration 084). Permite que cada prefeitura ative campanhas sazonais, temáticas e cívicas no portal com capacidades plugáveis: tema de cor, faixa superior, banner, popup acessível, efeito interativo (overlay da dengue, confete de copa), selo e referência a página CMS. Inclui biblioteca de 28 presets prontos para instalar (Outubro Rosa, Setembro Amarelo, Dengue/Aedes, IPTU, Agasalho, Copa, e demais meses coloridos). O resolver `GET /api/campanhas/ativas` aplica precedência determinística por prioridade e entrega o contexto em cache Redis (60s).
+
+Documentação completa: [`docs/campanhas/`](docs/campanhas/00-visao-geral.md) — visão geral, modelo de dados, capacidades, endpoints, catálogo de seeds, runbook operacional, acessibilidade/LGPD e ADRs (ADR-0007 a ADR-0010).
+
+---
+
 ## Próximos módulos (encaixam na fundação existente)
 
 - **Transparência** — ETL via n8n a partir dos sistemas contábeis (a integração mais difícil) → tabelas de dados abertos + API CSV/JSON.
