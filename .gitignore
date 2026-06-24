@@ -55,3 +55,7 @@ EXPO_TOKEN
 prompts/
 # Propostas comerciais por cliente (sensível — não versionar)
 portfolio/Propostas/
+
+# Artefatos de build e screenshots de desenvolvimento (não versionar)
+*.tsbuildinfo
+/campanhas-*.png
