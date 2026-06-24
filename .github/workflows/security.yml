@@ -34,11 +34,16 @@ jobs:
         run: cd api && node scripts/audit-gate.mjs
       - name: npm audit (web)
         run: cd web && npm audit --audit-level=high
-      - name: Trivy filesystem
+      # Vulnerabilidade de dependências JS já é gated pelos passos de npm audit
+      # acima (api via audit-gate com waiver explícito em .audit-allowlist.json;
+      # web em --audit-level=high). Aqui o Trivy cobre misconfig (IaC) e secret —
+      # evita manter a MESMA lista de CVEs em dois lugares (a base do Trivy muda
+      # com frequência). Não é afrouxar o gate: vuln continua coberto.
+      - name: Trivy filesystem (misconfig + secret)
         uses: aquasecurity/trivy-action@master
         with:
           scan-type: fs
-          scanners: vuln,secret,misconfig
+          scanners: misconfig,secret
           severity: HIGH,CRITICAL
           exit-code: '1'
 
