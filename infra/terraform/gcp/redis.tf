@@ -50,6 +50,12 @@ resource "google_redis_instance" "portal_redis" {
   #   - Custo mais baixo
 
   # ------------------------------------------------------------------
+  # Segurança — autenticação e criptografia em trânsito
+  # ------------------------------------------------------------------
+  auth_enabled            = true                   # CKV_GCP_97: exige AUTH (requirepass) no Redis
+  transit_encryption_mode = "SERVER_AUTHENTICATION" # CKV_GCP_98: TLS obrigatório em trânsito
+
+  # ------------------------------------------------------------------
   # Conectividade — APENAS via VPC privada
   # ------------------------------------------------------------------
   connect_mode        = "PRIVATE_SERVICE_ACCESS"
@@ -99,13 +105,11 @@ resource "google_redis_instance" "portal_redis" {
   # ------------------------------------------------------------------
   # Nota sobre autenticação Redis
   # ------------------------------------------------------------------
-  # O Memorystore Redis 7.0 suporta AUTH (requirepass).
-  # Para habilitar autenticação:
-  #   - Configure auth_enabled = true (requer redis_version >= REDIS_6_0)
-  #   - A senha é gerada automaticamente pelo Memorystore
-  #   - Recupere via: gcloud redis instances get-auth-string portal-redis --region=us-east1
-  #   - Armazene no Secret Manager como REDIS_PASSWORD
-  # Por padrão (auth_enabled não configurado), não há senha.
-  # Em produção, RECOMENDAMOS habilitar AUTH mesmo na VPC privada.
-  # auth_enabled = true  # Descomente para habilitar autenticação
+  # auth_enabled = true está configurado acima (bloco de segurança).
+  # A senha é gerada automaticamente pelo Memorystore.
+  # Recupere via: gcloud redis instances get-auth-string portal-redis --region=us-east1
+  # Armazene no Secret Manager como REDIS_PASSWORD (já criado em secrets.tf).
+  #
+  # transit_encryption_mode = "SERVER_AUTHENTICATION" exige que o cliente use TLS.
+  # Configure REDIS_TLS=true na aplicação ao usar este modo.
 }

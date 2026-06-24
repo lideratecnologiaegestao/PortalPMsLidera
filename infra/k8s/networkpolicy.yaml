@@ -1,0 +1,53 @@
+# NetworkPolicies do namespace `portal`. Padrão deny-all + liberações mínimas,
+# satisfazendo CKV2_K8S_6 (todo pod deve ter NetworkPolicy associada).
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: default-deny-all
+  namespace: portal
+spec:
+  podSelector: {} # seleciona TODOS os pods do namespace
+  policyTypes: [Ingress, Egress]
+---
+# DNS (egress) para todos os pods.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-dns
+  namespace: portal
+spec:
+  podSelector: {}
+  policyTypes: [Egress]
+  egress:
+    - to: []
+      ports:
+        - { protocol: UDP, port: 53 }
+        - { protocol: TCP, port: 53 }
+---
+# web → api (porta 3001).
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: web-to-api
+  namespace: portal
+spec:
+  podSelector: { matchLabels: { app: portal-api } }
+  policyTypes: [Ingress]
+  ingress:
+    - from:
+        - podSelector: { matchLabels: { app: portal-web } }
+      ports:
+        - { protocol: TCP, port: 3001 }
+---
+# Ingress externo → web (porta 3000). Ajuste o seletor para o seu ingress-controller.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-web-ingress
+  namespace: portal
+spec:
+  podSelector: { matchLabels: { app: portal-web } }
+  policyTypes: [Ingress]
+  ingress:
+    - ports:
+        - { protocol: TCP, port: 3000 }

@@ -142,6 +142,11 @@ resource "google_compute_firewall" "allow_lb_health_checks" {
   source_ranges = ["35.191.0.0/16", "130.211.0.0/22"]
   target_tags   = ["portal-cloudrun"]
   description   = "Permite health checks do Cloud Load Balancer para os Cloud Run services"
+
+  # Logging de regra de firewall (CKV_GCP_74 / CKV_GCP_75)
+  log_config {
+    metadata = "INCLUDE_ALL_METADATA"
+  }
 }
 
 # Negar todo tráfego de entrada não autorizado (deny-all default já existe na VPC,
@@ -159,4 +164,9 @@ resource "google_compute_firewall" "deny_all_ingress" {
 
   source_ranges = ["0.0.0.0/0"]
   description   = "Regra de negação padrão (menor prioridade). Todo tráfego não explicitamente permitido é negado."
+
+  # Logging de regra de firewall (CKV_GCP_74 / CKV_GCP_75)
+  log_config {
+    metadata = "INCLUDE_ALL_METADATA"
+  }
 }

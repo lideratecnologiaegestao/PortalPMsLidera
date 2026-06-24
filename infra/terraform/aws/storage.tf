@@ -17,6 +17,8 @@
 # ---------------------------------------------------------------------------
 
 resource "aws_s3_bucket" "portal" {
+  #checkov:skip=CKV2_AWS_62:notificações de evento S3 não são usadas (todo upload passa pela API NestJS); habilitar quando houver consumidor
+  #checkov:skip=CKV_AWS_144:replicação cross-region não é requisito deste template; ativar conforme RPO/RTO do cliente
   bucket = var.s3_bucket_name
 
   # Proteção contra exclusão acidental
@@ -65,12 +67,18 @@ resource "aws_s3_bucket_server_side_encryption_configuration" "portal" {
 
   rule {
     apply_server_side_encryption_by_default {
-      sse_algorithm = "AES256"
+      sse_algorithm     = "aws:kms"
+      kms_master_key_id = aws_kms_key.portal.arn
     }
-
-    # Garante que todos os objetos novos usem SSE, mesmo que o cliente não solicite
     bucket_key_enabled = true
   }
+}
+
+resource "aws_s3_bucket_logging" "portal" {
+  bucket = aws_s3_bucket.portal.id
+
+  target_bucket = aws_s3_bucket.alb_logs.id
+  target_prefix = "s3-access-logs/"
 }
 
 # ---------------------------------------------------------------------------

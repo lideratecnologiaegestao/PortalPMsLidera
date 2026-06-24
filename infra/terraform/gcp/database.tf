@@ -18,7 +18,7 @@
 #   A extensão PostGIS (e pgvector) deve ser instalada MANUALMENTE
 #   após o provisionamento via Cloud SQL Auth Proxy:
 #
-#   psql "postgresql://postgres:SENHA@127.0.0.1:5433/portal" -c \
+#   psql -h 127.0.0.1 -p 5433 -U postgres -d portal -c \
 #     "CREATE EXTENSION IF NOT EXISTS postgis;
 #      CREATE EXTENSION IF NOT EXISTS pgcrypto;
 #      CREATE EXTENSION IF NOT EXISTS vector;"
@@ -30,6 +30,7 @@
 # Instância Cloud SQL — PostgreSQL 16
 # ------------------------------------------------------------------
 resource "google_sql_database_instance" "portal_postgres" {
+  #checkov:skip=CKV_GCP_79:stack padronizada em PostgreSQL 16 (compatibilidade PostGIS/pgvector); upgrade de major é avaliado separadamente
   name             = "portal-postgres"
   database_version = "POSTGRES_16"
   region           = var.region
@@ -38,6 +39,9 @@ resource "google_sql_database_instance" "portal_postgres" {
   # Impede destruição acidental do banco em produção.
   # Para destruir: primeiro defina como false, aplique, depois destrua.
   deletion_protection = true
+
+  # CMEK — Customer-Managed Encryption Key (argumento do nível da instância).
+  encryption_key_name = google_kms_crypto_key.cloudsql.id
 
   settings {
     tier              = var.db_tier       # Ex: db-custom-2-4096 (2 vCPU, 4 GB RAM)
@@ -56,6 +60,7 @@ resource "google_sql_database_instance" "portal_postgres" {
       ipv4_enabled                                  = false  # Sem IP público — obrigatório para segurança
       private_network                               = google_compute_network.portal_vpc.id
       enable_private_path_for_google_cloud_services = true   # Permite acesso via Private Google Access
+      require_ssl                                   = true   # Exige TLS para todas as conexões (CKV_GCP_6)
 
       # Sem authorized_networks — o banco é acessível APENAS via VPC privada
     }
@@ -115,9 +120,10 @@ resource "google_sql_database_instance" "portal_postgres" {
 
     database_flags {
       name  = "log_min_duration_statement"
-      value = "1000"
-      # Loga queries que demoram mais de 1000ms (1 segundo).
-      # Ajuda a identificar N+1 queries e full scans sem índice.
+      value = "-1"
+      # CKV_GCP_57: '-1' desabilita o log do TEXTO de statements por duração (pode
+      # conter dado sensível). Diagnóstico de query lenta fica por Query Insights
+      # (insights_config acima), sem expor o SQL nos logs.
     }
 
     database_flags {
@@ -127,14 +133,15 @@ resource "google_sql_database_instance" "portal_postgres" {
 
     database_flags {
       name  = "log_connections"
-      value = "off"
-      # "off" em produção para evitar flood de logs.
-      # Ative temporariamente para diagnóstico de conexões.
+      value = "on"
+      # CKV_GCP_84: log_connections deve estar "on" para auditoria de acesso ao banco.
+      # Em produção com alto volume de conexões, monitore o custo de Cloud Logging.
     }
 
     database_flags {
       name  = "log_disconnections"
-      value = "off"
+      value = "on"
+      # CKV_GCP_85: log_disconnections deve estar "on" para auditoria de acesso ao banco.
     }
 
     database_flags {
@@ -155,6 +162,24 @@ resource "google_sql_database_instance" "portal_postgres" {
       name  = "shared_buffers"
       value = "1024"
       # 1 GB de shared_buffers (25% da RAM). Padrão seguro para 4 GB RAM.
+    }
+
+    # Flags de auditoria exigidas pelo Checkov (CKV_GCP_108/109/111, CKV2_GCP_13)
+    database_flags {
+      name  = "log_hostname" # CKV_GCP_108
+      value = "on"
+    }
+    database_flags {
+      name  = "log_min_error_statement" # CKV_GCP_109 (ERROR ou inferior)
+      value = "error"
+    }
+    database_flags {
+      name  = "log_statement" # CKV_GCP_111 (loga DDL)
+      value = "ddl"
+    }
+    database_flags {
+      name  = "log_duration" # CKV2_GCP_13
+      value = "on"
     }
   }
 

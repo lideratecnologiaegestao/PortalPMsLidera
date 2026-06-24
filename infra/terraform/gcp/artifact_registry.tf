@@ -39,6 +39,9 @@ resource "google_artifact_registry_repository" "portal" {
   project       = var.project_id
   description   = "Repositório Docker privado para as imagens da plataforma Portal de Prefeitura (API NestJS + Web Next.js)"
 
+  # CMEK — Customer-Managed Encryption Key (CKV_GCP_84 for Artifact Registry)
+  kms_key_name = google_kms_crypto_key.artifact_registry.id
+
   labels = {
     environment = var.environment
     managed_by  = "terraform"

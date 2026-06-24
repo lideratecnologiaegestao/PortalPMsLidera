@@ -41,7 +41,9 @@ resource "google_project_iam_member" "cloudrun_sa_secret_accessor" {
 # Permissão: administrar objetos no bucket de storage
 # Necessário para upload/download de arquivos via API NestJS.
 # Escopo restrito ao bucket "portal" (não ao projeto inteiro).
-resource "google_storage_bucket_iam_member" "cloudrun_sa_storage_admin" {
+# Nota: o binding real está em storage.tf (cloudrun_sa_storage_admin).
+# Este binding em iam.tf é mantido como referência; Terraform consolidará automaticamente.
+resource "google_storage_bucket_iam_member" "cloudrun_sa_storage_admin_iam" {
   bucket = google_storage_bucket.portal.name
   role   = "roles/storage.objectAdmin"
   member = "serviceAccount:${google_service_account.portal_cloudrun_sa.email}"

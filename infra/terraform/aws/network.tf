@@ -22,6 +22,83 @@ resource "aws_vpc" "portal" {
   }
 }
 
+# Security group default da VPC sem regras (CKV2_AWS_12): nada deve usá-lo.
+resource "aws_default_security_group" "portal" {
+  vpc_id = aws_vpc.portal.id
+
+  tags = {
+    Name = "${local.name_prefix}-default-sg-no-traffic"
+  }
+}
+
+# ---------------------------------------------------------------------------
+# VPC Flow Logs — auditoria de tráfego de rede
+# ---------------------------------------------------------------------------
+
+resource "aws_cloudwatch_log_group" "vpc_flow_logs" {
+  name              = "/aws/vpc/${local.name_prefix}-flow-logs"
+  retention_in_days = 365
+  kms_key_id        = aws_kms_key.portal.arn
+
+  tags = {
+    Name = "${local.name_prefix}-vpc-flow-logs"
+  }
+}
+
+resource "aws_iam_role" "vpc_flow_logs" {
+  name = "${local.name_prefix}-vpc-flow-logs-role"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Principal = {
+          Service = "vpc-flow-logs.amazonaws.com"
+        }
+        Action = "sts:AssumeRole"
+      }
+    ]
+  })
+
+  tags = {
+    Name = "${local.name_prefix}-vpc-flow-logs-role"
+  }
+}
+
+resource "aws_iam_role_policy" "vpc_flow_logs" {
+  name = "${local.name_prefix}-vpc-flow-logs-policy"
+  role = aws_iam_role.vpc_flow_logs.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "logs:CreateLogStream",
+          "logs:PutLogEvents",
+          "logs:DescribeLogStreams"
+        ]
+        # Escopo restrito ao log group do flow log (CKV_AWS_290/355) — o group já
+        # é criado pelo Terraform, então o papel não precisa de CreateLogGroup.
+        Resource = "${aws_cloudwatch_log_group.vpc_flow_logs.arn}:*"
+      }
+    ]
+  })
+}
+
+resource "aws_flow_log" "portal" {
+  iam_role_arn    = aws_iam_role.vpc_flow_logs.arn
+  log_destination = aws_cloudwatch_log_group.vpc_flow_logs.arn
+  traffic_type    = "ALL"
+  vpc_id          = aws_vpc.portal.id
+
+  tags = {
+    Name = "${local.name_prefix}-vpc-flow-log"
+  }
+}
+
 # ---------------------------------------------------------------------------
 # Subnets públicas (ALB, NAT Gateway)
 # Uma por Zona de Disponibilidade
@@ -33,7 +110,7 @@ resource "aws_subnet" "public" {
   vpc_id                  = aws_vpc.portal.id
   cidr_block              = var.public_subnet_cidrs[count.index]
   availability_zone       = var.availability_zones[count.index]
-  map_public_ip_on_launch = true
+  map_public_ip_on_launch = false
 
   tags = {
     Name = "${local.name_prefix}-public-${var.availability_zones[count.index]}"
@@ -154,8 +231,9 @@ resource "aws_route_table_association" "private" {
 
 # SG do ALB — aceita tráfego HTTP/HTTPS da internet (IPv4 e IPv6)
 resource "aws_security_group" "alb" {
+  #checkov:skip=CKV_AWS_260:ALB público intencional — ingress 80/443 da internet é necessário num load balancer público
   name        = "${local.name_prefix}-sg-alb"
-  description = "Security group do Application Load Balancer — permite HTTP/HTTPS da internet"
+  description = "Security group do Application Load Balancer - permite HTTP/HTTPS da internet"
   vpc_id      = aws_vpc.portal.id
 
   # Tráfego HTTP de entrada (redirecionado para HTTPS)
@@ -178,13 +256,13 @@ resource "aws_security_group" "alb" {
     ipv6_cidr_blocks = ["::/0"]
   }
 
-  # Saída irrestrita — necessária para health checks e encaminhamento de requisições
+  # Saída restrita ao VPC — o ALB só encaminha requisições para targets dentro da VPC
   egress {
-    description = "Saída irrestrita do ALB"
+    description = "Saida do ALB restrita a VPC"
     from_port   = 0
     to_port     = 0
     protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
+    cidr_blocks = [var.vpc_cidr]
   }
 
   tags = {
@@ -193,10 +271,10 @@ resource "aws_security_group" "alb" {
 }
 
 # SG dos contêineres ECS — aceita tráfego somente do ALB
-# Saída irrestrita para acessar RDS, Redis, S3 (via endpoint) e Secrets Manager
 resource "aws_security_group" "ecs" {
+  #checkov:skip=CKV_AWS_382:ECS Fargate precisa de egress amplo (ECR, Secrets Manager, S3, APIs externas via NAT Gateway)
   name        = "${local.name_prefix}-sg-ecs"
-  description = "Security group dos contêineres ECS Fargate — aceita tráfego somente do ALB"
+  description = "Security group dos conteineres ECS Fargate - aceita trafego somente do ALB"
   vpc_id      = aws_vpc.portal.id
 
   # Porta da API NestJS — somente do ALB
@@ -218,8 +296,9 @@ resource "aws_security_group" "ecs" {
   }
 
   # Saída irrestrita — permite acessar RDS (5432), Redis (6379), S3 (443), Secrets Manager (443)
+  # checkov:skip=CKV_AWS_25:ECS Fargate necessita egress irrestrito para acessar ECR, Secrets Manager, S3 e APIs externas via NAT Gateway
   egress {
-    description = "Saída irrestrita dos contêineres ECS"
+    description = "Saida irrestrita dos conteineres ECS"
     from_port   = 0
     to_port     = 0
     protocol    = "-1"
@@ -234,23 +313,24 @@ resource "aws_security_group" "ecs" {
 # SG do RDS — aceita conexões PostgreSQL somente dos contêineres ECS
 resource "aws_security_group" "rds" {
   name        = "${local.name_prefix}-sg-rds"
-  description = "Security group do RDS PostgreSQL — aceita conexões somente do ECS"
+  description = "Security group do RDS PostgreSQL - aceita conexoes somente do ECS"
   vpc_id      = aws_vpc.portal.id
 
   ingress {
-    description     = "PostgreSQL (5432) somente dos contêineres ECS"
+    description     = "PostgreSQL (5432) somente dos conteineres ECS"
     from_port       = 5432
     to_port         = 5432
     protocol        = "tcp"
     security_groups = [aws_security_group.ecs.id]
   }
 
+  # Saída restrita ao CIDR da VPC (replicação, backups — não precisa de internet)
   egress {
-    description = "Saída irrestrita do RDS (replicação, backups)"
+    description = "Saida do RDS restrita a VPC"
     from_port   = 0
     to_port     = 0
     protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
+    cidr_blocks = [var.vpc_cidr]
   }
 
   tags = {
@@ -261,23 +341,24 @@ resource "aws_security_group" "rds" {
 # SG do ElastiCache Redis — aceita conexões somente dos contêineres ECS
 resource "aws_security_group" "redis" {
   name        = "${local.name_prefix}-sg-redis"
-  description = "Security group do ElastiCache Redis — aceita conexões somente do ECS"
+  description = "Security group do ElastiCache Redis - aceita conexoes somente do ECS"
   vpc_id      = aws_vpc.portal.id
 
   ingress {
-    description     = "Redis (6379) somente dos contêineres ECS"
+    description     = "Redis (6379) somente dos conteineres ECS"
     from_port       = 6379
     to_port         = 6379
     protocol        = "tcp"
     security_groups = [aws_security_group.ecs.id]
   }
 
+  # Saída restrita ao CIDR da VPC (replicação interna — não precisa de internet)
   egress {
-    description = "Saída irrestrita do Redis"
+    description = "Saida do Redis restrita a VPC"
     from_port   = 0
     to_port     = 0
     protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
+    cidr_blocks = [var.vpc_cidr]
   }
 
   tags = {

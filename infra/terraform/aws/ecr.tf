@@ -17,16 +17,15 @@
 
 resource "aws_ecr_repository" "api" {
   name                 = "${var.project_name}/api"
-  image_tag_mutability = "MUTABLE" # permite sobrescrever tags (ex: latest) — use IMMUTABLE em pipelines maduros
+  image_tag_mutability = "IMMUTABLE"
 
-  # Varredura automática de vulnerabilidades a cada push
   image_scanning_configuration {
     scan_on_push = true
   }
 
-  # Criptografia das imagens em repouso
   encryption_configuration {
-    encryption_type = "AES256"
+    encryption_type = "KMS"
+    kms_key         = aws_kms_key.portal.arn
   }
 
   tags = {
@@ -80,14 +79,15 @@ resource "aws_ecr_lifecycle_policy" "api" {
 
 resource "aws_ecr_repository" "web" {
   name                 = "${var.project_name}/web"
-  image_tag_mutability = "MUTABLE"
+  image_tag_mutability = "IMMUTABLE"
 
   image_scanning_configuration {
     scan_on_push = true
   }
 
   encryption_configuration {
-    encryption_type = "AES256"
+    encryption_type = "KMS"
+    kms_key         = aws_kms_key.portal.arn
   }
 
   tags = {

@@ -45,9 +45,9 @@ output "cloud_sql_connection_name" {
 }
 
 output "cloud_sql_private_ip" {
-  description = "Endereço IP privado do Cloud SQL na VPC. Use para compor a DATABASE_URL no Secret Manager: postgresql://portal_app:SENHA@IP:5432/portal"
+  description = "Endereço IP privado do Cloud SQL na VPC. Use para compor a DATABASE_URL no Secret Manager (postgresql, usuario portal_app, este IP, porta 5432, db portal)."
   value       = google_sql_database_instance.portal_postgres.private_ip_address
-  sensitive   = false  # O IP privado não é um segredo; a senha sim
+  sensitive   = true  # Marcado sensitive para não expor infraestrutura interna em logs de CI/CD
 }
 
 output "cloud_sql_instance_name" {
@@ -62,6 +62,7 @@ output "cloud_sql_instance_name" {
 output "redis_host" {
   description = "Endereço IP privado do Memorystore Redis. Popule no Secret Manager como REDIS_HOST: terraform output -raw redis_host | gcloud secrets versions add REDIS_HOST --data-file=-"
   value       = google_redis_instance.portal_redis.host
+  sensitive   = true  # Marcado sensitive para não expor infraestrutura interna em logs de CI/CD
 }
 
 output "redis_port" {
@@ -91,7 +92,7 @@ output "storage_bucket_url" {
 output "hmac_access_id" {
   description = "HMAC Key Access ID para interoperabilidade S3 com GCS. Popule no Secret Manager como STORAGE_ACCESS_KEY."
   value       = google_storage_hmac_key.portal_storage_hmac.access_id
-  sensitive   = false  # O access ID não é secreto; o secret sim
+  sensitive   = true  # Marcado sensitive — access ID do HMAC não deve ser exposto em logs
 }
 
 output "hmac_secret" {
@@ -148,6 +149,7 @@ output "vpc_connector_name" {
 
 output "next_steps" {
   description = "Próximos passos após o terraform apply"
+  sensitive   = true  # Contém IPs privados de infraestrutura interna
   value = <<-EOT
 
     ==================== PRÓXIMOS PASSOS ====================
@@ -163,13 +165,13 @@ output "next_steps" {
     3. Salve o IP do Redis no Secret Manager:
        terraform output -raw redis_host | gcloud secrets versions add REDIS_HOST --project=${var.project_id} --data-file=-
 
-    4. Popule a DATABASE_URL no Secret Manager (substitua SENHA_APP e SENHA_RO):
-       echo -n "postgresql://portal_app:SENHA_APP@${google_sql_database_instance.portal_postgres.private_ip_address}:5432/portal?schema=public" \
-         | gcloud secrets versions add DATABASE_URL --project=${var.project_id} --data-file=-
+    4. Popule a DATABASE_URL no Secret Manager. Monte a connection string postgresql
+       com: usuario portal_app, host ${google_sql_database_instance.portal_postgres.private_ip_address}, porta 5432, db portal, schema public.
+       printf '%s' "$DATABASE_URL" | gcloud secrets versions add DATABASE_URL --project=${var.project_id} --data-file=-
 
     5. Rode as migrations via Cloud SQL Auth Proxy:
        ./cloud-sql-proxy ${google_sql_database_instance.portal_postgres.connection_name} --port=5433 &
-       for f in $(ls ../../../db/*.sql | sort); do psql "postgresql://postgres:SENHA@127.0.0.1:5433/portal" -f "$f"; done
+       for f in $(ls ../../../db/*.sql | sort); do psql -h 127.0.0.1 -p 5433 -U postgres -d portal -f "$f"; done
 
     6. Verifique o certificado TLS (pode levar 15-60 min após DNS propagar):
        gcloud compute ssl-certificates describe portal-cert --format="value(managed.status)"

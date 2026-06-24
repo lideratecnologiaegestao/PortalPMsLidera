@@ -74,55 +74,48 @@ resource "aws_db_subnet_group" "portal" {
 resource "aws_db_instance" "portal" {
   identifier = "${var.project_name}-postgres"
 
-  # Motor e versão
   engine         = "postgres"
   engine_version = "16"
 
-  # Tamanho da instância (configurável via variável)
   instance_class = var.db_instance_class
 
-  # Banco de dados inicial
   db_name  = var.db_name
   username = var.db_username
-  password = var.db_password # sensível — não aparece em logs do Terraform
+  password = var.db_password
 
-  # Rede e segurança
   db_subnet_group_name   = aws_db_subnet_group.portal.name
   vpc_security_group_ids = [aws_security_group.rds.id]
-  publicly_accessible    = false # banco NUNCA exposto à internet
+  publicly_accessible    = false
 
-  # Alta disponibilidade (desligado por padrão para reduzir custo em dev/staging)
-  multi_az = var.db_multi_az
+  multi_az = true
 
-  # Backups automáticos
   backup_retention_period = var.db_backup_retention_days
-  backup_window           = "03:00-04:00" # janela de backup às 3h UTC (madrugada BR)
-  maintenance_window      = "sun:04:00-sun:05:00" # manutenção aos domingos às 4h UTC
+  backup_window           = "03:00-04:00"
+  maintenance_window      = "sun:04:00-sun:05:00"
 
-  # Armazenamento — gp3 com autoscaling para evitar disco cheio
   storage_type          = "gp3"
-  allocated_storage     = 20  # GB inicial
-  max_allocated_storage = 100 # GB máximo (autoscaling automático do RDS)
+  allocated_storage     = 20
+  max_allocated_storage = 100
   storage_encrypted     = true
+  kms_key_id            = aws_kms_key.portal.arn
 
-  # Parameter group com SSL obrigatório
   parameter_group_name = aws_db_parameter_group.portal.name
 
-  # Proteção contra exclusão acidental (terraform destroy requer deletion_protection=false antes)
-  deletion_protection = true
-  skip_final_snapshot = false
-  final_snapshot_identifier = "${var.project_name}-final-snapshot"
+  deletion_protection               = true
+  skip_final_snapshot               = false
+  final_snapshot_identifier         = "${var.project_name}-final-snapshot"
+  copy_tags_to_snapshot             = true
+  auto_minor_version_upgrade        = true
+  iam_database_authentication_enabled = true
 
-  # Atualizações automáticas de versão minor (patches de segurança)
-  auto_minor_version_upgrade = true
+  enabled_cloudwatch_logs_exports = ["postgresql", "upgrade"]
 
-  # Habilitar monitoramento aprimorado (métricas a cada 60s)
   monitoring_interval = 60
   monitoring_role_arn = aws_iam_role.rds_monitoring.arn
 
-  # Performance Insights — visibilidade de queries lentas
   performance_insights_enabled          = true
-  performance_insights_retention_period = 7 # dias (free tier)
+  performance_insights_retention_period = 7
+  performance_insights_kms_key_id       = aws_kms_key.portal.arn
 
   tags = {
     Name = "${var.project_name}-postgres"

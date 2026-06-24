@@ -45,6 +45,7 @@ resource "aws_ecs_cluster_capacity_providers" "portal" {
 resource "aws_cloudwatch_log_group" "api" {
   name              = "/ecs/${var.project_name}-api"
   retention_in_days = var.log_retention_days
+  kms_key_id        = aws_kms_key.portal.arn
 
   tags = {
     Name      = "/ecs/${var.project_name}-api"
@@ -55,6 +56,7 @@ resource "aws_cloudwatch_log_group" "api" {
 resource "aws_cloudwatch_log_group" "web" {
   name              = "/ecs/${var.project_name}-web"
   retention_in_days = var.log_retention_days
+  kms_key_id        = aws_kms_key.portal.arn
 
   tags = {
     Name      = "/ecs/${var.project_name}-web"

@@ -126,7 +126,54 @@ resource "google_storage_bucket" "portal" {
     max_age_seconds = 3600
   }
 
+  # ------------------------------------------------------------------
+  # CMEK — Customer-Managed Encryption Key (CKV_GCP_78)
+  # ------------------------------------------------------------------
+  encryption {
+    default_kms_key_name = google_kms_crypto_key.storage.id
+  }
+
+  # ------------------------------------------------------------------
+  # Access logging (CKV_GCP_62)
+  # ------------------------------------------------------------------
+  logging {
+    log_bucket        = google_storage_bucket.portal_access_logs.name
+    log_object_prefix = "access-logs/"
+  }
+
   force_destroy = false # Proteção: impede exclusão acidental do bucket com conteúdo
+}
+
+# ------------------------------------------------------------------
+# Bucket de logs de acesso ao storage
+# ------------------------------------------------------------------
+# Bucket dedicado para receber os access logs do bucket principal.
+# Não precisa de seu próprio access log (seria circular).
+resource "google_storage_bucket" "portal_access_logs" {
+  #checkov:skip=CKV_GCP_62:Log bucket does not need its own access log to avoid circular dependency
+  name                        = "${var.project_id}-${var.storage_bucket_name}-access-logs"
+  location                    = var.storage_location
+  project                     = var.project_id
+  uniform_bucket_level_access = true
+  public_access_prevention    = "enforced"
+  force_destroy               = false
+
+  versioning {
+    enabled = true
+  }
+
+  encryption {
+    default_kms_key_name = google_kms_crypto_key.storage.id
+  }
+
+  lifecycle_rule {
+    condition {
+      age = 90
+    }
+    action {
+      type = "Delete"
+    }
+  }
 }
 
 # ------------------------------------------------------------------

@@ -24,7 +24,9 @@ locals {
 resource "aws_secretsmanager_secret" "auth_jwt_secret" {
   name                    = "${local.secret_prefix}/auth-jwt-secret"
   description             = "Chave secreta para assinar tokens JWT da API NestJS (AUTH_JWT_SECRET)"
-  recovery_window_in_days = 7 # período de recuperação antes da exclusão permanente
+  recovery_window_in_days = 7
+  kms_key_id              = aws_kms_key.portal.arn
+  #checkov:skip=CKV2_AWS_57:chaves de terceiros/pepper/cert ICP/connection strings não suportam rotação automática por Lambda do Secrets Manager; rotação é manual conforme política
 
   tags = {
     Modulo = "autenticacao"
@@ -44,6 +46,8 @@ resource "aws_secretsmanager_secret" "cpf_pepper" {
   name                    = "${local.secret_prefix}/cpf-pepper"
   description             = "Pepper para derivação criptográfica do CPF (CPF_PEPPER) — proteção LGPD"
   recovery_window_in_days = 7
+  kms_key_id              = aws_kms_key.portal.arn
+  #checkov:skip=CKV2_AWS_57:chaves de terceiros/pepper/cert ICP/connection strings não suportam rotação automática por Lambda do Secrets Manager; rotação é manual conforme política
 
   tags = {
     Modulo = "lgpd"
@@ -57,13 +61,15 @@ resource "aws_secretsmanager_secret_version" "cpf_pepper" {
 
 # ---------------------------------------------------------------------------
 # Segredo: DATABASE_URL — connection string completa da aplicação (portal_app)
-# Formato: postgresql://portal_app:SENHA@RDS_ENDPOINT:5432/portal?sslmode=require
+# Formato: connection string PostgreSQL (usuario portal_app, host do RDS, db portal, sslmode=require)
 # ---------------------------------------------------------------------------
 
 resource "aws_secretsmanager_secret" "database_url" {
   name                    = "${local.secret_prefix}/database-url"
   description             = "Connection string PostgreSQL para a aplicação (DATABASE_URL) — role portal_app com RLS ativo"
   recovery_window_in_days = 7
+  kms_key_id              = aws_kms_key.portal.arn
+  #checkov:skip=CKV2_AWS_57:chaves de terceiros/pepper/cert ICP/connection strings não suportam rotação automática por Lambda do Secrets Manager; rotação é manual conforme política
 
   tags = {
     Modulo = "banco-de-dados"
@@ -72,7 +78,7 @@ resource "aws_secretsmanager_secret" "database_url" {
 
 resource "aws_secretsmanager_secret_version" "database_url" {
   secret_id     = aws_secretsmanager_secret.database_url.id
-  secret_string = "POPULATE_ME" # postgresql://portal_app:SENHA@ENDPOINT:5432/portal?sslmode=require
+  secret_string = "POPULATE_ME" # connection string do portal_app (host RDS, db portal, sslmode=require)
 }
 
 # ---------------------------------------------------------------------------
@@ -84,6 +90,8 @@ resource "aws_secretsmanager_secret" "database_url_readonly" {
   name                    = "${local.secret_prefix}/database-url-readonly"
   description             = "Connection string PostgreSQL somente leitura (DATABASE_URL_READONLY) — role portal_ro"
   recovery_window_in_days = 7
+  kms_key_id              = aws_kms_key.portal.arn
+  #checkov:skip=CKV2_AWS_57:chaves de terceiros/pepper/cert ICP/connection strings não suportam rotação automática por Lambda do Secrets Manager; rotação é manual conforme política
 
   tags = {
     Modulo = "banco-de-dados"
@@ -92,7 +100,7 @@ resource "aws_secretsmanager_secret" "database_url_readonly" {
 
 resource "aws_secretsmanager_secret_version" "database_url_readonly" {
   secret_id     = aws_secretsmanager_secret.database_url_readonly.id
-  secret_string = "POPULATE_ME" # postgresql://portal_ro:SENHA@ENDPOINT:5432/portal?sslmode=require
+  secret_string = "POPULATE_ME" # connection string do portal_ro (somente leitura, host RDS, db portal)
 }
 
 # ---------------------------------------------------------------------------
@@ -103,6 +111,8 @@ resource "aws_secretsmanager_secret" "redis_password" {
   name                    = "${local.secret_prefix}/redis-password"
   description             = "Token de autenticação do Redis ElastiCache (REDIS_PASSWORD) — mesmo valor de var.redis_auth_token"
   recovery_window_in_days = 7
+  kms_key_id              = aws_kms_key.portal.arn
+  #checkov:skip=CKV2_AWS_57:chaves de terceiros/pepper/cert ICP/connection strings não suportam rotação automática por Lambda do Secrets Manager; rotação é manual conforme política
 
   tags = {
     Modulo = "cache"
@@ -122,6 +132,8 @@ resource "aws_secretsmanager_secret" "storage_access_key" {
   name                    = "${local.secret_prefix}/storage-access-key"
   description             = "AWS Access Key ID do IAM user portal-s3-app para acesso ao S3 (STORAGE_ACCESS_KEY)"
   recovery_window_in_days = 7
+  kms_key_id              = aws_kms_key.portal.arn
+  #checkov:skip=CKV2_AWS_57:chaves de terceiros/pepper/cert ICP/connection strings não suportam rotação automática por Lambda do Secrets Manager; rotação é manual conforme política
 
   tags = {
     Modulo = "storage"
@@ -141,6 +153,8 @@ resource "aws_secretsmanager_secret" "storage_secret_key" {
   name                    = "${local.secret_prefix}/storage-secret-key"
   description             = "AWS Secret Access Key do IAM user portal-s3-app para acesso ao S3 (STORAGE_SECRET_KEY)"
   recovery_window_in_days = 7
+  kms_key_id              = aws_kms_key.portal.arn
+  #checkov:skip=CKV2_AWS_57:chaves de terceiros/pepper/cert ICP/connection strings não suportam rotação automática por Lambda do Secrets Manager; rotação é manual conforme política
 
   tags = {
     Modulo = "storage"
@@ -160,6 +174,8 @@ resource "aws_secretsmanager_secret" "anthropic_api_key" {
   name                    = "${local.secret_prefix}/anthropic-api-key"
   description             = "Chave da API Anthropic para IA (ANTHROPIC_API_KEY) — triagem, RAG, chatbot, OCR"
   recovery_window_in_days = 7
+  kms_key_id              = aws_kms_key.portal.arn
+  #checkov:skip=CKV2_AWS_57:chaves de terceiros/pepper/cert ICP/connection strings não suportam rotação automática por Lambda do Secrets Manager; rotação é manual conforme política
 
   tags = {
     Modulo = "ia"
@@ -179,6 +195,8 @@ resource "aws_secretsmanager_secret" "govbr_client_id" {
   name                    = "${local.secret_prefix}/govbr-client-id"
   description             = "Client ID da aplicação no gov.br Login Único (GOVBR_CLIENT_ID) — OAuth2/OIDC"
   recovery_window_in_days = 7
+  kms_key_id              = aws_kms_key.portal.arn
+  #checkov:skip=CKV2_AWS_57:chaves de terceiros/pepper/cert ICP/connection strings não suportam rotação automática por Lambda do Secrets Manager; rotação é manual conforme política
 
   tags = {
     Modulo = "autenticacao-govbr"
@@ -198,6 +216,8 @@ resource "aws_secretsmanager_secret" "govbr_client_secret" {
   name                    = "${local.secret_prefix}/govbr-client-secret"
   description             = "Client Secret da aplicação no gov.br Login Único (GOVBR_CLIENT_SECRET) — OAuth2/OIDC"
   recovery_window_in_days = 7
+  kms_key_id              = aws_kms_key.portal.arn
+  #checkov:skip=CKV2_AWS_57:chaves de terceiros/pepper/cert ICP/connection strings não suportam rotação automática por Lambda do Secrets Manager; rotação é manual conforme política
 
   tags = {
     Modulo = "autenticacao-govbr"
@@ -217,6 +237,8 @@ resource "aws_secretsmanager_secret" "smtp_pass" {
   name                    = "${local.secret_prefix}/smtp-pass"
   description             = "Senha do servidor SMTP para envio de e-mails (SMTP_PASS)"
   recovery_window_in_days = 7
+  kms_key_id              = aws_kms_key.portal.arn
+  #checkov:skip=CKV2_AWS_57:chaves de terceiros/pepper/cert ICP/connection strings não suportam rotação automática por Lambda do Secrets Manager; rotação é manual conforme política
 
   tags = {
     Modulo = "notificacoes"
@@ -236,7 +258,9 @@ resource "aws_secretsmanager_secret_version" "smtp_pass" {
 resource "aws_secretsmanager_secret" "diario_signing_key" {
   name                    = "${local.secret_prefix}/diario-signing-key"
   description             = "Chave privada ICP-Brasil para assinatura digital do Diário Oficial (DIARIO_SIGNING_KEY)"
-  recovery_window_in_days = 30 # maior período de recuperação para chaves criptográficas críticas
+  recovery_window_in_days = 30
+  kms_key_id              = aws_kms_key.portal.arn
+  #checkov:skip=CKV2_AWS_57:chaves de terceiros/pepper/cert ICP/connection strings não suportam rotação automática por Lambda do Secrets Manager; rotação é manual conforme política
 
   tags = {
     Modulo = "diario-oficial"

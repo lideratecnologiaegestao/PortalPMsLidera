@@ -86,7 +86,7 @@ variable "db_password" {
 variable "db_multi_az" {
   description = "Habilitar Multi-AZ no RDS para alta disponibilidade (recomendado em produção, dobra o custo)"
   type        = bool
-  default     = false
+  default     = true
 }
 
 variable "db_backup_retention_days" {
@@ -195,7 +195,7 @@ variable "web_desired_count" {
 variable "log_retention_days" {
   description = "Dias de retenção dos logs no CloudWatch Logs"
   type        = number
-  default     = 30
+  default     = 365
 }
 
 variable "s3_bucket_name" {

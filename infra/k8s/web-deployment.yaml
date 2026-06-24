@@ -4,7 +4,10 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: portal-web
+  namespace: portal
   labels: { app: portal-web }
+  annotations:
+    checkov.io/skip1: CKV_K8S_43=digest resolvido pelo CD no build (a tag fixa vira @sha256 no pipeline)
 spec:
   replicas: 2
   selector:
@@ -13,12 +16,23 @@ spec:
     metadata:
       labels: { app: portal-web }
     spec:
+      automountServiceAccountToken: false
       securityContext:
         runAsNonRoot: true
-        runAsUser: 1000
+        runAsUser: 10001
+        runAsGroup: 10001
+        fsGroup: 10001
+        seccompProfile:
+          type: RuntimeDefault
+      volumes:
+        - name: tmp
+          emptyDir: {}
+        - name: nextjs-cache
+          emptyDir: {}
       containers:
         - name: web
-          image: portal-web:latest
+          image: portal-web:1.0.0
+          imagePullPolicy: Always
           ports:
             - containerPort: 3000
           env:
@@ -37,11 +51,22 @@ spec:
             httpGet: { path: /, port: 3000 }
             initialDelaySeconds: 20
             periodSeconds: 15
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+            - name: nextjs-cache
+              mountPath: /app/.next/cache
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
 ---
 apiVersion: autoscaling/v2
 kind: HorizontalPodAutoscaler
 metadata:
   name: portal-web
+  namespace: portal
 spec:
   scaleTargetRef:
     apiVersion: apps/v1

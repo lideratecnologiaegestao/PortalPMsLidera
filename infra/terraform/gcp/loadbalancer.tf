@@ -141,6 +141,18 @@ resource "google_compute_security_policy" "portal_waf" {
     description = "Bloquear tentativas de Cross-Site Scripting (OWASP CRS)"
   }
 
+  # CKV_GCP_73: bloquear lookup do Log4j2 / Log4Shell (CVE-2021-44228).
+  rule {
+    action   = "deny(403)"
+    priority = 403
+    match {
+      expr {
+        expression = "evaluatePreconfiguredExpr('cve-canary')"
+      }
+    }
+    description = "Bloquear exploração do Log4Shell (CVE-2021-44228)"
+  }
+
   rule {
     action   = "deny(403)"
     priority = 402
@@ -280,6 +292,17 @@ resource "google_compute_managed_ssl_certificate" "portal_cert" {
 }
 
 # ------------------------------------------------------------------
+# SSL Policy — TLS 1.2+ com perfil MODERN (CKV_GCP_11)
+# ------------------------------------------------------------------
+resource "google_compute_ssl_policy" "portal_ssl_policy" {
+  name            = "portal-ssl-policy"
+  project         = var.project_id
+  profile         = "MODERN"
+  min_tls_version = "TLS_1_2"
+  description     = "Política SSL do Portal: TLS 1.2+ com suítes de cifras modernas (ECDHE + AES-GCM)"
+}
+
+# ------------------------------------------------------------------
 # HTTPS proxy
 # ------------------------------------------------------------------
 resource "google_compute_target_https_proxy" "portal_https_proxy" {
@@ -287,6 +310,7 @@ resource "google_compute_target_https_proxy" "portal_https_proxy" {
   project          = var.project_id
   url_map          = google_compute_url_map.portal_urlmap.id
   ssl_certificates = [google_compute_managed_ssl_certificate.portal_cert.id]
+  ssl_policy       = google_compute_ssl_policy.portal_ssl_policy.id  # CKV_GCP_11
 
   # Habilitar QUIC/HTTP3 para melhor performance em redes móveis
   quic_override = "ENABLE"

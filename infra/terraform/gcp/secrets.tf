@@ -36,7 +36,14 @@ resource "google_secret_manager_secret" "auth_jwt_secret" {
   labels    = local.secret_labels
 
   replication {
-    auto {}  # Replicação automática gerenciada pelo Google
+    user_managed {
+      replicas {
+        location = var.region
+        customer_managed_encryption {
+          kms_key_name = google_kms_crypto_key.secret_manager.id
+        }
+      }
+    }
   }
 
   # Para popular: openssl rand -base64 48 | gcloud secrets versions add AUTH_JWT_SECRET --data-file=-
@@ -50,7 +57,14 @@ resource "google_secret_manager_secret" "cpf_pepper" {
   labels    = local.secret_labels
 
   replication {
-    auto {}
+    user_managed {
+      replicas {
+        location = var.region
+        customer_managed_encryption {
+          kms_key_name = google_kms_crypto_key.secret_manager.id
+        }
+      }
+    }
   }
 
   # Para popular: openssl rand -base64 32 | gcloud secrets versions add CPF_PEPPER --data-file=-
@@ -69,12 +83,20 @@ resource "google_secret_manager_secret" "database_url" {
   labels    = local.secret_labels
 
   replication {
-    auto {}
+    user_managed {
+      replicas {
+        location = var.region
+        customer_managed_encryption {
+          kms_key_name = google_kms_crypto_key.secret_manager.id
+        }
+      }
+    }
   }
 
-  # Para popular (substitua IP e SENHA):
-  # echo -n "postgresql://portal_app:SENHA@IP_PRIVADO:5432/portal?schema=public&connection_limit=20&pool_timeout=10" \
-  #   | gcloud secrets versions add DATABASE_URL --data-file=-
+  # Para popular: monte a connection string postgresql (usuario portal_app, IP
+  # privado do Cloud SQL, porta 5432, db portal, schema public, connection_limit=20,
+  # pool_timeout=10) e envie ao Secret Manager:
+  #   printf '%s' "$DATABASE_URL" | gcloud secrets versions add DATABASE_URL --data-file=-
   #
   # Parâmetros Prisma recomendados:
   #   connection_limit: 20 (nunca exceder max_connections/num_instâncias)
@@ -88,12 +110,19 @@ resource "google_secret_manager_secret" "database_url_readonly" {
   labels    = local.secret_labels
 
   replication {
-    auto {}
+    user_managed {
+      replicas {
+        location = var.region
+        customer_managed_encryption {
+          kms_key_name = google_kms_crypto_key.secret_manager.id
+        }
+      }
+    }
   }
 
-  # Para popular:
-  # echo -n "postgresql://portal_ro:SENHA@IP_PRIVADO:5432/portal?schema=public&connection_limit=5" \
-  #   | gcloud secrets versions add DATABASE_URL_READONLY --data-file=-
+  # Para popular: monte a connection string postgresql somente-leitura (usuario
+  # portal_ro, IP privado do Cloud SQL, porta 5432, db portal, connection_limit=5) e:
+  #   printf '%s' "$DATABASE_URL_READONLY" | gcloud secrets versions add DATABASE_URL_READONLY --data-file=-
 }
 
 # ------------------------------------------------------------------
@@ -106,7 +135,14 @@ resource "google_secret_manager_secret" "redis_password" {
   labels    = local.secret_labels
 
   replication {
-    auto {}
+    user_managed {
+      replicas {
+        location = var.region
+        customer_managed_encryption {
+          kms_key_name = google_kms_crypto_key.secret_manager.id
+        }
+      }
+    }
   }
 
   # Para popular (se AUTH estiver habilitado no Memorystore):
@@ -125,7 +161,14 @@ resource "google_secret_manager_secret" "storage_access_key" {
   labels    = local.secret_labels
 
   replication {
-    auto {}
+    user_managed {
+      replicas {
+        location = var.region
+        customer_managed_encryption {
+          kms_key_name = google_kms_crypto_key.secret_manager.id
+        }
+      }
+    }
   }
 
   # Para popular com o Access ID do HMAC key criado pelo storage.tf:
@@ -139,7 +182,14 @@ resource "google_secret_manager_secret" "storage_secret_key" {
   labels    = local.secret_labels
 
   replication {
-    auto {}
+    user_managed {
+      replicas {
+        location = var.region
+        customer_managed_encryption {
+          kms_key_name = google_kms_crypto_key.secret_manager.id
+        }
+      }
+    }
   }
 
   # ATENÇÃO: o HMAC secret é exibido APENAS no momento da criação pelo Terraform.
@@ -158,7 +208,14 @@ resource "google_secret_manager_secret" "anthropic_api_key" {
   labels    = local.secret_labels
 
   replication {
-    auto {}
+    user_managed {
+      replicas {
+        location = var.region
+        customer_managed_encryption {
+          kms_key_name = google_kms_crypto_key.secret_manager.id
+        }
+      }
+    }
   }
 
   # Para popular: echo -n "sk-ant-api03-..." | gcloud secrets versions add ANTHROPIC_API_KEY --data-file=-
@@ -172,7 +229,14 @@ resource "google_secret_manager_secret" "voyage_api_key" {
   labels    = local.secret_labels
 
   replication {
-    auto {}
+    user_managed {
+      replicas {
+        location = var.region
+        customer_managed_encryption {
+          kms_key_name = google_kms_crypto_key.secret_manager.id
+        }
+      }
+    }
   }
 
   # Opcional — provider de embeddings Voyage AI para busca semântica pgvector.
@@ -190,7 +254,14 @@ resource "google_secret_manager_secret" "govbr_client_secret" {
   labels    = local.secret_labels
 
   replication {
-    auto {}
+    user_managed {
+      replicas {
+        location = var.region
+        customer_managed_encryption {
+          kms_key_name = google_kms_crypto_key.secret_manager.id
+        }
+      }
+    }
   }
 
   # Para popular: echo -n "segredo-oauth2-govbr" | gcloud secrets versions add GOVBR_CLIENT_SECRET --data-file=-
@@ -208,7 +279,14 @@ resource "google_secret_manager_secret" "smtp_password" {
   labels    = local.secret_labels
 
   replication {
-    auto {}
+    user_managed {
+      replicas {
+        location = var.region
+        customer_managed_encryption {
+          kms_key_name = google_kms_crypto_key.secret_manager.id
+        }
+      }
+    }
   }
 
   # Para popular: echo -n "senha-smtp" | gcloud secrets versions add SMTP_PASSWORD --data-file=-
@@ -226,7 +304,14 @@ resource "google_secret_manager_secret" "diario_signing_key" {
   labels    = local.secret_labels
 
   replication {
-    auto {}
+    user_managed {
+      replicas {
+        location = var.region
+        customer_managed_encryption {
+          kms_key_name = google_kms_crypto_key.secret_manager.id
+        }
+      }
+    }
   }
 
   # Chave para assinatura digital das edições do Diário Oficial.
@@ -240,7 +325,14 @@ resource "google_secret_manager_secret" "icp_cert_password" {
   labels    = local.secret_labels
 
   replication {
-    auto {}
+    user_managed {
+      replicas {
+        location = var.region
+        customer_managed_encryption {
+          kms_key_name = google_kms_crypto_key.secret_manager.id
+        }
+      }
+    }
   }
 
   # Senha do certificado ICP-Brasil (arquivo .pfx/.p12) para o Diário Oficial.

@@ -11,21 +11,21 @@
 # ---------------------------------------------------------------------------
 
 resource "aws_lb" "portal" {
+  #checkov:skip=CKV2_AWS_76:WAF associado via aws_wafv2_web_acl_association quando var.enable_waf=true; o graph do checkov não resolve a associação indexada por count
   name               = "${var.project_name}-alb"
   internal           = false
   load_balancer_type = "application"
   security_groups    = [aws_security_group.alb.id]
   subnets            = aws_subnet.public[*].id
 
-  # Proteção contra exclusão acidental do ALB
-  enable_deletion_protection = false # habilite em produção: true
+  enable_deletion_protection = true
+  drop_invalid_header_fields = true
 
-  # Habilitar access logs do ALB (recomendado para auditoria e debugging)
-  # access_logs {
-  #   bucket  = aws_s3_bucket.portal.id
-  #   prefix  = "alb-logs"
-  #   enabled = true
-  # }
+  access_logs {
+    bucket  = aws_s3_bucket.alb_logs.id
+    prefix  = "alb-logs"
+    enabled = true
+  }
 
   tags = {
     Name = "${var.project_name}-alb"
@@ -37,6 +37,7 @@ resource "aws_lb" "portal" {
 # ---------------------------------------------------------------------------
 
 resource "aws_lb_target_group" "api" {
+  #checkov:skip=CKV_AWS_378:TLS termina no ALB; o tráfego ALB→container (ECS Fargate, awsvpc) é HTTP interno na VPC privada
   name        = "${var.project_name}-tg-api"
   port        = 3001
   protocol    = "HTTP"
@@ -199,6 +200,7 @@ resource "aws_lb_listener_rule" "api_path" {
 # ---------------------------------------------------------------------------
 
 resource "aws_wafv2_web_acl" "portal" {
+  #checkov:skip=CKV2_AWS_31:logging definido em aws_wafv2_web_acl_logging_configuration (condicional a var.enable_waf); o graph do checkov não resolve a referência indexada por count
   count = var.enable_waf ? 1 : 0
 
   name  = "${var.project_name}-waf"
@@ -295,4 +297,24 @@ resource "aws_wafv2_web_acl_association" "portal" {
 
   resource_arn = aws_lb.portal.arn
   web_acl_arn  = aws_wafv2_web_acl.portal[0].arn
+}
+
+# Log group e configuração de logging do WAF (CKV2_AWS_31).
+resource "aws_cloudwatch_log_group" "waf" {
+  count = var.enable_waf ? 1 : 0
+
+  name              = "aws-waf-logs-${var.project_name}"
+  retention_in_days = 365
+  kms_key_id        = aws_kms_key.portal.arn
+
+  tags = {
+    Name = "${var.project_name}-waf-logs"
+  }
+}
+
+resource "aws_wafv2_web_acl_logging_configuration" "portal" {
+  count = var.enable_waf ? 1 : 0
+
+  log_destination_configs = [aws_cloudwatch_log_group.waf[0].arn]
+  resource_arn            = aws_wafv2_web_acl.portal[0].arn
 }

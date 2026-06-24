@@ -444,6 +444,7 @@ resource "google_cloud_run_v2_service" "web" {
 # A restrição real de acesso é feita pela regra de ingress + Cloud Armor.
 
 resource "google_cloud_run_v2_service_iam_member" "api_lb_invoker" {
+  #checkov:skip=CKV_GCP_102:allUsers é exigido pelo Cloud Load Balancer quando ingress=INGRESS_TRAFFIC_INTERNAL_LOAD_BALANCER. O acesso real à internet é bloqueado pela regra de ingress — apenas o LB interno consegue invocar o serviço.
   project  = var.project_id
   location = var.region
   name     = google_cloud_run_v2_service.api.name
@@ -455,6 +456,7 @@ resource "google_cloud_run_v2_service_iam_member" "api_lb_invoker" {
 }
 
 resource "google_cloud_run_v2_service_iam_member" "web_lb_invoker" {
+  #checkov:skip=CKV_GCP_102:allUsers é exigido pelo Cloud Load Balancer quando ingress=INGRESS_TRAFFIC_INTERNAL_LOAD_BALANCER. O acesso real à internet é bloqueado pela regra de ingress.
   project  = var.project_id
   location = var.region
   name     = google_cloud_run_v2_service.web.name

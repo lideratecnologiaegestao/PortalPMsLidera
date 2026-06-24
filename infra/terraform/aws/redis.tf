@@ -39,10 +39,8 @@ resource "aws_elasticache_replication_group" "portal" {
   # Tipo de nó (configurável via variável)
   node_type = var.redis_node_type
 
-  # Número de nós no cluster
-  # num_cache_clusters=1: apenas primário (sem réplica)
-  # Para produção, aumentar para 2 e habilitar automatic_failover_enabled
-  num_cache_clusters = 1
+  # Número de nós no cluster (mínimo 2 para automatic_failover_enabled=true)
+  num_cache_clusters = 2
 
   # Porta padrão do Redis
   port = 6379
@@ -51,15 +49,16 @@ resource "aws_elasticache_replication_group" "portal" {
   subnet_group_name  = aws_elasticache_subnet_group.portal.name
   security_group_ids = [aws_security_group.redis.id]
 
-  # Criptografia em repouso (AES-256)
+  # Criptografia em repouso com CMK KMS (CKV_AWS_191)
   at_rest_encryption_enabled = true
+  kms_key_id                 = aws_kms_key.portal.arn
 
   # Criptografia em trânsito (TLS) — exige auth_token
   transit_encryption_enabled = true
   auth_token                 = var.redis_auth_token
 
-  # Failover automático requer no mínimo 2 nós
-  automatic_failover_enabled = false
+  # Failover automático — requer no mínimo 2 nós
+  automatic_failover_enabled = true
 
   # Janela de manutenção semanal (madrugada de domingo)
   maintenance_window = "sun:05:00-sun:06:00"

@@ -170,6 +170,7 @@ resource "aws_iam_role_policy_attachment" "ecs_task_s3" {
 # ---------------------------------------------------------------------------
 
 resource "aws_iam_user" "s3_app" {
+  #checkov:skip=CKV_AWS_273:IAM user dedicado para credenciais S3 da aplicação NestJS — o SDK usa access keys estáticas (STORAGE_ACCESS_KEY/SECRET) que não usam instance profiles
   name = "${var.project_name}-s3-app"
   path = "/portal/"
 
@@ -181,6 +182,7 @@ resource "aws_iam_user" "s3_app" {
 
 # Política inline do IAM user S3
 resource "aws_iam_user_policy" "s3_app" {
+  #checkov:skip=CKV_AWS_40:policy inline do IAM user S3 dedicado (intencional; o SDK precisa de access keys estáticas, não role)
   name = "${var.project_name}-s3-app-policy"
   user = aws_iam_user.s3_app.name
 
