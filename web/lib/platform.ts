@@ -177,6 +177,51 @@ export async function verificarDominio(id: string): Promise<VerificarDominioResp
   );
 }
 
+// ── Admin da Entidade (super_admin) ──────────────────────────────────────────
+// Gestão do(s) usuário(s) admin_prefeitura de um tenant: criar, editar, bloquear,
+// resetar senha. A senha provisória só volta UMA vez (na criação/reset).
+
+export interface AdminEntidade {
+  id: string;
+  nome: string;
+  email: string;
+  ativo: boolean;
+  ultimoLoginEm: string | null;
+  role: string;
+}
+
+export interface NovoAdminDto {
+  nome: string;
+  email: string;
+  /** Opcional — se ausente, a API gera e devolve uma senha provisória. */
+  senhaProvisoria?: string;
+}
+
+export interface AtualizarAdminDto {
+  nome?: string;
+  email?: string;
+  /** false = bloqueado (revoga as sessões). true = ativo. */
+  ativo?: boolean;
+  /** Gera nova senha provisória (devolvida uma vez) e revoga as sessões. */
+  resetarSenha?: boolean;
+}
+
+/** Resposta de criar/atualizar admin — pode trazer a senha provisória uma vez. */
+export interface AdminMutacaoResp {
+  user: AdminEntidade;
+  senhaProvisoria?: string;
+  sessoesRevogadas?: number;
+}
+
+export const listarAdminsEntidade = (tenantId: string) =>
+  adminGet<AdminEntidade[]>(`/api/_platform/tenants/${tenantId}/admins`);
+
+export const criarAdminEntidade = (tenantId: string, dto: NovoAdminDto) =>
+  adminPost<AdminMutacaoResp>(`/api/_platform/tenants/${tenantId}/admins`, dto);
+
+export const atualizarAdminEntidade = (tenantId: string, userId: string, dto: AtualizarAdminDto) =>
+  adminPatch<AdminMutacaoResp>(`/api/_platform/tenants/${tenantId}/admins/${userId}`, dto);
+
 // ── Configurações da Entidade (super_admin) ──────────────────────────────────
 // Segredos NUNCA voltam em claro: os GETs retornam apenas flags "*Definido/Proprio".
 // Convenção de escrita: campo ausente mantém; string vazia '' LIMPA (volta ao global).

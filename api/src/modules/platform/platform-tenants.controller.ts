@@ -15,8 +15,9 @@ import {
   ServiceUnavailableException,
   UseGuards,
 } from '@nestjs/common';
-import { IsEmail, IsEnum, IsNotEmpty, IsOptional, IsString, IsUUID, MinLength } from 'class-validator';
+import { IsBoolean, IsEmail, IsEnum, IsNotEmpty, IsOptional, IsString, IsUUID, MinLength } from 'class-validator';
 import { Prisma } from '@prisma/client';
+import { randomBytes } from 'node:crypto';
 import { RolesGuard } from '../../common/rbac/roles.guard';
 import { Roles } from '../../common/rbac/roles.decorator';
 import { Role } from '../../common/rbac/roles.enum';
@@ -24,6 +25,7 @@ import { CurrentUser } from '../auth/current-user.decorator';
 import { AuthUser } from '../auth/jwt-auth.guard';
 import { PrismaService } from '../../prisma/prisma.service';
 import { RedisCacheService } from '../../common/cache/redis-cache.service';
+import { SessionsService } from '../sessions/sessions.service';
 import { TenantProvisioningService } from './tenant-provisioning.service';
 import { CloudflareService } from '../cloudflare/cloudflare.service';
 import { AtualizarTenantDto, CriarTenantDto } from './platform.dto';
@@ -73,6 +75,52 @@ class ElevarUserDto {
   secretariaId?: string;
 }
 
+/** Projeção segura do usuário admin (nunca expõe hash/CPF/segredos). */
+const ADMIN_SELECT = {
+  id: true,
+  nome: true,
+  email: true,
+  ativo: true,
+  ultimoLoginEm: true,
+  role: true,
+} as const;
+
+class CriarAdminEntidadeDto {
+  @IsString()
+  @IsNotEmpty()
+  nome!: string;
+
+  @IsEmail()
+  email!: string;
+
+  /** Opcional — se ausente, uma senha provisória é gerada e devolvida UMA vez. */
+  @IsString()
+  @MinLength(8)
+  @IsOptional()
+  senhaProvisoria?: string;
+}
+
+class AtualizarAdminEntidadeDto {
+  @IsString()
+  @IsNotEmpty()
+  @IsOptional()
+  nome?: string;
+
+  @IsEmail()
+  @IsOptional()
+  email?: string;
+
+  /** false = bloqueado (revoga as sessões ativas). true = ativo. */
+  @IsBoolean()
+  @IsOptional()
+  ativo?: boolean;
+
+  /** Gera nova senha provisória (devolvida UMA vez) e revoga as sessões ativas. */
+  @IsBoolean()
+  @IsOptional()
+  resetarSenha?: boolean;
+}
+
 /**
  * CRUD de tenants — exclusivo super_admin.
  * RLS: todas as operações usam this.prisma.platform() (cross-tenant explícito).
@@ -100,6 +148,7 @@ export class PlatformTenantsController {
     private readonly cache: RedisCacheService,
     private readonly provisioning: TenantProvisioningService,
     private readonly cloudflare: CloudflareService,
+    private readonly sessions: SessionsService,
   ) {}
 
   /**
@@ -481,7 +530,162 @@ export class PlatformTenantsController {
     return user;
   }
 
+  // ================================================================ ADMIN DA ENTIDADE
+  //
+  // Gestão do(s) usuário(s) admin_prefeitura de um tenant pelo super_admin no
+  // Gerenciador: listar, criar, editar, bloquear/desbloquear e resetar senha.
+  // Tudo cross-tenant via prisma.platform(); ações sensíveis auditadas.
+
+  /** GET /:id/admins — lista os admins (admin_prefeitura) da entidade. */
+  @Get(':id/admins')
+  async listarAdmins(@Param('id') tenantId: string) {
+    await this.garantirTenant(tenantId);
+    return this.prisma.platform().user.findMany({
+      where: { tenantId, role: Role.ADMIN_PREFEITURA as never },
+      select: ADMIN_SELECT,
+      orderBy: { nome: 'asc' },
+    });
+  }
+
+  /** POST /:id/admins — cria um admin_prefeitura. Devolve a senha provisória UMA vez. */
+  @Post(':id/admins')
+  @HttpCode(HttpStatus.CREATED)
+  async criarAdmin(
+    @Param('id') tenantId: string,
+    @Body() dto: CriarAdminEntidadeDto,
+    @CurrentUser() authUser: AuthUser,
+  ) {
+    const tenant = await this.garantirTenant(tenantId);
+
+    const existente = await this.prisma.platform().user.findFirst({
+      where: { tenantId, email: dto.email },
+      select: { id: true },
+    });
+    if (existente) {
+      throw new ConflictException('Já existe um usuário com este e-mail nesta entidade.');
+    }
+
+    const senhaProvisoria = dto.senhaProvisoria ?? this.gerarSenhaProvisoria();
+    const user = await this.prisma.platform().user.create({
+      data: {
+        tenantId,
+        nome: dto.nome,
+        email: dto.email,
+        role: Role.ADMIN_PREFEITURA as never,
+        senhaHash: hashSenha(senhaProvisoria),
+        ativo: true,
+      },
+      select: ADMIN_SELECT,
+    });
+
+    await this.auditarAdmin('PLATFORM_ADMIN_CRIADO', tenantId, user.id, authUser, {
+      nome: user.nome,
+      email: user.email,
+      tenant: tenant.nome,
+    });
+
+    return { user, senhaProvisoria };
+  }
+
+  /**
+   * PATCH /:id/admins/:userId — edita (nome/e-mail), bloqueia/desbloqueia (ativo)
+   * e/ou reseta a senha. Bloquear (ativo=false) ou resetar a senha REVOGA as
+   * sessões ativas do admin (efeito imediato — o guard só checa a sessão, não o
+   * flag `ativo`). Senha nova devolvida UMA vez.
+   */
+  @Patch(':id/admins/:userId')
+  async atualizarAdmin(
+    @Param('id') tenantId: string,
+    @Param('userId') userId: string,
+    @Body() dto: AtualizarAdminEntidadeDto,
+    @CurrentUser() authUser: AuthUser,
+  ) {
+    await this.garantirTenant(tenantId);
+
+    const alvo = await this.prisma.platform().user.findFirst({
+      where: { id: userId, tenantId, role: Role.ADMIN_PREFEITURA as never },
+      select: { id: true },
+    });
+    if (!alvo) {
+      throw new NotFoundException('Administrador não encontrado nesta entidade.');
+    }
+
+    if (dto.email) {
+      const dup = await this.prisma.platform().user.findFirst({
+        where: { tenantId, email: dto.email, NOT: { id: userId } },
+        select: { id: true },
+      });
+      if (dup) throw new ConflictException('E-mail já em uso por outro usuário nesta entidade.');
+    }
+
+    const data: Record<string, unknown> = {};
+    if (dto.nome !== undefined) data.nome = dto.nome;
+    if (dto.email !== undefined) data.email = dto.email;
+    if (dto.ativo !== undefined) data.ativo = dto.ativo;
+
+    let senhaProvisoria: string | undefined;
+    if (dto.resetarSenha) {
+      senhaProvisoria = this.gerarSenhaProvisoria();
+      data.senhaHash = hashSenha(senhaProvisoria);
+    }
+
+    const user = await this.prisma.platform().user.update({
+      where: { id: userId },
+      data: data as never,
+      select: ADMIN_SELECT,
+    });
+
+    // Bloqueio (ativo=false) ou reset de senha → revoga as sessões ativas.
+    let sessoesRevogadas = 0;
+    if (dto.ativo === false || dto.resetarSenha) {
+      sessoesRevogadas = await this.sessions.revogarTodasDoUsuario(userId, tenantId, authUser?.id);
+    }
+
+    await this.auditarAdmin('PLATFORM_ADMIN_ATUALIZADO', tenantId, userId, authUser, {
+      campos: Object.keys(data),
+      bloqueado: dto.ativo === false,
+      resetSenha: !!dto.resetarSenha,
+      sessoesRevogadas,
+    });
+
+    return { user, sessoesRevogadas, ...(senhaProvisoria ? { senhaProvisoria } : {}) };
+  }
+
   // ---- helpers ----
+
+  /** Senha provisória forte (~30 chars). */
+  private gerarSenhaProvisoria(): string {
+    return randomBytes(8).toString('hex') + randomBytes(4).toString('base64url');
+  }
+
+  /** Garante que o tenant existe (cross-tenant) e devolve o nome p/ auditoria. */
+  private async garantirTenant(id: string): Promise<{ id: string; nome: string }> {
+    const t = await this.prisma.platform().tenant.findUnique({
+      where: { id },
+      select: { id: true, nome: true },
+    });
+    if (!t) throw new NotFoundException('Entidade (tenant) não encontrada.');
+    return t;
+  }
+
+  private async auditarAdmin(
+    acao: string,
+    tenantId: string,
+    entidadeId: string,
+    authUser: AuthUser,
+    dados: Record<string, unknown>,
+  ): Promise<void> {
+    await this.prisma.platform().auditLog.create({
+      data: {
+        tenantId,
+        atorId: authUser?.id ?? null,
+        acao,
+        entidade: 'users',
+        entidadeId,
+        dados: dados as object,
+      },
+    });
+  }
 
   private async assertUniqueSlug(slug: string, excludeId?: string): Promise<void> {
     const exists = await this.prisma.platform().tenant.findFirst({

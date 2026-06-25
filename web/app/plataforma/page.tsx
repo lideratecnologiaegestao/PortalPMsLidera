@@ -17,6 +17,7 @@ import {
 import { AdminApiError, type Pagina } from '../../lib/admin-api';
 import { AdminHeader, Aviso, Modal, ui } from '../admin/_components/ui';
 import { ModalConfiguracoes } from './_components/ModalConfiguracoes';
+import { ModalAdminsEntidade } from './_components/ModalAdminsEntidade';
 
 // ── Utilitários ──────────────────────────────────────────────────────────────
 
@@ -1105,6 +1106,7 @@ export default function PlataformaPage() {
   const [tenantEditar, setTenantEditar] = useState<Tenant | null>(null);
   const [tenantDominioId, setTenantDominioId] = useState<string | null>(null);
   const [tenantConfiguracoes, setTenantConfiguracoes] = useState<Tenant | null>(null);
+  const [tenantAdmins, setTenantAdmins] = useState<Tenant | null>(null);
 
   // Ação de ativar/desativar inline
   const [alterandoId, setAlterandoId] = useState<string | null>(null);
@@ -1323,6 +1325,14 @@ export default function PlataformaPage() {
                         >
                           Configurações
                         </button>
+                        <button
+                          type="button"
+                          onClick={() => setTenantAdmins(t)}
+                          className={`${ui.btnGhost} py-1 text-xs`}
+                          aria-label={`Administradores de ${t.nome}`}
+                        >
+                          Admins
+                        </button>
                         {t.cfCustomHostnameId && (
                           <button
                             type="button"
@@ -1400,6 +1410,12 @@ export default function PlataformaPage() {
       <ModalConfiguracoes
         tenant={tenantConfiguracoes}
         onClose={() => setTenantConfiguracoes(null)}
+      />
+
+      {/* Modal Administradores da Entidade */}
+      <ModalAdminsEntidade
+        tenant={tenantAdmins}
+        onClose={() => setTenantAdmins(null)}
       />
     </>
   );

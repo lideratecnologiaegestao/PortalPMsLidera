@@ -164,6 +164,48 @@ export class SessionsService {
     }
   }
 
+  /**
+   * Revoga TODAS as sessões ativas de um usuário (banco + Redis). Usado ao
+   * bloquear/desativar ou resetar a senha de um usuário — o JwtAuthGuard checa
+   * apenas a sessão (não o flag `ativo`), então sem revogar a sessão atual
+   * continuaria válida até o JWT expirar. Cross-tenant via platform().
+   * Retorna quantas sessões foram revogadas.
+   */
+  async revogarTodasDoUsuario(
+    userId: string,
+    tenantId: string | null,
+    porUserId?: string,
+  ): Promise<number> {
+    const whereBase = tenantId ? { userId, tenantId } : { userId };
+    let jtis: { id: string }[] = [];
+    try {
+      jtis = await this.prisma.platform().userSession.findMany({
+        where: { ...whereBase, revogadoEm: null },
+        select: { id: true },
+      });
+    } catch (e) {
+      this.log.warn(`revogarTodasDoUsuario: falha ao listar sessões de ${userId}: ${(e as Error).message}`);
+    }
+
+    try {
+      await this.prisma.platform().userSession.updateMany({
+        where: { ...whereBase, revogadoEm: null },
+        data: { revogadoEm: new Date(), revogadoPor: porUserId ?? null },
+      });
+    } catch (e) {
+      this.log.warn(`revogarTodasDoUsuario: falha ao revogar no banco para ${userId}: ${(e as Error).message}`);
+    }
+
+    for (const s of jtis) {
+      try {
+        await redisCommands.del(this.kSess(s.id));
+      } catch (e) {
+        this.log.warn(`revogarTodasDoUsuario: falha ao deletar chave Redis ${s.id}: ${(e as Error).message}`);
+      }
+    }
+    return jtis.length;
+  }
+
   // ------------------------------------------------------------- listarAtivas
 
   /**
