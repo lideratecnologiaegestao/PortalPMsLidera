@@ -545,7 +545,9 @@ function UserDropdown({ perfil }: { perfil: Perfil }) {
 
   async function sair() {
     fechar();
-    await fetch(`${apiBase}/api/auth/logout`, {
+    // Encerra a sessão: revoga o jti no Redis + limpa o cookie portal_session.
+    // É o mesmo endpoint usado pelo login do cidadão (vale para login local também).
+    await fetch(`${apiBase}/api/auth/govbr/logout`, {
       method: 'POST',
       credentials: 'include',
     }).catch(() => {});

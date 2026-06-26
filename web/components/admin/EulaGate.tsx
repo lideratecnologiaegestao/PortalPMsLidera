@@ -138,7 +138,8 @@ export default function EulaGate({ aberto, onAceitou }: Props) {
 
   const recusar = useCallback(async () => {
     setSaindo(true);
-    await fetch(`${apiBase}/api/auth/logout`, {
+    // /api/auth/logout não existe (404); o endpoint real revoga sessão + limpa cookie.
+    await fetch(`${apiBase}/api/auth/govbr/logout`, {
       method: 'POST',
       credentials: 'include',
     }).catch(() => {});
