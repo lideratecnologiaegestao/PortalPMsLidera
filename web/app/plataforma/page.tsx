@@ -17,7 +17,7 @@ import {
 import { AdminApiError, type Pagina } from '../../lib/admin-api';
 import { AdminHeader, Aviso, Modal, ui } from '../admin/_components/ui';
 import { ModalConfiguracoes } from './_components/ModalConfiguracoes';
-import { ModalAdminsEntidade } from './_components/ModalAdminsEntidade';
+import { ModalUsuariosEntidade } from './_components/ModalUsuariosEntidade';
 
 // ── Utilitários ──────────────────────────────────────────────────────────────
 
@@ -1106,7 +1106,7 @@ export default function PlataformaPage() {
   const [tenantEditar, setTenantEditar] = useState<Tenant | null>(null);
   const [tenantDominioId, setTenantDominioId] = useState<string | null>(null);
   const [tenantConfiguracoes, setTenantConfiguracoes] = useState<Tenant | null>(null);
-  const [tenantAdmins, setTenantAdmins] = useState<Tenant | null>(null);
+  const [tenantUsuarios, setTenantUsuarios] = useState<Tenant | null>(null);
 
   // Ação de ativar/desativar inline
   const [alterandoId, setAlterandoId] = useState<string | null>(null);
@@ -1327,11 +1327,11 @@ export default function PlataformaPage() {
                         </button>
                         <button
                           type="button"
-                          onClick={() => setTenantAdmins(t)}
+                          onClick={() => setTenantUsuarios(t)}
                           className={`${ui.btnGhost} py-1 text-xs`}
-                          aria-label={`Administradores de ${t.nome}`}
+                          aria-label={`Usuários de ${t.nome}`}
                         >
-                          Admins
+                          Usuários
                         </button>
                         {t.cfCustomHostnameId && (
                           <button
@@ -1412,10 +1412,10 @@ export default function PlataformaPage() {
         onClose={() => setTenantConfiguracoes(null)}
       />
 
-      {/* Modal Administradores da Entidade */}
-      <ModalAdminsEntidade
-        tenant={tenantAdmins}
-        onClose={() => setTenantAdmins(null)}
+      {/* Modal Usuários da Entidade */}
+      <ModalUsuariosEntidade
+        tenant={tenantUsuarios}
+        onClose={() => setTenantUsuarios(null)}
       />
     </>
   );

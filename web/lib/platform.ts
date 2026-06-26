@@ -177,50 +177,92 @@ export async function verificarDominio(id: string): Promise<VerificarDominioResp
   );
 }
 
-// ── Admin da Entidade (super_admin) ──────────────────────────────────────────
-// Gestão do(s) usuário(s) admin_prefeitura de um tenant: criar, editar, bloquear,
+// ── Usuários da Entidade (super_admin) ───────────────────────────────────────
+// Gestão de TODOS os usuários de um tenant (admin, gestor, ouvidor, assistente
+// de ouvidoria, servidor, TI): listar, criar, editar (inclui papel), bloquear,
 // resetar senha. A senha provisória só volta UMA vez (na criação/reset).
 
-export interface AdminEntidade {
+/** Papéis de usuário que o super_admin pode criar/atribuir a um tenant. */
+export const PAPEIS_TENANT = [
+  { value: 'admin_prefeitura', label: 'Administrador' },
+  { value: 'gestor', label: 'Gestor' },
+  { value: 'ouvidor', label: 'Ouvidor' },
+  { value: 'assistente_ouvidoria', label: 'Assistente de Ouvidoria' },
+  { value: 'servidor', label: 'Servidor' },
+  { value: 'ti', label: 'TI' },
+] as const;
+
+export type PapelTenant = typeof PAPEIS_TENANT[number]['value'];
+
+/** Rótulo amigável de um papel (inclui cidadão e super_admin para exibição). */
+export function rotuloPapel(role: string): string {
+  const m = PAPEIS_TENANT.find((p) => p.value === role);
+  if (m) return m.label;
+  if (role === 'cidadao') return 'Cidadão';
+  if (role === 'super_admin') return 'Super Admin';
+  return role;
+}
+
+export interface UsuarioEntidade {
   id: string;
   nome: string;
   email: string;
+  role: string;
   ativo: boolean;
   ultimoLoginEm: string | null;
-  role: string;
+  secretariaId: string | null;
 }
 
-export interface NovoAdminDto {
+export interface NovoUsuarioDto {
   nome: string;
   email: string;
+  role: PapelTenant;
   /** Opcional — se ausente, a API gera e devolve uma senha provisória. */
   senhaProvisoria?: string;
 }
 
-export interface AtualizarAdminDto {
+export interface AtualizarUsuarioDto {
   nome?: string;
   email?: string;
+  role?: PapelTenant;
   /** false = bloqueado (revoga as sessões). true = ativo. */
   ativo?: boolean;
   /** Gera nova senha provisória (devolvida uma vez) e revoga as sessões. */
   resetarSenha?: boolean;
 }
 
-/** Resposta de criar/atualizar admin — pode trazer a senha provisória uma vez. */
-export interface AdminMutacaoResp {
-  user: AdminEntidade;
+/** Resposta de criar/atualizar usuário — pode trazer a senha provisória uma vez. */
+export interface UsuarioMutacaoResp {
+  user: UsuarioEntidade;
   senhaProvisoria?: string;
   sessoesRevogadas?: number;
 }
 
-export const listarAdminsEntidade = (tenantId: string) =>
-  adminGet<AdminEntidade[]>(`/api/_platform/tenants/${tenantId}/admins`);
+export interface ListarUsuariosParams {
+  /** Papel específico, `equipe` (todos administrativos) ou '' (todos). */
+  role?: string;
+  q?: string;
+  ativo?: '' | 'true' | 'false';
+  page?: number;
+  pageSize?: number;
+}
 
-export const criarAdminEntidade = (tenantId: string, dto: NovoAdminDto) =>
-  adminPost<AdminMutacaoResp>(`/api/_platform/tenants/${tenantId}/admins`, dto);
+export const listarUsuariosEntidade = (tenantId: string, params: ListarUsuariosParams = {}) =>
+  adminGet<Pagina<UsuarioEntidade>>(
+    `/api/_platform/tenants/${tenantId}/usuarios${qs({
+      role: params.role,
+      q: params.q,
+      ativo: params.ativo,
+      page: params.page,
+      pageSize: params.pageSize,
+    })}`,
+  );
 
-export const atualizarAdminEntidade = (tenantId: string, userId: string, dto: AtualizarAdminDto) =>
-  adminPatch<AdminMutacaoResp>(`/api/_platform/tenants/${tenantId}/admins/${userId}`, dto);
+export const criarUsuarioEntidade = (tenantId: string, dto: NovoUsuarioDto) =>
+  adminPost<UsuarioMutacaoResp>(`/api/_platform/tenants/${tenantId}/usuarios`, dto);
+
+export const atualizarUsuarioEntidade = (tenantId: string, userId: string, dto: AtualizarUsuarioDto) =>
+  adminPatch<UsuarioMutacaoResp>(`/api/_platform/tenants/${tenantId}/usuarios/${userId}`, dto);
 
 // ── Configurações da Entidade (super_admin) ──────────────────────────────────
 // Segredos NUNCA voltam em claro: os GETs retornam apenas flags "*Definido/Proprio".

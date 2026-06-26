@@ -3,6 +3,7 @@ import {
   Body,
   Controller,
   ConflictException,
+  ForbiddenException,
   Get,
   HttpCode,
   HttpStatus,
@@ -75,23 +76,43 @@ class ElevarUserDto {
   secretariaId?: string;
 }
 
-/** Projeção segura do usuário admin (nunca expõe hash/CPF/segredos). */
-const ADMIN_SELECT = {
+/**
+ * Papéis de usuário do tenant que o super_admin pode criar/atribuir pelo
+ * Gerenciador. Exclui super_admin (plataforma) e cidadão (autocadastro).
+ */
+const ROLES_TENANT_GERENCIAVEIS = [
+  Role.ADMIN_PREFEITURA,
+  Role.GESTOR,
+  Role.OUVIDOR,
+  Role.ASSISTENTE_OUVIDORIA,
+  Role.SERVIDOR,
+  Role.TI,
+] as const;
+type RoleTenant = (typeof ROLES_TENANT_GERENCIAVEIS)[number];
+
+/** Projeção segura do usuário (nunca expõe hash/CPF/segredos). */
+const USUARIO_SELECT = {
   id: true,
   nome: true,
   email: true,
+  role: true,
   ativo: true,
   ultimoLoginEm: true,
-  role: true,
+  secretariaId: true,
 } as const;
 
-class CriarAdminEntidadeDto {
+class CriarUsuarioEntidadeDto {
   @IsString()
   @IsNotEmpty()
   nome!: string;
 
   @IsEmail()
   email!: string;
+
+  @IsEnum(ROLES_TENANT_GERENCIAVEIS, {
+    message: `role deve ser um de: ${ROLES_TENANT_GERENCIAVEIS.join(', ')}`,
+  })
+  role!: RoleTenant;
 
   /** Opcional — se ausente, uma senha provisória é gerada e devolvida UMA vez. */
   @IsString()
@@ -100,7 +121,7 @@ class CriarAdminEntidadeDto {
   senhaProvisoria?: string;
 }
 
-class AtualizarAdminEntidadeDto {
+class AtualizarUsuarioEntidadeDto {
   @IsString()
   @IsNotEmpty()
   @IsOptional()
@@ -109,6 +130,12 @@ class AtualizarAdminEntidadeDto {
   @IsEmail()
   @IsOptional()
   email?: string;
+
+  @IsEnum(ROLES_TENANT_GERENCIAVEIS, {
+    message: `role deve ser um de: ${ROLES_TENANT_GERENCIAVEIS.join(', ')}`,
+  })
+  @IsOptional()
+  role?: RoleTenant;
 
   /** false = bloqueado (revoga as sessões ativas). true = ativo. */
   @IsBoolean()
@@ -530,29 +557,67 @@ export class PlatformTenantsController {
     return user;
   }
 
-  // ================================================================ ADMIN DA ENTIDADE
+  // ================================================================ USUÁRIOS DA ENTIDADE
   //
-  // Gestão do(s) usuário(s) admin_prefeitura de um tenant pelo super_admin no
-  // Gerenciador: listar, criar, editar, bloquear/desbloquear e resetar senha.
+  // Gestão de TODOS os usuários de um tenant pelo super_admin no Gerenciador
+  // (admin, gestor, ouvidor, assistente de ouvidoria, servidor, TI): listar,
+  // criar, editar (inclui papel), bloquear/desbloquear e resetar senha.
   // Tudo cross-tenant via prisma.platform(); ações sensíveis auditadas.
 
-  /** GET /:id/admins — lista os admins (admin_prefeitura) da entidade. */
-  @Get(':id/admins')
-  async listarAdmins(@Param('id') tenantId: string) {
+  /**
+   * GET /:id/usuarios?role=&q=&ativo=&page=&pageSize=
+   * Lista os usuários da entidade (paginado). `role` aceita um papel específico,
+   * `equipe` (todos os papéis administrativos, sem cidadão) ou vazio (todos).
+   */
+  @Get(':id/usuarios')
+  async listarUsuarios(
+    @Param('id') tenantId: string,
+    @Query('role') role?: string,
+    @Query('q') q?: string,
+    @Query('ativo') ativoStr?: string,
+    @Query('page') pageStr?: string,
+    @Query('pageSize') pageSizeStr?: string,
+  ) {
     await this.garantirTenant(tenantId);
-    return this.prisma.platform().user.findMany({
-      where: { tenantId, role: Role.ADMIN_PREFEITURA as never },
-      select: ADMIN_SELECT,
-      orderBy: { nome: 'asc' },
-    });
+
+    const page = Math.max(1, parseInt(pageStr ?? '1', 10) || 1);
+    const pageSize = Math.min(100, Math.max(1, parseInt(pageSizeStr ?? '20', 10) || 20));
+    const ativoFilter = ativoStr === 'true' ? true : ativoStr === 'false' ? false : undefined;
+
+    const where: Prisma.UserWhereInput = { tenantId };
+    if (role === 'equipe') {
+      where.role = { in: [...ROLES_TENANT_GERENCIAVEIS] } as Prisma.UserWhereInput['role'];
+    } else if (role) {
+      where.role = role as never;
+    }
+    if (ativoFilter !== undefined) where.ativo = ativoFilter;
+    if (q) {
+      where.OR = [
+        { nome: { contains: q, mode: 'insensitive' } },
+        { email: { contains: q, mode: 'insensitive' } },
+      ];
+    }
+
+    const [items, total] = await Promise.all([
+      this.prisma.platform().user.findMany({
+        where,
+        select: USUARIO_SELECT,
+        orderBy: { nome: 'asc' },
+        skip: (page - 1) * pageSize,
+        take: pageSize,
+      }),
+      this.prisma.platform().user.count({ where }),
+    ]);
+
+    return { items, total, page, pageSize };
   }
 
-  /** POST /:id/admins — cria um admin_prefeitura. Devolve a senha provisória UMA vez. */
-  @Post(':id/admins')
+  /** POST /:id/usuarios — cria um usuário com o papel dado. Senha provisória UMA vez. */
+  @Post(':id/usuarios')
   @HttpCode(HttpStatus.CREATED)
-  async criarAdmin(
+  async criarUsuario(
     @Param('id') tenantId: string,
-    @Body() dto: CriarAdminEntidadeDto,
+    @Body() dto: CriarUsuarioEntidadeDto,
     @CurrentUser() authUser: AuthUser,
   ) {
     const tenant = await this.garantirTenant(tenantId);
@@ -571,16 +636,17 @@ export class PlatformTenantsController {
         tenantId,
         nome: dto.nome,
         email: dto.email,
-        role: Role.ADMIN_PREFEITURA as never,
+        role: dto.role as never,
         senhaHash: hashSenha(senhaProvisoria),
         ativo: true,
       },
-      select: ADMIN_SELECT,
+      select: USUARIO_SELECT,
     });
 
-    await this.auditarAdmin('PLATFORM_ADMIN_CRIADO', tenantId, user.id, authUser, {
+    await this.auditarUsuario('PLATFORM_USUARIO_CRIADO', tenantId, user.id, authUser, {
       nome: user.nome,
       email: user.email,
+      role: user.role,
       tenant: tenant.nome,
     });
 
@@ -588,26 +654,29 @@ export class PlatformTenantsController {
   }
 
   /**
-   * PATCH /:id/admins/:userId — edita (nome/e-mail), bloqueia/desbloqueia (ativo)
-   * e/ou reseta a senha. Bloquear (ativo=false) ou resetar a senha REVOGA as
-   * sessões ativas do admin (efeito imediato — o guard só checa a sessão, não o
-   * flag `ativo`). Senha nova devolvida UMA vez.
+   * PATCH /:id/usuarios/:userId — edita (nome/e-mail/papel), bloqueia/desbloqueia
+   * (ativo) e/ou reseta a senha. Bloquear (ativo=false) ou resetar a senha REVOGA
+   * as sessões ativas do usuário (efeito imediato — o guard só checa a sessão,
+   * não o flag `ativo`). Senha nova devolvida UMA vez. Não gerencia super_admin.
    */
-  @Patch(':id/admins/:userId')
-  async atualizarAdmin(
+  @Patch(':id/usuarios/:userId')
+  async atualizarUsuario(
     @Param('id') tenantId: string,
     @Param('userId') userId: string,
-    @Body() dto: AtualizarAdminEntidadeDto,
+    @Body() dto: AtualizarUsuarioEntidadeDto,
     @CurrentUser() authUser: AuthUser,
   ) {
     await this.garantirTenant(tenantId);
 
     const alvo = await this.prisma.platform().user.findFirst({
-      where: { id: userId, tenantId, role: Role.ADMIN_PREFEITURA as never },
-      select: { id: true },
+      where: { id: userId, tenantId },
+      select: { id: true, role: true },
     });
     if (!alvo) {
-      throw new NotFoundException('Administrador não encontrado nesta entidade.');
+      throw new NotFoundException('Usuário não encontrado nesta entidade.');
+    }
+    if ((alvo.role as string) === Role.SUPER_ADMIN) {
+      throw new ForbiddenException('Usuário super_admin não é gerenciável por aqui.');
     }
 
     if (dto.email) {
@@ -621,6 +690,7 @@ export class PlatformTenantsController {
     const data: Record<string, unknown> = {};
     if (dto.nome !== undefined) data.nome = dto.nome;
     if (dto.email !== undefined) data.email = dto.email;
+    if (dto.role !== undefined) data.role = dto.role;
     if (dto.ativo !== undefined) data.ativo = dto.ativo;
 
     let senhaProvisoria: string | undefined;
@@ -632,7 +702,7 @@ export class PlatformTenantsController {
     const user = await this.prisma.platform().user.update({
       where: { id: userId },
       data: data as never,
-      select: ADMIN_SELECT,
+      select: USUARIO_SELECT,
     });
 
     // Bloqueio (ativo=false) ou reset de senha → revoga as sessões ativas.
@@ -641,7 +711,7 @@ export class PlatformTenantsController {
       sessoesRevogadas = await this.sessions.revogarTodasDoUsuario(userId, tenantId, authUser?.id);
     }
 
-    await this.auditarAdmin('PLATFORM_ADMIN_ATUALIZADO', tenantId, userId, authUser, {
+    await this.auditarUsuario('PLATFORM_USUARIO_ATUALIZADO', tenantId, userId, authUser, {
       campos: Object.keys(data),
       bloqueado: dto.ativo === false,
       resetSenha: !!dto.resetarSenha,
@@ -668,7 +738,7 @@ export class PlatformTenantsController {
     return t;
   }
 
-  private async auditarAdmin(
+  private async auditarUsuario(
     acao: string,
     tenantId: string,
     entidadeId: string,
