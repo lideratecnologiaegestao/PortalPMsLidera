@@ -10,6 +10,7 @@ import {
 } from './aplic-datapacket.parser';
 import { exigirNomeCargaTce } from './aplic-nomenclatura.util';
 import { modalidadeLicitacao } from './aplic-tabelas.ref';
+import { extrairReceitaArrecadada } from './aplic-receita.util';
 
 export interface ResultadoImportacao {
   cargaId: string;
@@ -110,6 +111,9 @@ export class AplicIngestaoService {
           porTabela.LIQUIDACAO_EMPENHO = await this.importarLiquidacoes(zip, tenantId, carga.id, exercicio, competencia);
           porTabela.PAGAMENTO_EMPENHO = await this.importarPagamentos(zip, tenantId, carga.id, exercicio, competencia);
           porTabela.PAGAMENTO_EMPENHO_LIQUIDACAO = await this.importarPagLiq(zip, tenantId, carga.id, exercicio, competencia);
+          // Receita arrecadada derivada do lançamento contábil (6.2.1.2 por natureza).
+          porTabela.RECEITA_ARRECADADA = await this.importarReceitaArrecadada(zip, tenantId, carga.id, exercicio, competencia);
+          await this.recomputarTranspReceitas(tenantId, exercicio);
         } else if (modulo === 'CC') {
           porTabela.CONTRATO = await this.importarContratos(zip, tenantId, exercicio);
           porTabela.CONVENIO = await this.importarConvenios(zip, tenantId, exercicio);
@@ -120,6 +124,8 @@ export class AplicIngestaoService {
           await this.registrarSync(tenantId, 'licitacoes', porTabela.PROCESSO_LICITATORIO);
         } else if (modulo === 'ORCAMENTO') {
           porTabela.PREVISAO_RECEITA = await this.importarPrevisaoReceita(zip, tenantId, carga.id, exercicio);
+          // Atualiza a previsão em transp_receitas (arrecadado vem da carga CT).
+          await this.recomputarTranspReceitas(tenantId, exercicio);
         }
 
         const total = Object.values(porTabela).reduce((a, b) => a + b, 0);
@@ -423,6 +429,69 @@ export class AplicIngestaoService {
       })),
     });
     return rows.length;
+  }
+
+  /**
+   * Receita ARRECADADA por natureza, derivada do LANCAMENTO_CONTABIL_DIARIO
+   * (conta de controle 6.2.1.2 do PCASP/TCE). Carga mensal: substitui a
+   * competência. Devolve a qtd de naturezas.
+   */
+  private async importarReceitaArrecadada(
+    zip: JSZip, tenantId: string, cargaId: string, exercicio: number, competencia: string | null,
+  ): Promise<number> {
+    const buf = await this.lerEntrada(zip, 'LANCAMENTO_CONTABIL_DIARIO_TCE.XML');
+    await this.prisma.db.aplicReceitaArrecadada.deleteMany({ where: { tenantId, exercicio, competencia } });
+    if (!buf) return 0;
+    if (buf.length > 300 * 1024 * 1024) {
+      this.log.warn(`LANCAMENTO_CONTABIL_DIARIO ${buf.length} bytes — acima do limite; receita arrecadada não processada.`);
+      return 0;
+    }
+    const naturezas = extrairReceitaArrecadada(buf.toString('latin1'))
+      .filter((n) => n.arrecadado !== 0 || n.deducao !== 0);
+    if (!naturezas.length) return 0;
+    await this.prisma.db.aplicReceitaArrecadada.createMany({
+      data: naturezas.map((n) => ({
+        tenantId, cargaId, exercicio, competencia,
+        naturezaCodigo: n.codigo, naturezaNome: n.nome,
+        valorArrecadado: n.arrecadado, valorDeducao: n.deducao,
+      })),
+    });
+    return naturezas.length;
+  }
+
+  /**
+   * Recalcula `transp_receitas` (origem APLIC) do exercício: previsto (de
+   * aplic_previsao_receita) × arrecadado (soma de aplic_receita_arrecadada por
+   * natureza). Substitui apenas as linhas de fonte APLIC — preserva cadastro
+   * manual. Alimenta a página de Receitas e o PNTP 3.1.
+   */
+  private async recomputarTranspReceitas(tenantId: string, exercicio: number): Promise<void> {
+    const linhas = await this.prisma.db.$queryRaw<
+      { codigo: string; nome: string | null; arrecadado: string; previsto: string }[]
+    >`
+      SELECT a.natureza_codigo AS codigo,
+             max(a.natureza_nome) AS nome,
+             coalesce(sum(a.valor_arrecadado), 0) AS arrecadado,
+             coalesce((SELECT sum(p.valor) FROM aplic_previsao_receita p
+                        WHERE p.exercicio = ${exercicio} AND p.esprc_codigo = a.natureza_codigo), 0) AS previsto
+      FROM aplic_receita_arrecadada a
+      WHERE a.exercicio = ${exercicio}
+      GROUP BY a.natureza_codigo`;
+
+    const dataLanc = new Date(Date.UTC(exercicio, 0, 1)); // sentinela por exercício
+    await this.prisma.db.transpReceita.deleteMany({
+      where: { exercicio, fonteOrigem: 'APLIC/TCE-MT', dataLancamento: dataLanc },
+    });
+    if (!linhas.length) return;
+    await this.prisma.db.transpReceita.createMany({
+      data: linhas.map((l) => ({
+        tenantId, exercicio,
+        codigo: l.codigo, descricao: l.nome,
+        valorPrevisto: l.previsto, valorArrecadado: l.arrecadado,
+        dataLancamento: dataLanc, fonteOrigem: 'APLIC/TCE-MT',
+      })),
+    });
+    await this.registrarSync(tenantId, 'receitas', linhas.length);
   }
 
   // ---------------------------------------------------------------- helpers

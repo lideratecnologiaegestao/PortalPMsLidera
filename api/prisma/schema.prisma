@@ -533,6 +533,22 @@ model AplicPagamentoLiquidacao {
   @@map("aplic_pagamento_liquidacao")
 }
 
+/// Receita arrecadada derivada da contabilidade (APLIC) — migration 088. RLS aplica.
+model AplicReceitaArrecadada {
+  id              String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId        String   @map("tenant_id") @db.Uuid
+  cargaId         String?  @map("carga_id") @db.Uuid
+  exercicio       Int
+  competencia     String?
+  naturezaCodigo  String   @map("natureza_codigo")
+  naturezaNome    String?  @map("natureza_nome")
+  valorArrecadado Decimal  @default(0) @map("valor_arrecadado") @db.Decimal(16, 2)
+  valorDeducao    Decimal  @default(0) @map("valor_deducao") @db.Decimal(16, 2)
+  criadoEm        DateTime @default(now()) @map("criado_em") @db.Timestamptz(6)
+  @@index([tenantId, exercicio, competencia], map: "aplic_receita_arrecadada_escopo_idx")
+  @@map("aplic_receita_arrecadada")
+}
+
 /// Previsão de receita (APLIC módulo 00/Orçamento) — migration 087. RLS aplica.
 model AplicPrevisaoReceita {
   id            String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
