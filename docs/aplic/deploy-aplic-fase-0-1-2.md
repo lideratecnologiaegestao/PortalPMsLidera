@@ -29,12 +29,19 @@ UG/nomenclatura e isolamento RLS entre entidades.
 ```bash
 psql "$DATABASE_URL" -f db/086_aplic_habilitado_ug.sql
 psql "$DATABASE_URL" -f db/087_aplic_previsao_receita.sql
+psql "$DATABASE_URL" -f db/088_aplic_receita_arrecadada.sql
 # ou: cd api && npm run db:migrate   (aplica db/*.sql em ordem; idempotente)
 ```
 
 - `086`: colunas `tenants.aplic_habilitado` (default false) + `tenants.aplic_ug` (CHECK 7 díg) +
   índices ÚNICOS anti-duplicação em `aplic_empenho/liquidacao/pagamento/pagamento_liquidacao`.
 - `087`: tabela `aplic_previsao_receita` (RLS).
+- `088`: tabela `aplic_receita_arrecadada` (receita realizada por natureza, derivada do
+  lançamento contábil; alimenta `transp_receitas`). RLS.
+
+> **PNTP:** ao habilitar a fonte APLIC, a avaliação roda automaticamente e o painel
+> mostra selo + essenciais faltantes. A despesa (`aplic_empenho`) e a receita
+> (`transp_receitas`, via contabilidade) passam a contar nos critérios essenciais 4.x/3.1.
 
 ## Passo 2 — Rebuild + redeploy da API e do Web
 
