@@ -15,6 +15,7 @@ import { ConveniosModule } from '../convenios/convenios.module';
 import { WhatsappModule } from '../whatsapp/whatsapp.module';
 import { IaModule } from '../ia/ia.module';
 import { LgpdModule } from '../lgpd/lgpd.module';
+import { PntpModule } from '../pntp/pntp.module';
 
 /**
  * Módulo de plataforma (super_admin).
@@ -27,7 +28,7 @@ import { LgpdModule } from '../lgpd/lgpd.module';
   imports: [
     ThemeModule, MenusModule, CloudflareModule,
     DocumentosModule, LicitacoesModule, ConselhosModule, ConcursosModule, ContratosModule, ConveniosModule,
-    WhatsappModule, IaModule, LgpdModule,
+    WhatsappModule, IaModule, LgpdModule, PntpModule,
   ],
   controllers: [PlatformAuthController, PlatformTenantsController, PlatformTenantConfigController],
   providers: [TenantProvisioningService],

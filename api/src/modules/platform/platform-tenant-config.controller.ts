@@ -24,6 +24,8 @@ import {
 } from '../whatsapp/whatsapp-canais.service';
 import { TenantIaConfigService } from '../ia/tenant-ia-config.service';
 import { LgpdDocService, DadosLgpdEntidade } from '../lgpd/doc/lgpd-doc.service';
+import { PntpService } from '../pntp/pntp.service';
+import { TenantContext } from '../../common/tenant/tenant.context';
 import {
   PlatformAplicConfigDto,
   PlatformAtendimentoConfigDto,
@@ -55,6 +57,7 @@ export class PlatformTenantConfigController {
     private readonly whatsappCanais: WhatsappCanaisService,
     private readonly iaConfig: TenantIaConfigService,
     private readonly lgpdDoc: LgpdDocService,
+    private readonly pntp: PntpService,
   ) {}
 
   // ============================================================ IA
@@ -333,7 +336,14 @@ export class PlatformTenantConfigController {
       aplicHabilitado: atualizado.aplicHabilitado,
       ugDefinida: !!atualizado.aplicUg,
     });
-    return atualizado;
+
+    // Ao habilitar, roda a avaliação PNTP da entidade e devolve o feedback
+    // (selo + o que falta para Diamante) — validação pedida ao escolher o APLIC.
+    let pntp: Awaited<ReturnType<PntpService['resumo']>> | null = null;
+    if (atualizado.aplicHabilitado) {
+      pntp = await TenantContext.run({ tenantId: id }, () => this.pntp.resumo());
+    }
+    return { ...atualizado, pntp };
   }
 
   // ============================================================ Documentação LGPD

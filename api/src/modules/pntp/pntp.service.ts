@@ -60,9 +60,17 @@ export class PntpService {
     let itens = { disp: false, atual: false, serie: false, download: false, filtro: false };
 
     if (c.fonte === 'dataset' && c.dataset) {
-      const total = await this.delegates()[c.dataset].count();
+      let total = await this.delegates()[c.dataset].count();
+      let atualOk = total > 0 && (await this.ultima(c.dataset));
+      // A despesa do APLIC (TCE-MT) é gravada em aplic_empenho e exposta em
+      // /transparencia/execucao — não em transp_despesas. Conta para os
+      // critérios de despesa (4.1/4.3) quando houver carga importada.
+      if (c.dataset === 'despesas' && total === 0) {
+        const ap = await this.prisma.db.aplicEmpenho.count();
+        if (ap > 0) { total = ap; atualOk = true; }
+      }
       const disp = total > 0;
-      itens = { disp, atual: disp && (await this.ultima(c.dataset)), serie: disp, download: disp, filtro: disp };
+      itens = { disp, atual: disp && atualOk, serie: disp, download: disp, filtro: disp };
     } else if (c.fonte === 'documento' && c.categoria) {
       // Conta apenas documentos com URL REALMENTE publicável (não o placeholder
       // legado que apontava para um arquivo inexistente — link 404). Assim o
@@ -129,6 +137,16 @@ export class PntpService {
       })),
       criterios: avals.map((a) => ({ id: a.id, dimensao: a.dimensao, desc: a.desc, exig: a.exig, pct: Math.round(a.pct * 100), atendido: a.atendido, itens: a.itens })),
     };
+  }
+
+  /**
+   * Resumo compacto da conformidade PNTP do tenant atual: selo, índice e os
+   * critérios ESSENCIAIS ainda não atendidos (o que falta para Diamante).
+   * Usado como feedback ao habilitar a fonte APLIC.
+   */
+  async resumo() {
+    const c = await this.conformidade();
+    return { indice: c.indice, selo: c.selo, essenciaisOk: c.essenciaisOk, bloqueantes: c.bloqueantes };
   }
 
   private selo(indice: number, essenciaisOk: boolean): string {

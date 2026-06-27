@@ -351,9 +351,17 @@ export const salvarAtendimentoConfig = (id: string, dto: Partial<AtendimentoConf
   adminPut<AtendimentoConfig>(`/api/_platform/tenants/${id}/config/atendimento`, dto);
 
 /** APLIC (Transparência) — liga/desliga a fonte + UG (7 dígitos) do TCE-MT. */
+export interface PntpResumo {
+  indice: number;
+  selo: string;
+  essenciaisOk: boolean;
+  bloqueantes: { id: string; dimensao: string; desc: string }[];
+}
 export interface AplicConfig {
   aplicHabilitado: boolean;
   aplicUg: string | null;
+  /** Presente na resposta do PUT quando a fonte é habilitada (avaliação PNTP). */
+  pntp?: PntpResumo | null;
 }
 export interface AplicConfigDto {
   aplicHabilitado?: boolean;

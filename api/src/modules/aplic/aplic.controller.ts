@@ -19,6 +19,7 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { AplicIngestaoService } from './aplic-ingestao.service';
 import { AplicConsultaService } from './aplic-consulta.service';
 import { AplicConfigService } from './aplic-config.service';
+import { PntpService } from '../pntp/pntp.service';
 
 /**
  * Importação e consulta da carga contábil APLIC (TCE-MT) — módulo CT.
@@ -35,6 +36,7 @@ export class AplicController {
     private readonly ingestao: AplicIngestaoService,
     private readonly consulta: AplicConsultaService,
     private readonly config: AplicConfigService,
+    private readonly pntp: PntpService,
     private readonly prisma: PrismaService,
   ) {}
 
@@ -46,8 +48,12 @@ export class AplicController {
   @Get('status')
   async status() {
     const tenantId = TenantContext.tenantId();
-    if (!tenantId) return { habilitado: false, ug: null };
-    return this.config.obter(tenantId);
+    if (!tenantId) return { habilitado: false, ug: null, pntp: null };
+    const cfg = await this.config.obter(tenantId);
+    // Com a fonte ligada, devolve também a avaliação PNTP (selo + o que falta
+    // para Diamante) — feedback automático pedido ao escolher o módulo APLIC.
+    const pntp = cfg.habilitado ? await this.pntp.resumo() : null;
+    return { ...cfg, pntp };
   }
 
   /** POST /api/admin/aplic/importar — multipart, campo `file` = .zip da carga. */

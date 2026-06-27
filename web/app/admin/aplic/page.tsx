@@ -21,7 +21,9 @@ interface Carga {
   arquivoNome: string | null; status: string; totalRegistros: number;
   porTabela: Record<string, number> | null; criadoEm: string;
 }
-interface AplicStatus { habilitado: boolean; ug: string | null }
+interface PntpBloqueante { id: string; dimensao: string; desc: string }
+interface PntpResumo { indice: number; selo: string; essenciaisOk: boolean; bloqueantes: PntpBloqueante[] }
+interface AplicStatus { habilitado: boolean; ug: string | null; pntp?: PntpResumo | null }
 
 const r$ = (n: number) => (n ?? 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 const dataHora = (iso: string) => { try { return new Date(iso).toLocaleString('pt-BR'); } catch { return iso; } };
@@ -111,6 +113,37 @@ export default function AplicPage() {
           <strong>Gerenciador</strong> (Configurações da Entidade → aba “Transparência (APLIC)”),
           onde também se define o código da UG (7 dígitos) no TCE-MT.
         </Aviso>
+      )}
+
+      {/* Avaliação PNTP (feedback automático com a fonte ligada) */}
+      {status?.habilitado && status.pntp && (
+        <section aria-labelledby="pntp-tit" className={`${ui.card} p-5 space-y-2`}>
+          <div className="flex flex-wrap items-baseline justify-between gap-2">
+            <h2 id="pntp-tit" className="font-heading text-base font-bold">Conformidade PNTP</h2>
+            <span className="text-sm">
+              Selo <strong className="text-primary">{status.pntp.selo}</strong> · índice{' '}
+              <strong>{status.pntp.indice.toFixed(1)}%</strong>
+            </span>
+          </div>
+          {status.pntp.essenciaisOk ? (
+            <p className="text-sm text-success">Todos os critérios essenciais atendidos.</p>
+          ) : (
+            <div className="text-sm">
+              <p className="text-fg/80">
+                Faltam {status.pntp.bloqueantes.length} critério(s) essencial(is) para o selo Diamante:
+              </p>
+              <ul className="mt-1 list-disc space-y-0.5 pl-5 text-fg/70">
+                {status.pntp.bloqueantes.map((b) => (
+                  <li key={b.id}><span className="font-medium">{b.dimensao}</span> — {b.desc} <span className="text-fg/40">({b.id})</span></li>
+                ))}
+              </ul>
+            </div>
+          )}
+          <p className="text-xs text-fg/50">
+            Detalhes em <a href="/admin/conformidade" className="underline">Conformidade PNTP</a>. O APLIC cobre
+            despesa, contratos, licitações e convênios; os demais itens vêm de outros módulos/uploads.
+          </p>
+        </section>
       )}
 
       {/* Upload */}

@@ -1168,10 +1168,12 @@ function AbaAplic({ tenantId }: { tenantId: string }) {
 
   const [habilitado, setHabilitado] = useState(false);
   const [ug, setUg] = useState('');
+  const [pntp, setPntp] = useState<AplicConfig['pntp']>(null);
 
   function preencher(d: AplicConfig) {
     setHabilitado(d.aplicHabilitado);
     setUg(d.aplicUg ?? '');
+    if (d.pntp !== undefined) setPntp(d.pntp);
   }
 
   useEffect(() => {
@@ -1258,6 +1260,27 @@ function AbaAplic({ tenantId }: { tenantId: string }) {
         {erro && <Aviso tipo="erro">{erro}</Aviso>}
         {sucesso && <Aviso tipo="ok">{sucesso}</Aviso>}
       </div>
+
+      {/* Feedback PNTP (avaliação executada ao habilitar) */}
+      {habilitado && pntp && (
+        <div className="rounded border border-border bg-muted/30 p-3 text-sm">
+          <p className="font-semibold">
+            Avaliação PNTP: selo <span className="text-primary">{pntp.selo}</span> · índice {pntp.indice.toFixed(1)}%
+          </p>
+          {pntp.essenciaisOk ? (
+            <p className="text-success">Critérios essenciais atendidos.</p>
+          ) : (
+            <>
+              <p className="text-fg/70">Faltam {pntp.bloqueantes.length} essencial(is) para Diamante:</p>
+              <ul className="mt-1 list-disc pl-5 text-fg/70">
+                {pntp.bloqueantes.slice(0, 8).map((b) => (
+                  <li key={b.id}>{b.dimensao} — {b.desc}</li>
+                ))}
+              </ul>
+            </>
+          )}
+        </div>
+      )}
 
       <div className="flex justify-end">
         <button type="button" onClick={handleSalvar} disabled={salvando} className={ui.btn} aria-busy={salvando}>

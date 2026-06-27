@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { PntpModule } from '../pntp/pntp.module';
 import { AplicController } from './aplic.controller';
 import { AplicPublicController } from './aplic-public.controller';
 import { AplicIngestaoService } from './aplic-ingestao.service';
@@ -12,6 +13,7 @@ import { AplicConfigService } from './aplic-config.service';
  * PrismaService é global.
  */
 @Module({
+  imports: [PntpModule],
   controllers: [AplicController, AplicPublicController],
   providers: [AplicIngestaoService, AplicConsultaService, AplicConfigService],
   exports: [AplicIngestaoService, AplicConsultaService, AplicConfigService],
