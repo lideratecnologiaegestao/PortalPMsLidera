@@ -30,6 +30,7 @@ UG/nomenclatura e isolamento RLS entre entidades.
 psql "$DATABASE_URL" -f db/086_aplic_habilitado_ug.sql
 psql "$DATABASE_URL" -f db/087_aplic_previsao_receita.sql
 psql "$DATABASE_URL" -f db/088_aplic_receita_arrecadada.sql
+psql "$DATABASE_URL" -f db/089_transp_documentos_fonte.sql
 # ou: cd api && npm run db:migrate   (aplica db/*.sql em ordem; idempotente)
 ```
 

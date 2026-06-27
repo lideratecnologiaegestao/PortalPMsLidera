@@ -23,6 +23,8 @@ import {
   QUEUE_TRANSPARENCIA,
 } from '../queue/queue.constants';
 import { TransparenciaService } from './transparencia.service';
+import { PrismaService } from '../../prisma/prisma.service';
+import { StorageService } from '../storage/storage.service';
 import { toCsv } from './csv.util';
 import { DICIONARIO } from './dicionario';
 import { pdfModeloDaCategoria } from './modelo-pdf.util';
@@ -39,6 +41,8 @@ import { ConsultaQuery, SyncPayload } from './transparencia.types';
 export class TransparenciaController {
   constructor(
     private readonly service: TransparenciaService,
+    private readonly prisma: PrismaService,
+    private readonly storage: StorageService,
     @InjectQueue(QUEUE_TRANSPARENCIA) private readonly fila: Queue,
   ) {}
 
@@ -126,6 +130,28 @@ export class TransparenciaController {
   @Get('dicionario')
   dicionario() {
     return DICIONARIO;
+  }
+
+  // ------------------------------------------- Documento publicado (storage)
+  /**
+   * Baixa um documento de Transparência guardado no storage (ex.: inteiro teor
+   * de contrato / edital vindos da carga APLIC). Público; o RLS por Host garante
+   * que o documento pertence à entidade. Sirva só docs com storage_key.
+   */
+  @Get('documento/:id')
+  async documento(@Param('id') id: string, @Res() res: Response) {
+    if (!TenantContext.tenantId()) { res.status(404).end(); return; }
+    const doc = await this.prisma.db.transpDocumento.findUnique({
+      where: { id },
+      select: { storageKey: true, titulo: true },
+    });
+    if (!doc?.storageKey) { res.status(404).end(); return; }
+    const { buffer, mime } = await this.storage.get(doc.storageKey);
+    const nome = (doc.titulo || 'documento').replace(/[^\w.-]+/g, '_').slice(0, 80);
+    res.setHeader('Content-Type', mime);
+    res.setHeader('Cache-Control', 'public, max-age=3600');
+    res.setHeader('Content-Disposition', `inline; filename="${nome}"`);
+    res.send(buffer);
   }
 
   // ------------------------------------------- Documentos-modelo (exemplo)

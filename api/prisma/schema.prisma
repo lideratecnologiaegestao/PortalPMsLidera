@@ -1194,6 +1194,7 @@ model TranspDocumento {
   urlExterna   String?   @map("url_externa")
   storageKey   String?   @map("storage_key")
   competencia  DateTime? @db.Date
+  fonteOrigem  String?   @map("fonte_origem")
   publicadoEm  DateTime  @default(now()) @map("publicado_em")
   atualizadoEm DateTime  @default(now()) @updatedAt @map("atualizado_em")
   @@index([tenantId, categoria, exercicio])

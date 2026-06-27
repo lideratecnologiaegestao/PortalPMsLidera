@@ -6,6 +6,7 @@ import { DatasetsController } from './datasets.controller';
 import { DatasetsService } from './datasets.service';
 import { TransparenciaAdminController } from './transparencia-admin.controller';
 import { TransparenciaAdminService } from './transparencia-admin.service';
+import { StorageService } from '../storage/storage.service';
 
 /**
  * Transparência ativa (LC 131/LRF) + dados abertos. Leitura pública isolada
@@ -16,7 +17,7 @@ import { TransparenciaAdminService } from './transparencia-admin.service';
  */
 @Module({
   controllers: [TransparenciaController, DatasetsController, TransparenciaAdminController],
-  providers: [TransparenciaService, TransparenciaWorker, DatasetsService, TransparenciaAdminService],
+  providers: [TransparenciaService, TransparenciaWorker, DatasetsService, TransparenciaAdminService, StorageService],
   exports: [TransparenciaService, DatasetsService, TransparenciaAdminService],
 })
 export class TransparenciaModule {}

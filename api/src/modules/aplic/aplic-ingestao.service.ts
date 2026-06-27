@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import JSZip from 'jszip';
 import { PrismaService } from '../../prisma/prisma.service';
+import { StorageService } from '../storage/storage.service';
 import { TenantContext } from '../../common/tenant/tenant.context';
 import {
   nuloSeVazio,
@@ -37,7 +38,10 @@ export interface ResultadoImportacao {
 export class AplicIngestaoService {
   private readonly log = new Logger(AplicIngestaoService.name);
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly storage: StorageService,
+  ) {}
 
   async importarZip(
     tenantId: string,
@@ -115,10 +119,13 @@ export class AplicIngestaoService {
           porTabela.RECEITA_ARRECADADA = await this.importarReceitaArrecadada(zip, tenantId, carga.id, exercicio, competencia);
           await this.recomputarTranspReceitas(tenantId, exercicio);
         } else if (modulo === 'CC') {
-          porTabela.CONTRATO = await this.importarContratos(zip, tenantId, exercicio);
+          const cc = await this.importarContratos(zip, tenantId, exercicio);
+          porTabela.CONTRATO = cc.contratos;
+          porTabela.CONTRATO_DOC = cc.docs;
           porTabela.CONVENIO = await this.importarConvenios(zip, tenantId, exercicio);
           await this.registrarSync(tenantId, 'contratos', porTabela.CONTRATO);
           await this.registrarSync(tenantId, 'convenios', porTabela.CONVENIO);
+          if (cc.docs > 0) await this.registrarSync(tenantId, 'documentos', cc.docs);
         } else if (modulo === 'PL') {
           porTabela.PROCESSO_LICITATORIO = await this.importarLicitacoes(zip, tenantId, exercicio);
           await this.registrarSync(tenantId, 'licitacoes', porTabela.PROCESSO_LICITATORIO);
@@ -275,12 +282,12 @@ export class AplicIngestaoService {
   // tabela (nunca duplica; reimportar atualiza). O CPF do fornecedor é guardado
   // inteiro e MASCARADO na leitura pública (datasets.service / mascararDocumento).
 
-  /** Contratos (CONTRATO.XML + CONTRATADO.XML) → transp_contratos. */
+  /** Contratos (CONTRATO.XML + CONTRATADO.XML) → transp_contratos + inteiro teor (PNTP 9.2). */
   private async importarContratos(
     zip: JSZip, tenantId: string, exercicio: number,
-  ): Promise<number> {
+  ): Promise<{ contratos: number; docs: number }> {
     const buf = await this.lerEntrada(zip, 'CONTRATO.XML');
-    if (!buf) return 0;
+    if (!buf) return { contratos: 0, docs: 0 };
     const { rows } = parseDatapacket(buf);
 
     // Mapa (numero|aditivo|tipo) → 1ª identificação do contratado.
@@ -295,6 +302,7 @@ export class AplicIngestaoService {
     }
 
     let n = 0;
+    let docs = 0;
     for (const r of rows) {
       const base = nuloSeVazio(r.CONT_Numero);
       if (!base) continue;
@@ -318,8 +326,49 @@ export class AplicIngestaoService {
         update: dados,
       });
       n++;
+
+      // Inteiro teor do contrato (PDF de fundamento ou RTF do termo) → publica.
+      const arq = nuloSeVazio(r.CONT_NomeArqPDFFundamento) ?? nuloSeVazio(r.CONT_NomeArqRTF);
+      if (arq && (await this.publicarDocumento(zip, tenantId, {
+        nomeArquivo: arq, categoria: 'contrato', titulo: `Contrato ${numero}`, exercicio,
+      }))) docs++;
     }
-    return n;
+    return { contratos: n, docs };
+  }
+
+  /**
+   * Publica um anexo da carga (PDF/RTF) no storage e registra em
+   * transp_documentos (conta no PNTP e fica baixável pelo cidadão em
+   * /api/transparencia/documento/:id). Idempotente: substitui o doc APLIC de
+   * mesmo título/categoria. Retorna false se o arquivo não está na carga.
+   */
+  private async publicarDocumento(
+    zip: JSZip,
+    tenantId: string,
+    opts: { nomeArquivo: string; categoria: string; titulo: string; exercicio: number },
+  ): Promise<boolean> {
+    const buf = await this.lerEntrada(zip, opts.nomeArquivo);
+    if (!buf || !buf.length) return false;
+    const mime = /\.pdf$/i.test(opts.nomeArquivo)
+      ? 'application/pdf'
+      : /\.rtf$/i.test(opts.nomeArquivo)
+        ? 'application/rtf'
+        : 'application/octet-stream';
+    const key = await this.storage.put(`aplic/${opts.categoria}`, buf, mime);
+    await this.prisma.db.transpDocumento.deleteMany({
+      where: { categoria: opts.categoria, titulo: opts.titulo, fonteOrigem: 'APLIC/TCE-MT' },
+    });
+    const doc = await this.prisma.db.transpDocumento.create({
+      data: {
+        tenantId, categoria: opts.categoria, exercicio: opts.exercicio,
+        titulo: opts.titulo, storageKey: key, fonteOrigem: 'APLIC/TCE-MT',
+      },
+    });
+    await this.prisma.db.transpDocumento.update({
+      where: { id: doc.id },
+      data: { urlExterna: `/api/transparencia/documento/${doc.id}` },
+    });
+    return true;
   }
 
   /** Convênios (CONVENIO.XML) → transp_convenios. */
