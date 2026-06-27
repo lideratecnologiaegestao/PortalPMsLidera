@@ -94,6 +94,8 @@ model Tenant {
   atendimentoInatividadeMin Int     @default(30) @map("atendimento_inatividade_min")
   atendimentoTimezone       String  @default("America/Cuiaba") @map("atendimento_timezone")
   evolutionInstancia        String? @map("evolution_instancia")
+  aplicHabilitado     Boolean   @default(false) @map("aplic_habilitado")
+  aplicUg             String?   @map("aplic_ug")
   criadoEm            DateTime  @default(now()) @map("criado_em")
   atualizadoEm        DateTime  @updatedAt @map("atualizado_em")
   elevationRequests   ElevationRequest[]
@@ -477,6 +479,7 @@ model AplicEmpenho {
   descricao    String?
   dados        Json
   criadoEm     DateTime  @default(now()) @map("criado_em") @db.Timestamptz(6)
+  @@unique([tenantId, exercicio, competencia, empNumero], map: "aplic_empenho_uk")
   @@map("aplic_empenho")
 }
 
@@ -494,6 +497,7 @@ model AplicLiquidacao {
   liqValor    Decimal   @default(0) @map("liq_valor") @db.Decimal(16, 2)
   dados       Json
   criadoEm    DateTime  @default(now()) @map("criado_em") @db.Timestamptz(6)
+  @@unique([tenantId, exercicio, competencia, empNumero, liqNumero], map: "aplic_liquidacao_uk")
   @@map("aplic_liquidacao")
 }
 
@@ -508,6 +512,7 @@ model AplicPagamento {
   pgtoValor   Decimal   @default(0) @map("pgto_valor") @db.Decimal(16, 2)
   dados       Json
   criadoEm    DateTime  @default(now()) @map("criado_em") @db.Timestamptz(6)
+  @@unique([tenantId, exercicio, competencia, pgtoNumero], map: "aplic_pagamento_uk")
   @@map("aplic_pagamento")
 }
 
@@ -524,7 +529,27 @@ model AplicPagamentoLiquidacao {
   pgtoNumero  String?  @map("pgto_numero")
   dados       Json
   criadoEm    DateTime @default(now()) @map("criado_em") @db.Timestamptz(6)
+  @@unique([tenantId, exercicio, competencia, empNumero, liqNumero, pgtoNumero], map: "aplic_pagamento_liquidacao_uk")
   @@map("aplic_pagamento_liquidacao")
+}
+
+/// Previsão de receita (APLIC módulo 00/Orçamento) — migration 087. RLS aplica.
+model AplicPrevisaoReceita {
+  id            String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId      String   @map("tenant_id") @db.Uuid
+  cargaId       String?  @map("carga_id") @db.Uuid
+  exercicio     Int
+  esprcCodigo   String?  @map("esprc_codigo")
+  toprCodigo    String?  @map("topr_codigo")
+  drgrpCodigo   String?  @map("drgrp_codigo")
+  drespCodigo   String?  @map("dresp_codigo")
+  destrecCodigo String?  @map("destrec_codigo")
+  tipoPrevisao  String?  @map("tipo_previsao")
+  mesReferencia String?  @map("mes_referencia")
+  valor         Decimal  @default(0) @db.Decimal(16, 2)
+  dados         Json
+  criadoEm      DateTime @default(now()) @map("criado_em") @db.Timestamptz(6)
+  @@map("aplic_previsao_receita")
 }
 
 /// Configuração GLOBAL da plataforma (singleton id=1) — migration 059.
@@ -731,6 +756,11 @@ model UserContato {
   emailCodigoExp     DateTime? @map("email_codigo_exp")
   notifWhatsapp      Boolean   @default(true) @map("notif_whatsapp")
   notifEmail         Boolean   @default(true) @map("notif_email")
+  telegramChatId     String?   @map("telegram_chat_id")
+  telegramVerificado Boolean   @default(false) @map("telegram_verificado")
+  telegramCodigo     String?   @map("telegram_codigo")
+  telegramCodigoExp  DateTime? @map("telegram_codigo_exp") @db.Timestamptz(6)
+  notifTelegram      Boolean   @default(true) @map("notif_telegram")
   criadoEm           DateTime  @default(now()) @map("criado_em")
   atualizadoEm       DateTime  @updatedAt @map("atualizado_em")
   @@unique([tenantId, userId])

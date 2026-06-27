@@ -25,6 +25,7 @@ import {
 import { TenantIaConfigService } from '../ia/tenant-ia-config.service';
 import { LgpdDocService, DadosLgpdEntidade } from '../lgpd/doc/lgpd-doc.service';
 import {
+  PlatformAplicConfigDto,
   PlatformAtendimentoConfigDto,
   PlatformIaConfigDto,
   PlatformLgpdConfigDto,
@@ -275,6 +276,63 @@ export class PlatformTenantConfigController {
       select: { dpoNome: true, dpoEmail: true },
     });
     await this.auditar(id, user, 'PLATFORM_CONFIG_LGPD', { dpoNome: dto.dpoNome });
+    return atualizado;
+  }
+
+  // ============================================================ APLIC (Transparência)
+  /** Estado da fonte APLIC da entidade (habilitada? qual UG?). */
+  @Get('aplic')
+  async getAplic(@Param('id') id: string) {
+    const t = await this.prisma.platform().tenant.findUnique({
+      where: { id },
+      select: { aplicHabilitado: true, aplicUg: true },
+    });
+    if (!t) throw new NotFoundException('Tenant não encontrado.');
+    return t;
+  }
+
+  /**
+   * Liga/desliga a fonte APLIC e define a UG (7 dígitos). Regra: para HABILITAR,
+   * a UG é obrigatória — sem ela não há como validar a quem a carga pertence.
+   */
+  @Put('aplic')
+  async putAplic(
+    @Param('id') id: string,
+    @Body() dto: PlatformAplicConfigDto,
+    @CurrentUser() user: AuthUser,
+  ) {
+    await this.assertTenant(id);
+
+    const atual = await this.prisma.platform().tenant.findUnique({
+      where: { id },
+      select: { aplicHabilitado: true, aplicUg: true },
+    });
+
+    const data: Record<string, unknown> = {};
+    if (dto.aplicUg !== undefined) data.aplicUg = dto.aplicUg.trim() || null;
+    if (dto.aplicHabilitado !== undefined) data.aplicHabilitado = dto.aplicHabilitado;
+
+    // UG efetiva após a alteração (a enviada agora, ou a já existente).
+    const ugEfetiva =
+      dto.aplicUg !== undefined ? (dto.aplicUg.trim() || null) : (atual?.aplicUg ?? null);
+    const habilitarEfetivo =
+      dto.aplicHabilitado !== undefined ? dto.aplicHabilitado : (atual?.aplicHabilitado ?? false);
+
+    if (habilitarEfetivo && !ugEfetiva) {
+      throw new BadRequestException(
+        'Para habilitar a fonte APLIC informe o código da UG (7 dígitos) da entidade no TCE-MT.',
+      );
+    }
+
+    const atualizado = await this.prisma.platform().tenant.update({
+      where: { id },
+      data,
+      select: { aplicHabilitado: true, aplicUg: true },
+    });
+    await this.auditar(id, user, 'PLATFORM_CONFIG_APLIC', {
+      aplicHabilitado: atualizado.aplicHabilitado,
+      ugDefinida: !!atualizado.aplicUg,
+    });
     return atualizado;
   }
 

@@ -3,6 +3,7 @@ import { AplicController } from './aplic.controller';
 import { AplicPublicController } from './aplic-public.controller';
 import { AplicIngestaoService } from './aplic-ingestao.service';
 import { AplicConsultaService } from './aplic-consulta.service';
+import { AplicConfigService } from './aplic-config.service';
 
 /**
  * Módulo APLIC (TCE-MT) — importação da carga contábil e consulta.
@@ -12,7 +13,7 @@ import { AplicConsultaService } from './aplic-consulta.service';
  */
 @Module({
   controllers: [AplicController, AplicPublicController],
-  providers: [AplicIngestaoService, AplicConsultaService],
-  exports: [AplicIngestaoService, AplicConsultaService],
+  providers: [AplicIngestaoService, AplicConsultaService, AplicConfigService],
+  exports: [AplicIngestaoService, AplicConsultaService, AplicConfigService],
 })
 export class AplicModule {}

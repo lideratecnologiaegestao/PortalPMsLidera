@@ -95,6 +95,58 @@ e as chaves naturais do leiaute. (Demais módulos — FP, ORÇAMENTO, Licitaçã
   carga inicial pode ser volumosa (lotes na fila); exige disciplina de mascaramento de PII.
 - **Não-objetivo agora:** importar o pacote cifrado; folha (FP); RPPS.
 
+## Adendo — Fase 0/1 (2026-06-26): habilitação por entidade + endurecimento
+
+Validado em **carga real grande** (PM Diamantino, CT 2025/01, UG 1112796): o parser
+DATAPACKET lê sem ajustes — EMPENHO 885 linhas = R$ 25.184.821,49; LIQUIDAÇÃO 566 =
+R$ 10.721.716,63; PAGAMENTO 488 = R$ 7.886.490,14. (XMLs bem-formados, ISO-8859-1,
+decimal com ponto.) Os XMLs grandes que NÃO consumimos — ex.: `LANCAMENTO_CONTABIL_DIARIO`
+(~52 MB) — não são descompactados (lemos só as entradas por nome via `jszip`), então
+a importação síncrona do CT é viável.
+
+Decisões adicionais implementadas (migration 086):
+- **Liga/desliga por entidade no painel central.** `tenants.aplic_habilitado` (default
+  `false`) + `tenants.aplic_ug` (7 dígitos, `CHECK` de formato). Aba **"Transparência
+  (APLIC)"** em *Configurações da Entidade* (Gerenciador, super_admin). Desligada:
+  sem importação e sem vitrine pública (admin + público gated em `AplicConfigService`).
+- **UG obrigatória para habilitar.** Toda carga é validada contra a UG configurada.
+- **Nomenclatura padrão do TCE exigida** no nome do arquivo (`aplic-nomenclatura.util.ts`,
+  com teste): `{UG:7}{MÓDULO}{ANO}{COMP}.ZIP`. Fora do padrão → rejeita com mensagem.
+- **Sem duplicatas.** Reimportar substitui a competência (delete+insert) e, defensivamente,
+  índices ÚNICOS por escopo em `aplic_empenho/liquidacao/pagamento/pagamento_liquidacao`
+  + `createMany({ skipDuplicates: true })`.
+- **Pendências de hardening:** ingestão assíncrona por fila (cargas grandes/futuros
+  módulos) e gating das ferramentas fiscais da IA quando a fonte está desligada.
+
+## Adendo — Fase 2 (2026-06-26): Licitações, Contratos, Convênios e Receita
+
+Escopo aprovado: CT + Receitas + Licitações/Contratos. Campos confirmados nas cargas
+reais (CC Diamantino, PL Alto Garças, 00 Diamantino).
+
+**Decisão de integração (importante):** os módulos CC (Contratos/Convênios) e PL
+(Licitações) NÃO ganham tabela `aplic_*` própria nem páginas novas. A ingestão **alimenta
+as tabelas de Transparência já existentes** — `transp_contratos`, `transp_convenios`,
+`transp_licitacoes` — com `fonte_origem='APLIC/TCE-MT'` e `transp_sync_log` (defasagem). Assim
+o cidadão vê UMA página por conjunto (`/transparencia/licitacoes|contratos|convenios`,
+servidas pelo `[dataset]` genérico), reaproveitando filtros, busca, dados abertos e a
+verificação PNTP. Isso realiza o pedido original: "APLIC alimenta a Transparência quando não
+dá para cadastrar manualmente". Idempotência por UPSERT na chave natural de cada tabela.
+- **Licitações:** PROCESSO_LICITATORIO + soma de `IPLIC_ValEstimado` (ITEM_PROC_LICIT);
+  modalidade traduzida pela tabela interna `MODALIDADE_LICITACAO` (cópia em `aplic-tabelas.ref.ts`).
+- **Contratos:** CONTRATO + CONTRATADO (fornecedor); nome do fornecedor resolvido em
+  `aplic_credor` (das cargas CT). CPF do fornecedor mascarado na leitura (camada existente).
+- **Convênios:** CONVENIO.
+
+**Receita:** `PREVISAO_RECEITA` é ingerida em `aplic_previsao_receita` (migration 087) mas
+**não é publicada ainda**: o total bruto (R$ 1,7 bi numa amostra de município pequeno) soma
+por fonte de recurso (DRGRP/DRESP/DESTREC) e exige a metodologia de classificação da receita
+(deduções FUNDEB etc.) para não exibir cifra inflada. Receita arrecadada continua dependendo
+do movimento contábil — etapa própria.
+
+Ingestão por dispatch de módulo: `importarZip` aceita CT/CC/PL/ORCAMENTO (FP/PA/encerramentos
+seguem recusados). Testes: `aplic-nomenclatura.util.spec.ts`, `aplic-tabelas.ref.spec.ts`;
+mapeamento validado nos XMLs reais (licitação R$ 63.467,50; contratos/convênios/receita OK).
+
 ## Alternativas consideradas
 - **RAG/embeddings sobre os números** — rejeitado: alucina cifras (inadmissível p/ contas públicas).
 - **Importar o DAT cifrado** — inviável (cifrado pela ferramenta do TCE).

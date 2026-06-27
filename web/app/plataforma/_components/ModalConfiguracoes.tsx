@@ -11,6 +11,8 @@ import {
   salvarAtendimentoConfig,
   getLgpdConfig,
   salvarLgpdConfig,
+  getAplicConfig,
+  salvarAplicConfig,
   getLgpdDocumento,
   gerarLgpdDocumento,
   getCanais,
@@ -25,6 +27,7 @@ import {
   type WhatsappConfigDto,
   type AtendimentoConfig,
   type LgpdConfig,
+  type AplicConfig,
   type LgpdDocEstado,
   type DadosLgpdEntidade,
   type Tenant,
@@ -37,7 +40,7 @@ import { AdminApiError } from '../../../lib/admin-api';
 
 // ── Tipos internos ─────────────────────────────────────────────────────────────
 
-type Aba = 'ia' | 'whatsapp' | 'atendimento' | 'lgpd' | 'canais';
+type Aba = 'ia' | 'whatsapp' | 'atendimento' | 'lgpd' | 'canais' | 'aplic';
 
 // ── Utilitários ────────────────────────────────────────────────────────────────
 
@@ -1154,6 +1157,117 @@ function AbaLgpd({ tenantId }: { tenantId: string }) {
   );
 }
 
+// ── Aba APLIC (Transparência) ──────────────────────────────────────────────────
+
+function AbaAplic({ tenantId }: { tenantId: string }) {
+  const uid = useId();
+  const [carregando, setCarregando] = useState(true);
+  const [salvando, setSalvando] = useState(false);
+  const [erro, setErro] = useState<string | null>(null);
+  const [sucesso, setSucesso] = useState<string | null>(null);
+
+  const [habilitado, setHabilitado] = useState(false);
+  const [ug, setUg] = useState('');
+
+  function preencher(d: AplicConfig) {
+    setHabilitado(d.aplicHabilitado);
+    setUg(d.aplicUg ?? '');
+  }
+
+  useEffect(() => {
+    setCarregando(true);
+    setErro(null);
+    setSucesso(null);
+    getAplicConfig(tenantId)
+      .then(preencher)
+      .catch((e) => setErro(erroMsg(e)))
+      .finally(() => setCarregando(false));
+  }, [tenantId]);
+
+  async function handleSalvar() {
+    const ugLimpa = ug.replace(/\D/g, '');
+    if (ugLimpa && ugLimpa.length !== 7) {
+      setErro('A UG deve ter exatamente 7 dígitos.');
+      return;
+    }
+    if (habilitado && !ugLimpa) {
+      setErro('Para habilitar a fonte APLIC, informe a UG (7 dígitos) da entidade no TCE-MT.');
+      return;
+    }
+    setSalvando(true);
+    setErro(null);
+    setSucesso(null);
+    try {
+      const novo = await salvarAplicConfig(tenantId, { aplicHabilitado: habilitado, aplicUg: ugLimpa });
+      preencher(novo);
+      setSucesso('Configurações da fonte APLIC salvas com sucesso.');
+    } catch (e) {
+      setErro(erroMsg(e));
+    } finally {
+      setSalvando(false);
+    }
+  }
+
+  if (carregando) {
+    return (
+      <p className="py-6 text-center text-sm text-fg/60" aria-live="polite">
+        Carregando configurações da fonte APLIC…
+      </p>
+    );
+  }
+
+  return (
+    <div className="space-y-5">
+      <p className="text-sm text-fg/70">
+        Liga a fonte de dados <strong>APLIC (TCE-MT)</strong> no Portal da Transparência desta
+        entidade. Com ela ligada, o administrador pode importar as cargas contábeis (módulo CT:
+        empenhos, liquidações e pagamentos) e os dados aparecem na vitrine pública
+        <code className="mx-1 rounded bg-muted px-1">/transparencia/execucao</code>.
+      </p>
+
+      <CheckField
+        id={`${uid}-aplic-hab`}
+        checked={habilitado}
+        onChange={setHabilitado}
+        label="Habilitar a fonte APLIC para esta entidade"
+        description="Desligada: nenhuma importação nem vitrine pública de execução da despesa."
+      />
+
+      <div>
+        <label htmlFor={`${uid}-aplic-ug`} className={ui.label}>
+          Unidade Gestora (UG) — 7 dígitos
+        </label>
+        <p className="mb-1 text-xs text-fg/60">
+          Código da entidade no TCE-MT (os 7 primeiros dígitos do nome das cargas, ex.:{' '}
+          <code className="rounded bg-muted px-1">1112796</code>). Toda carga importada é validada
+          contra esta UG. Obrigatória para habilitar.
+        </p>
+        <input
+          id={`${uid}-aplic-ug`}
+          type="text"
+          inputMode="numeric"
+          maxLength={7}
+          value={ug}
+          onChange={(e) => setUg(e.target.value.replace(/\D/g, '').slice(0, 7))}
+          placeholder="1112796"
+          className={`${ui.input} max-w-[180px] font-mono tracking-widest`}
+        />
+      </div>
+
+      <div aria-live="polite" aria-atomic="true">
+        {erro && <Aviso tipo="erro">{erro}</Aviso>}
+        {sucesso && <Aviso tipo="ok">{sucesso}</Aviso>}
+      </div>
+
+      <div className="flex justify-end">
+        <button type="button" onClick={handleSalvar} disabled={salvando} className={ui.btn} aria-busy={salvando}>
+          {salvando ? 'Salvando…' : 'Salvar configurações da APLIC'}
+        </button>
+      </div>
+    </div>
+  );
+}
+
 // ── Aba Canais ─────────────────────────────────────────────────────────────────
 
 const TIPO_LABEL_CANAL: Record<TipoCanal, string> = {
@@ -1857,6 +1971,7 @@ export function ModalConfiguracoes({
     { id: 'atendimento', rotulo: 'Atendimento' },
     { id: 'lgpd', rotulo: 'LGPD' },
     { id: 'canais', rotulo: 'Canais' },
+    { id: 'aplic', rotulo: 'Transparência (APLIC)' },
   ];
 
   const open = !!tenant;
@@ -1920,6 +2035,7 @@ export function ModalConfiguracoes({
                 {aba.id === 'atendimento' && <AbaAtendimento tenantId={tenant.id} />}
                 {aba.id === 'lgpd' && <AbaLgpd tenantId={tenant.id} />}
                 {aba.id === 'canais' && <AbaCanais tenantId={tenant.id} />}
+                {aba.id === 'aplic' && <AbaAplic tenantId={tenant.id} />}
               </>
             )}
           </div>

@@ -350,6 +350,20 @@ export const getAtendimentoConfig = (id: string) =>
 export const salvarAtendimentoConfig = (id: string, dto: Partial<AtendimentoConfig>) =>
   adminPut<AtendimentoConfig>(`/api/_platform/tenants/${id}/config/atendimento`, dto);
 
+/** APLIC (Transparência) — liga/desliga a fonte + UG (7 dígitos) do TCE-MT. */
+export interface AplicConfig {
+  aplicHabilitado: boolean;
+  aplicUg: string | null;
+}
+export interface AplicConfigDto {
+  aplicHabilitado?: boolean;
+  aplicUg?: string;
+}
+export const getAplicConfig = (id: string) =>
+  adminGet<AplicConfig>(`/api/_platform/tenants/${id}/config/aplic`);
+export const salvarAplicConfig = (id: string, dto: AplicConfigDto) =>
+  adminPut<AplicConfig>(`/api/_platform/tenants/${id}/config/aplic`, dto);
+
 /** LGPD — Encarregado de Dados (DPO). */
 export interface LgpdConfig {
   dpoNome: string | null;

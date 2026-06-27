@@ -6,6 +6,7 @@ import {
   IsOptional,
   IsString,
   Length,
+  Matches,
   Max,
   Min,
   ValidateIf,
@@ -64,6 +65,21 @@ export class PlatformAtendimentoConfigDto {
   @IsOptional() @IsString() @Length(0, 500) atendimentoMensagemForaExp?: string;
   @IsOptional() @IsInt() @Min(1) @Max(240) atendimentoInatividadeMin?: number;
   @IsOptional() @IsString() @Length(0, 60) atendimentoTimezone?: string;
+}
+
+// ----------------------------------------------------------------- APLIC (Transparência)
+export class PlatformAplicConfigDto {
+  /** Liga/desliga a fonte APLIC (TCE-MT) na Transparência desta entidade. */
+  @IsOptional() @IsBoolean() aplicHabilitado?: boolean;
+
+  /**
+   * Código da Unidade Gestora no TCE-MT: exatamente 7 dígitos. Obrigatório
+   * para habilitar (validado no controller). '' limpa a UG.
+   */
+  @IsOptional()
+  @ValidateIf((o) => typeof o.aplicUg === 'string' && o.aplicUg.length > 0)
+  @Matches(/^\d{7}$/, { message: 'A UG deve ter exatamente 7 dígitos.' })
+  aplicUg?: string;
 }
 
 // ----------------------------------------------------------------- LGPD / DPO

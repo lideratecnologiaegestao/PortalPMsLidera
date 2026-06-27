@@ -3,12 +3,13 @@ import JSZip from 'jszip';
 import { PrismaService } from '../../prisma/prisma.service';
 import { TenantContext } from '../../common/tenant/tenant.context';
 import {
-  exercicioDeNumero,
   nuloSeVazio,
   parseDataAplic,
   parseDatapacket,
   parseValorAplic,
 } from './aplic-datapacket.parser';
+import { exigirNomeCargaTce } from './aplic-nomenclatura.util';
+import { modalidadeLicitacao } from './aplic-tabelas.ref';
 
 export interface ResultadoImportacao {
   cargaId: string;
@@ -40,38 +41,32 @@ export class AplicIngestaoService {
   async importarZip(
     tenantId: string,
     zipBuffer: Buffer,
-    opts: { arquivoNome?: string; criadoPor?: string } = {},
+    opts: { arquivoNome?: string; criadoPor?: string; ugEsperada?: string | null } = {},
   ): Promise<ResultadoImportacao> {
-    const zip = await JSZip.loadAsync(zipBuffer);
-    const meta = this.detectarMeta(opts.arquivoNome, zip);
+    // 1) O nome DEVE seguir a nomenclatura padrão do TCE-MT (rejeita .zip fora do padrão).
+    const meta = exigirNomeCargaTce(opts.arquivoNome);
+    const { ug, exercicio, competencia, modulo } = meta;
 
-    // Determina exercício: do nome do arquivo OU do 1º empenho da carga.
-    const empBuf = await this.lerEntrada(zip, 'EMPENHO.XML');
-    const empenhoRows = empBuf ? parseDatapacket(empBuf).rows : [];
-    const exercicio =
-      meta.exercicio ??
-      (empenhoRows.length ? exercicioDeNumero(empenhoRows[0].EMP_Numero) : null) ??
-      null;
-    if (exercicio == null) {
-      throw new Error('Não foi possível determinar o exercício da carga (nome do arquivo e dados sem ano).');
+    // 2) A carga precisa ser da MESMA UG configurada para a entidade.
+    if (opts.ugEsperada && ug !== opts.ugEsperada) {
+      throw new Error(
+        `Esta carga é da UG ${ug}, mas a entidade está configurada para a UG ${opts.ugEsperada}. ` +
+          `Confira se está importando o arquivo correto (ou ajuste a UG no Gerenciador).`,
+      );
     }
-    const competencia = meta.competencia ?? null;
-    const ug = meta.ug;
 
-    // Módulo: do nome; se o nome não casar mas houver EMPENHO.XML, é CT.
-    let modulo = meta.modulo;
-    if (!modulo && empBuf) modulo = 'CT';
-    if (!modulo) {
-      throw new Error('Não identifiquei o módulo pelo nome do arquivo. Esperado algo como "1113190CT202601.ZIP".');
-    }
-    // Fase 1 cobre apenas CT (Contabilidade). Demais módulos virão depois.
-    if (modulo !== 'CT') {
+    // 3) Módulos suportados: CT (despesa), CC (contratos/convênios), PL
+    //    (licitações) e ORCAMENTO (previsão de receita). Os demais virão depois.
+    const SUPORTADOS = ['CT', 'CC', 'PL', 'ORCAMENTO'];
+    if (!SUPORTADOS.includes(modulo)) {
       const nomes: Record<string, string> = {
-        CC: 'Contratos e Convênios', FP: 'Folha de Pagamento', PA: 'Patrimônio e Administrativo',
-        PL: 'Processo Licitatório', ORCAMENTO: 'Orçamento', CARGA_INICIAL: 'Carga Inicial', ENCERRAMENTO: 'Encerramento',
+        FP: 'Folha de Pagamento', PA: 'Patrimônio e Administrativo',
+        CP: 'Concurso', CARGA_INICIAL: 'Carga Inicial', ENCERRAMENTO: 'Encerramento',
       };
-      throw new Error(`Módulo "${modulo}"${nomes[modulo] ? ` (${nomes[modulo]})` : ''} ainda não é suportado. No momento importamos apenas o módulo CT (Contabilidade).`);
+      throw new Error(`Módulo "${modulo}"${nomes[modulo] ? ` (${nomes[modulo]})` : ''} ainda não é suportado. Importamos os módulos CT (Contabilidade), CC (Contratos/Convênios), PL (Licitações) e 00 (Orçamento/Receita).`);
     }
+
+    const zip = await JSZip.loadAsync(zipBuffer);
 
     return TenantContext.run({ tenantId }, async () => {
       // Validação de UG: não misturar a carga de uma entidade na de outra.
@@ -103,15 +98,29 @@ export class AplicIngestaoService {
 
       const porTabela: Record<string, number> = {};
       try {
-        // 2) Credores (upsert por identificação)
+        // 2) Credores (upsert por identificação) — presente em CT e PL.
         porTabela.CADASTRO_GERAL = await this.importarCredores(zip, tenantId);
 
-        // 3) Movimentos (substitui a competência)
-        porTabela.DOTACAO = await this.importarDotacao(zip, tenantId, carga.id, exercicio, competencia);
-        porTabela.EMPENHO = await this.importarEmpenhos(empenhoRows, tenantId, carga.id, exercicio, competencia);
-        porTabela.LIQUIDACAO_EMPENHO = await this.importarLiquidacoes(zip, tenantId, carga.id, exercicio, competencia);
-        porTabela.PAGAMENTO_EMPENHO = await this.importarPagamentos(zip, tenantId, carga.id, exercicio, competencia);
-        porTabela.PAGAMENTO_EMPENHO_LIQUIDACAO = await this.importarPagLiq(zip, tenantId, carga.id, exercicio, competencia);
+        // 3) Por módulo (idempotente — ver migrations 057/086/087).
+        if (modulo === 'CT') {
+          const empBuf = await this.lerEntrada(zip, 'EMPENHO.XML');
+          const empenhoRows = empBuf ? parseDatapacket(empBuf).rows : [];
+          porTabela.DOTACAO = await this.importarDotacao(zip, tenantId, carga.id, exercicio, competencia);
+          porTabela.EMPENHO = await this.importarEmpenhos(empenhoRows, tenantId, carga.id, exercicio, competencia);
+          porTabela.LIQUIDACAO_EMPENHO = await this.importarLiquidacoes(zip, tenantId, carga.id, exercicio, competencia);
+          porTabela.PAGAMENTO_EMPENHO = await this.importarPagamentos(zip, tenantId, carga.id, exercicio, competencia);
+          porTabela.PAGAMENTO_EMPENHO_LIQUIDACAO = await this.importarPagLiq(zip, tenantId, carga.id, exercicio, competencia);
+        } else if (modulo === 'CC') {
+          porTabela.CONTRATO = await this.importarContratos(zip, tenantId, exercicio);
+          porTabela.CONVENIO = await this.importarConvenios(zip, tenantId, exercicio);
+          await this.registrarSync(tenantId, 'contratos', porTabela.CONTRATO);
+          await this.registrarSync(tenantId, 'convenios', porTabela.CONVENIO);
+        } else if (modulo === 'PL') {
+          porTabela.PROCESSO_LICITATORIO = await this.importarLicitacoes(zip, tenantId, exercicio);
+          await this.registrarSync(tenantId, 'licitacoes', porTabela.PROCESSO_LICITATORIO);
+        } else if (modulo === 'ORCAMENTO') {
+          porTabela.PREVISAO_RECEITA = await this.importarPrevisaoReceita(zip, tenantId, carga.id, exercicio);
+        }
 
         const total = Object.values(porTabela).reduce((a, b) => a + b, 0);
         await this.prisma.db.aplicCarga.update({
@@ -181,6 +190,7 @@ export class AplicIngestaoService {
     await this.prisma.db.aplicEmpenho.deleteMany({ where: { tenantId, exercicio, competencia } });
     if (!rows.length) return 0;
     await this.prisma.db.aplicEmpenho.createMany({
+      skipDuplicates: true,
       data: rows.map((r) => ({
         tenantId, cargaId, exercicio, competencia,
         orgCodigo: nuloSeVazio(r.ORG_Codigo), unorCodigo: nuloSeVazio(r.UNOR_Codigo),
@@ -202,6 +212,7 @@ export class AplicIngestaoService {
     await this.prisma.db.aplicLiquidacao.deleteMany({ where: { tenantId, exercicio, competencia } });
     if (!rows.length) return 0;
     await this.prisma.db.aplicLiquidacao.createMany({
+      skipDuplicates: true,
       data: rows.map((r) => ({
         tenantId, cargaId, exercicio, competencia,
         orgCodigo: nuloSeVazio(r.ORG_Codigo), unorCodigo: nuloSeVazio(r.UNOR_Codigo),
@@ -222,6 +233,7 @@ export class AplicIngestaoService {
     await this.prisma.db.aplicPagamento.deleteMany({ where: { tenantId, exercicio, competencia } });
     if (!rows.length) return 0;
     await this.prisma.db.aplicPagamento.createMany({
+      skipDuplicates: true,
       data: rows.map((r) => ({
         tenantId, cargaId, exercicio, competencia,
         pgtoNumero: r.PGTO_Numero ?? '', pgtoData: parseDataAplic(r.PGTO_Data),
@@ -240,6 +252,7 @@ export class AplicIngestaoService {
     await this.prisma.db.aplicPagamentoLiquidacao.deleteMany({ where: { tenantId, exercicio, competencia } });
     if (!rows.length) return 0;
     await this.prisma.db.aplicPagamentoLiquidacao.createMany({
+      skipDuplicates: true,
       data: rows.map((r) => ({
         tenantId, cargaId, exercicio, competencia,
         orgCodigo: nuloSeVazio(r.ORG_Codigo), unorCodigo: nuloSeVazio(r.UNOR_Codigo),
@@ -250,7 +263,176 @@ export class AplicIngestaoService {
     return rows.length;
   }
 
+  // ---------------------------------------------------------- CC (contratos/convênios)
+  // A ingestão alimenta as tabelas de Transparência existentes (transp_*),
+  // marcando fonte_origem='APLIC/TCE-MT'. Upsert pela chave natural de cada
+  // tabela (nunca duplica; reimportar atualiza). O CPF do fornecedor é guardado
+  // inteiro e MASCARADO na leitura pública (datasets.service / mascararDocumento).
+
+  /** Contratos (CONTRATO.XML + CONTRATADO.XML) → transp_contratos. */
+  private async importarContratos(
+    zip: JSZip, tenantId: string, exercicio: number,
+  ): Promise<number> {
+    const buf = await this.lerEntrada(zip, 'CONTRATO.XML');
+    if (!buf) return 0;
+    const { rows } = parseDatapacket(buf);
+
+    // Mapa (numero|aditivo|tipo) → 1ª identificação do contratado.
+    const contratadoBuf = await this.lerEntrada(zip, 'CONTRATADO.XML');
+    const contratados = new Map<string, string>();
+    if (contratadoBuf) {
+      for (const c of parseDatapacket(contratadoBuf).rows) {
+        const k = `${c.CONT_Numero ?? ''}|${c.CONT_NumAditivo ?? ''}|${c.CONT_Tipo ?? ''}`;
+        const ident = nuloSeVazio(c.CG_Identificacao);
+        if (ident && !contratados.has(k)) contratados.set(k, ident);
+      }
+    }
+
+    let n = 0;
+    for (const r of rows) {
+      const base = nuloSeVazio(r.CONT_Numero);
+      if (!base) continue;
+      const aditivo = nuloSeVazio(r.CONT_NumAditivo);
+      const numero = aditivo ? `${base}/${aditivo}` : base;
+      const fornecedorDoc = contratados.get(`${base}|${r.CONT_NumAditivo ?? ''}|${r.CONT_Tipo ?? ''}`) ?? null;
+      const fornecedorNome = fornecedorDoc ? await this.nomeCredor(tenantId, fornecedorDoc) : null;
+      const dados = {
+        exercicio,
+        fornecedorNome,
+        fornecedorDoc,
+        objeto: nuloSeVazio(r.CONT_Objetivo),
+        valor: parseValorAplic(r.CONT_Valor),
+        vigenciaInicio: parseDataAplic(r.CONT_DataAssinatura),
+        vigenciaFim: parseDataAplic(r.CONT_DataVencimento),
+        fonteOrigem: 'APLIC/TCE-MT',
+      };
+      await this.prisma.db.transpContrato.upsert({
+        where: { tenantId_numero: { tenantId, numero } },
+        create: { tenantId, numero, ...dados },
+        update: dados,
+      });
+      n++;
+    }
+    return n;
+  }
+
+  /** Convênios (CONVENIO.XML) → transp_convenios. */
+  private async importarConvenios(
+    zip: JSZip, tenantId: string, exercicio: number,
+  ): Promise<number> {
+    const buf = await this.lerEntrada(zip, 'CONVENIO.XML');
+    if (!buf) return 0;
+    const { rows } = parseDatapacket(buf);
+    let n = 0;
+    for (const r of rows) {
+      const base = nuloSeVazio(r.CONV_Numero);
+      if (!base) continue;
+      const aditivo = nuloSeVazio(r.CONV_NumAditivo);
+      const numero = aditivo ? `${base}/${aditivo}` : base;
+      const dados = {
+        objeto: nuloSeVazio(r.CONV_Objetivo),
+        valor: parseValorAplic(r.CONV_Valor),
+        vigenciaInicio: parseDataAplic(r.CONV_DataAssinatura),
+        vigenciaFim: parseDataAplic(r.CONV_DataVencimento),
+        fonteOrigem: 'APLIC/TCE-MT',
+      };
+      await this.prisma.db.transpConvenio.upsert({
+        where: { tenantId_exercicio_numero: { tenantId, exercicio, numero } },
+        create: { tenantId, exercicio, numero, ...dados },
+        update: dados,
+      });
+      n++;
+    }
+    return n;
+  }
+
+  // ---------------------------------------------------------- PL (licitações)
+
+  /** Licitações (PROCESSO_LICITATORIO.XML + ITEM_PROC_LICIT.XML) → transp_licitacoes. */
+  private async importarLicitacoes(
+    zip: JSZip, tenantId: string, exercicio: number,
+  ): Promise<number> {
+    const buf = await this.lerEntrada(zip, 'PROCESSO_LICITATORIO.XML');
+    if (!buf) return 0;
+    const { rows } = parseDatapacket(buf);
+
+    // Agrega ITEM_PROC_LICIT por PLIC_Numero: soma estimada + 1º objeto.
+    const itensBuf = await this.lerEntrada(zip, 'ITEM_PROC_LICIT.XML');
+    const agreg = new Map<string, { valor: number; objeto: string | null }>();
+    if (itensBuf) {
+      for (const it of parseDatapacket(itensBuf).rows) {
+        const k = nuloSeVazio(it.PLIC_Numero) ?? '';
+        const cur = agreg.get(k) ?? { valor: 0, objeto: null };
+        cur.valor += parseValorAplic(it.IPLIC_ValEstimado);
+        if (!cur.objeto) cur.objeto = nuloSeVazio(it.IPLIC_DescricaoItem);
+        agreg.set(k, cur);
+      }
+    }
+
+    let n = 0;
+    for (const r of rows) {
+      const numero = nuloSeVazio(r.PLIC_Numero);
+      if (!numero) continue;
+      const ag = agreg.get(numero) ?? { valor: 0, objeto: null };
+      const dados = {
+        modalidade: modalidadeLicitacao(nuloSeVazio(r.MLIC_Codigo)),
+        objeto: ag.objeto,
+        valorEstimado: ag.valor || null,
+        situacao: nuloSeVazio(r.PLIC_SituacaoPlanejamento),
+        dataAbertura: parseDataAplic(r.PLICP_Data),
+        fonteOrigem: 'APLIC/TCE-MT',
+      };
+      await this.prisma.db.transpLicitacao.upsert({
+        where: { tenantId_exercicio_numero: { tenantId, exercicio, numero } },
+        create: { tenantId, exercicio, numero, ...dados },
+        update: dados,
+      });
+      n++;
+    }
+    return n;
+  }
+
+  /** Nome do credor (para o fornecedor do contrato), se já cadastrado por uma carga CT. */
+  private async nomeCredor(tenantId: string, identificacao: string): Promise<string | null> {
+    const c = await this.prisma.db.aplicCredor.findUnique({
+      where: { tenantId_identificacao: { tenantId, identificacao } },
+      select: { nome: true },
+    });
+    return c?.nome ?? null;
+  }
+
+  // ---------------------------------------------------------- 00 (previsão de receita)
+
+  /** Previsão de receita (PREVISAO_RECEITA.XML). Carga anual: substitui o exercício. */
+  private async importarPrevisaoReceita(
+    zip: JSZip, tenantId: string, cargaId: string, exercicio: number,
+  ): Promise<number> {
+    const buf = await this.lerEntrada(zip, 'PREVISAO_RECEITA.XML');
+    if (!buf) return 0;
+    const { rows } = parseDatapacket(buf);
+    await this.prisma.db.aplicPrevisaoReceita.deleteMany({ where: { tenantId, exercicio } });
+    if (!rows.length) return 0;
+    await this.prisma.db.aplicPrevisaoReceita.createMany({
+      data: rows.map((r) => ({
+        tenantId, cargaId, exercicio,
+        esprcCodigo: nuloSeVazio(r.ESPRC_Codigo), toprCodigo: nuloSeVazio(r.TOPR_Codigo),
+        drgrpCodigo: nuloSeVazio(r.DRGRP_Codigo), drespCodigo: nuloSeVazio(r.DRESP_Codigo),
+        destrecCodigo: nuloSeVazio(r.DESTREC_Codigo), tipoPrevisao: nuloSeVazio(r.PVRC_TipoPrevisao),
+        mesReferencia: nuloSeVazio(r.PVRC_MesReferencia), valor: parseValorAplic(r.PVRC_Valor),
+        dados: r as object,
+      })),
+    });
+    return rows.length;
+  }
+
   // ---------------------------------------------------------------- helpers
+
+  /** Registra a sincronização do dataset de Transparência (alimenta "última atualização"). */
+  private async registrarSync(tenantId: string, dataset: string, registros: number): Promise<void> {
+    await this.prisma.db.transpSyncLog.create({
+      data: { tenantId, dataset, origem: 'APLIC/TCE-MT', registros, status: 'ok' },
+    });
+  }
 
   /** Lê uma entrada do zip por nome (case-insensitive). */
   private async lerEntrada(zip: JSZip, nome: string): Promise<Buffer | null> {
@@ -258,36 +440,5 @@ export class AplicIngestaoService {
     const chave = Object.keys(zip.files).find((k) => k.toUpperCase() === alvo);
     if (!chave) return null;
     return zip.files[chave].async('nodebuffer');
-  }
-
-  /**
-   * Extrai UG/módulo/exercício/competência do nome do arquivo da carga.
-   * Ex.: "1113190CT202601.ZIP" → UG 1113190, módulo CT, 2026, comp. 01.
-   * Os 7 primeiros dígitos são a Unidade Gestora (código da entidade no TCE-MT).
-   * Módulos: CT (Contabilidade), CC (Contratos/Convênios), FP (Folha), PA
-   * (Patrimônio/Administrativo), PL (Processo Licitatório, tempestiva). Tolera sufixo "_NNN".
-   */
-  private detectarMeta(
-    arquivoNome: string | undefined,
-    _zip: JSZip,
-  ): { ug: string | null; modulo: string | null; exercicio: number | null; competencia: string | null } {
-    const base = (arquivoNome ?? '').split(/[\\/]/).pop()?.replace(/\.zip$/i, '') ?? '';
-    const mUg = base.match(/^(\d{7})/);
-    const ug = mUg?.[1] ?? null;
-    const resto = mUg ? base.slice(7) : base;
-
-    // Módulos MENSAIS por LETRAS: CT/CC/FP/PA/PL + ano(4) + competência(2).
-    const mLetra = resto.match(/^([A-Za-z]{2})(\d{4})(\d{2})/);
-    if (mLetra) {
-      return { ug, modulo: mLetra[1].toUpperCase(), exercicio: Number(mLetra[2]), competencia: mLetra[3] };
-    }
-    // Módulos ANUAIS por CÓDIGO numérico (sem competência):
-    //   00 = Orçamento, 99 = Carga Inicial, 13 = Encerramento.
-    const mCod = resto.match(/^(\d{2})(\d{4})/);
-    if (mCod) {
-      const cod: Record<string, string> = { '00': 'ORCAMENTO', '99': 'CARGA_INICIAL', '13': 'ENCERRAMENTO' };
-      return { ug, modulo: cod[mCod[1]] ?? `COD_${mCod[1]}`, exercicio: Number(mCod[2]), competencia: null };
-    }
-    return { ug, modulo: null, exercicio: null, competencia: null };
   }
 }

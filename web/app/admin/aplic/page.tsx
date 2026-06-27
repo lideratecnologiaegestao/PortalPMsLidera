@@ -21,11 +21,13 @@ interface Carga {
   arquivoNome: string | null; status: string; totalRegistros: number;
   porTabela: Record<string, number> | null; criadoEm: string;
 }
+interface AplicStatus { habilitado: boolean; ug: string | null }
 
 const r$ = (n: number) => (n ?? 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 const dataHora = (iso: string) => { try { return new Date(iso).toLocaleString('pt-BR'); } catch { return iso; } };
 
 export default function AplicPage() {
+  const [status, setStatus] = useState<AplicStatus | null>(null);
   const [resumo, setResumo] = useState<Resumo | null>(null);
   const [cargas, setCargas] = useState<Carga[]>([]);
   const [carregando, setCarregando] = useState(true);
@@ -40,12 +42,19 @@ export default function AplicPage() {
     setCarregando(true);
     setErro('');
     try {
-      const [r, c] = await Promise.all([
-        adminGet<Resumo>('/api/admin/aplic/resumo'),
-        adminGet<Carga[]>('/api/admin/aplic/cargas'),
-      ]);
-      setResumo(r);
-      setCargas(c);
+      const st = await adminGet<AplicStatus>('/api/admin/aplic/status');
+      setStatus(st);
+      if (st.habilitado) {
+        const [r, c] = await Promise.all([
+          adminGet<Resumo>('/api/admin/aplic/resumo'),
+          adminGet<Carga[]>('/api/admin/aplic/cargas'),
+        ]);
+        setResumo(r);
+        setCargas(c);
+      } else {
+        setResumo(null);
+        setCargas([]);
+      }
     } catch (e) {
       setErro(e instanceof AdminApiError ? e.message : 'Falha ao carregar os dados do APLIC.');
     } finally {
@@ -91,16 +100,30 @@ export default function AplicPage() {
     <div className="space-y-5">
       <AdminHeader
         title="Contas — APLIC (TCE-MT)"
-        description="Importe a carga contábil gerada para o TCE-MT (módulo CT: empenhos, liquidações, pagamentos e credores). Os dados alimentam a Transparência pública e o assistente de IA, com CPF de pessoa física mascarado."
+        description="Importe as cargas geradas para o TCE-MT. Suportados: CT (despesa — empenhos/liquidações/pagamentos), CC (contratos e convênios), PL (licitações) e 00 (orçamento/receita). Os dados alimentam o Portal da Transparência e o assistente de IA, com CPF de pessoa física mascarado."
       />
 
+      {/* Fonte desabilitada: orienta a ativar no Gerenciador */}
+      {status && !status.habilitado && !carregando && (
+        <Aviso tipo="erro">
+          A fonte de dados APLIC está <strong>desabilitada</strong> para esta entidade. A importação
+          de cargas e a vitrine pública de execução da despesa só funcionam após a ativação no{' '}
+          <strong>Gerenciador</strong> (Configurações da Entidade → aba “Transparência (APLIC)”),
+          onde também se define o código da UG (7 dígitos) no TCE-MT.
+        </Aviso>
+      )}
+
       {/* Upload */}
+      {status?.habilitado && (
       <section aria-labelledby="up-tit" className={`${ui.card} p-5 space-y-3`}>
         <h2 id="up-tit" className="font-heading text-base font-bold">Importar carga</h2>
         <p className="text-sm text-fg/70">
-          Envie o arquivo <strong>.zip</strong> da carga do módulo <strong>CT</strong>
-          {' '}(ex.: <code className="rounded bg-muted px-1">1113190CT202601.ZIP</code>). Reimportar a
-          mesma competência substitui os dados (idempotente).
+          Envie o arquivo <strong>.zip</strong> da carga (módulos <strong>CT</strong>, <strong>CC</strong>,
+          {' '}<strong>PL</strong> ou <strong>00</strong> — ex.:{' '}
+          <code className="rounded bg-muted px-1">1113190CT202601.ZIP</code>). O nome deve
+          seguir a nomenclatura padrão do TCE
+          {status?.ug ? <> e começar pela UG <code className="rounded bg-muted px-1">{status.ug}</code></> : null}.
+          Reimportar substitui os dados (idempotente, sem duplicar).
         </p>
         <form onSubmit={enviar} className="flex flex-wrap items-center gap-3">
           <input
@@ -126,6 +149,7 @@ export default function AplicPage() {
           )}
         </div>
       </section>
+      )}
 
       {erro && <Aviso tipo="erro">{erro}</Aviso>}
 
@@ -146,12 +170,16 @@ export default function AplicPage() {
         </section>
       )}
 
-      {resumo && resumo.empenhos > 0 && (
+      {status?.habilitado && (
         <p className="text-sm">
           Vitrine pública:{' '}
-          <a href="/transparencia/execucao" target="_blank" rel="noopener noreferrer" className="underline">
-            /transparencia/execucao
-          </a>
+          <a href="/transparencia/execucao" target="_blank" rel="noopener noreferrer" className="underline">execução da despesa</a>
+          {' · '}
+          <a href="/transparencia/licitacoes" target="_blank" rel="noopener noreferrer" className="underline">licitações</a>
+          {' · '}
+          <a href="/transparencia/contratos" target="_blank" rel="noopener noreferrer" className="underline">contratos</a>
+          {' · '}
+          <a href="/transparencia/convenios" target="_blank" rel="noopener noreferrer" className="underline">convênios</a>
         </p>
       )}
 

@@ -2,20 +2,34 @@ import { Controller, Get, Header, Query, Res } from '@nestjs/common';
 import type { Response } from 'express';
 import { TenantContext } from '../../common/tenant/tenant.context';
 import { AplicConsultaService } from './aplic-consulta.service';
+import { AplicConfigService } from './aplic-config.service';
 
 /**
  * Vitrine PÚBLICA da execução da despesa (APLIC/TCE-MT) — Transparência ativa
  * (LC 131/2009) + Dados Abertos (CSV/JSON, CC BY 4.0). Sem auth; tenant via Host
  * (RLS automático). Credores pessoa física com CPF mascarado (LGPD).
+ *
+ * Só serve dados quando a fonte APLIC está HABILITADA para a entidade (painel
+ * central). Desligada → respostas vazias (a página mostra "não publicado").
  */
 @Controller('transparencia/despesas')
 export class AplicPublicController {
-  constructor(private readonly consulta: AplicConsultaService) {}
+  constructor(
+    private readonly consulta: AplicConsultaService,
+    private readonly config: AplicConfigService,
+  ) {}
+
+  /** true quando há tenant no contexto e a fonte APLIC está habilitada. */
+  private async ativo(): Promise<boolean> {
+    const tenantId = TenantContext.tenantId();
+    if (!tenantId) return false;
+    return (await this.config.obter(tenantId)).habilitado;
+  }
 
   @Get('resumo')
   @Header('Cache-Control', 'public, max-age=300')
   async resumo(@Query('exercicio') ex?: string) {
-    if (!TenantContext.tenantId()) return null;
+    if (!(await this.ativo())) return null;
     return this.consulta.resumo(ex ? Number(ex) : undefined);
   }
 
@@ -27,7 +41,7 @@ export class AplicPublicController {
     @Query('page') page?: string,
     @Query('pageSize') pageSize?: string,
   ) {
-    if (!TenantContext.tenantId()) return { page: 1, pageSize: 20, total: 0, itens: [] };
+    if (!(await this.ativo())) return { page: 1, pageSize: 20, total: 0, itens: [] };
     return this.consulta.listarEmpenhos({
       exercicio: ex ? Number(ex) : undefined,
       q,
@@ -39,7 +53,7 @@ export class AplicPublicController {
   @Get('credores')
   @Header('Cache-Control', 'public, max-age=300')
   async credores(@Query('exercicio') ex?: string, @Query('por') por?: string, @Query('limite') limite?: string) {
-    if (!TenantContext.tenantId()) return null;
+    if (!(await this.ativo())) return null;
     return this.consulta.maioresCredores({
       exercicio: ex ? Number(ex) : undefined,
       por: por === 'liquidado' ? 'liquidado' : 'empenhado',
@@ -74,7 +88,7 @@ export class AplicPublicController {
   @Get('export/empenhos.json')
   @Header('Cache-Control', 'public, max-age=600')
   async exportJson(@Query('exercicio') ex?: string) {
-    if (!TenantContext.tenantId()) return { licenca: 'CC BY 4.0', dados: [] };
+    if (!(await this.ativo())) return { licenca: 'CC BY 4.0', dados: [] };
     const dados = await this.consulta.empenhosExport(ex ? Number(ex) : undefined);
     return { licenca: 'CC BY 4.0', fonte: 'APLIC/TCE-MT', exercicio: ex ? Number(ex) : null, total: dados.length, dados };
   }
@@ -85,7 +99,7 @@ export class AplicPublicController {
   @Header('Cache-Control', 'public, max-age=600')
   async exportCsv(@Res() res: Response, @Query('exercicio') ex?: string) {
     res.setHeader('Content-Disposition', `attachment; filename="empenhos${ex ? '-' + ex : ''}.csv"`);
-    if (!TenantContext.tenantId()) {
+    if (!(await this.ativo())) {
       res.send('');
       return;
     }

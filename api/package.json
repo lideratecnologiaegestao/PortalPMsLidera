@@ -9,6 +9,7 @@
     "start:prod": "node dist/main",
     "prisma:generate": "prisma generate",
     "db:migrate": "for f in ../db/*.sql; do psql \"$DATABASE_URL\" -f \"$f\"; done",
+    "aplic:import": "node dist/scripts/aplic-importar-lote.js",
     "test": "jest --config ./test/jest-unit.json",
     "test:e2e": "jest --runInBand --config ./test/jest-e2e.json"
   },

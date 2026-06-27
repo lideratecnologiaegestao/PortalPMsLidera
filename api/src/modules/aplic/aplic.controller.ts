@@ -18,6 +18,7 @@ import { TenantContext } from '../../common/tenant/tenant.context';
 import { PrismaService } from '../../prisma/prisma.service';
 import { AplicIngestaoService } from './aplic-ingestao.service';
 import { AplicConsultaService } from './aplic-consulta.service';
+import { AplicConfigService } from './aplic-config.service';
 
 /**
  * Importação e consulta da carga contábil APLIC (TCE-MT) — módulo CT.
@@ -33,8 +34,21 @@ export class AplicController {
   constructor(
     private readonly ingestao: AplicIngestaoService,
     private readonly consulta: AplicConsultaService,
+    private readonly config: AplicConfigService,
     private readonly prisma: PrismaService,
   ) {}
+
+  /**
+   * GET /api/admin/aplic/status — estado da fonte APLIC para a entidade
+   * (habilitada? qual UG?). A página admin usa para exibir a tela correta sem
+   * disparar erro quando a fonte está desligada.
+   */
+  @Get('status')
+  async status() {
+    const tenantId = TenantContext.tenantId();
+    if (!tenantId) return { habilitado: false, ug: null };
+    return this.config.obter(tenantId);
+  }
 
   /** POST /api/admin/aplic/importar — multipart, campo `file` = .zip da carga. */
   @Post('importar')
@@ -45,6 +59,10 @@ export class AplicController {
   ) {
     const tenantId = TenantContext.tenantId();
     if (!tenantId) throw new BadRequestException('Tenant não identificado.');
+
+    // A fonte APLIC precisa estar habilitada para a entidade (com UG definida).
+    const cfg = await this.config.assertHabilitado(tenantId);
+
     if (!file?.buffer?.length) throw new BadRequestException('Envie o arquivo .zip da carga no campo "file".');
 
     const nome = file.originalname ?? '';
@@ -56,6 +74,7 @@ export class AplicController {
       return await this.ingestao.importarZip(tenantId, file.buffer, {
         arquivoNome: nome,
         criadoPor: req.user?.id,
+        ugEsperada: cfg.ug,
       });
     } catch (e) {
       throw new BadRequestException(`Falha ao importar a carga: ${(e as Error).message}`);
@@ -66,7 +85,7 @@ export class AplicController {
   @Get('cargas')
   async cargas() {
     const tenantId = TenantContext.tenantId();
-    if (!tenantId) return [];
+    if (!tenantId || !(await this.config.obter(tenantId)).habilitado) return [];
     return this.prisma.db.aplicCarga.findMany({
       orderBy: { criadoEm: 'desc' },
       take: 50,
@@ -76,7 +95,8 @@ export class AplicController {
   /** GET /api/admin/aplic/resumo?exercicio=2026 — totais (empenhado/liquidado/pago). */
   @Get('resumo')
   async resumo(@Query('exercicio') exercicioStr?: string) {
-    if (!TenantContext.tenantId()) return null;
+    const tenantId = TenantContext.tenantId();
+    if (!tenantId || !(await this.config.obter(tenantId)).habilitado) return null;
     return this.consulta.resumo(exercicioStr ? Number(exercicioStr) : undefined);
   }
 
@@ -87,7 +107,8 @@ export class AplicController {
     @Query('por') por?: string,
     @Query('limite') limiteStr?: string,
   ) {
-    if (!TenantContext.tenantId()) return null;
+    const tenantId = TenantContext.tenantId();
+    if (!tenantId || !(await this.config.obter(tenantId)).habilitado) return null;
     return this.consulta.maioresCredores({
       exercicio: exercicioStr ? Number(exercicioStr) : undefined,
       por: por === 'liquidado' ? 'liquidado' : 'empenhado',
@@ -98,14 +119,16 @@ export class AplicController {
   /** GET /api/admin/aplic/credor?q=nome|cpf&exercicio= */
   @Get('credor')
   async credor(@Query('q') q?: string, @Query('exercicio') exercicioStr?: string) {
-    if (!TenantContext.tenantId() || !q) return null;
+    const tenantId = TenantContext.tenantId();
+    if (!tenantId || !q || !(await this.config.obter(tenantId)).habilitado) return null;
     return this.consulta.porCredor(q, exercicioStr ? Number(exercicioStr) : undefined);
   }
 
   /** GET /api/admin/aplic/empenho?numero=000001/2026&exercicio= */
   @Get('empenho')
   async empenho(@Query('numero') numero?: string, @Query('exercicio') exercicioStr?: string) {
-    if (!TenantContext.tenantId() || !numero) return null;
+    const tenantId = TenantContext.tenantId();
+    if (!tenantId || !numero || !(await this.config.obter(tenantId)).habilitado) return null;
     return this.consulta.situacaoEmpenho(numero, exercicioStr ? Number(exercicioStr) : undefined);
   }
 }
