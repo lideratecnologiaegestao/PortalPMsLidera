@@ -116,6 +116,9 @@ export class AplicIngestaoService {
           porTabela.LIQUIDACAO_EMPENHO = await this.importarLiquidacoes(zip, tenantId, carga.id, exercicio, competencia);
           porTabela.PAGAMENTO_EMPENHO = await this.importarPagamentos(zip, tenantId, carga.id, exercicio, competencia);
           porTabela.PAGAMENTO_EMPENHO_LIQUIDACAO = await this.importarPagLiq(zip, tenantId, carga.id, exercicio, competencia);
+          // Notas fiscais (PDF) anexas à execução da despesa.
+          porTabela.NOTA_FISCAL_DOC = await this.importarNotasFiscais(zip, tenantId, exercicio);
+          if (porTabela.NOTA_FISCAL_DOC > 0) await this.registrarSync(tenantId, 'documentos', porTabela.NOTA_FISCAL_DOC);
           // Lê o lançamento contábil diário UMA vez (dezenas de MB) e deriva:
           // receita arrecadada por natureza + movimentos por fonte (caixa/DDR/receita).
           const lancBuf = await this.lerEntrada(zip, 'LANCAMENTO_CONTABIL_DIARIO_TCE.XML');
@@ -137,8 +140,11 @@ export class AplicIngestaoService {
           await this.registrarSync(tenantId, 'convenios', porTabela.CONVENIO);
           if (cc.docs > 0) await this.registrarSync(tenantId, 'documentos', cc.docs);
         } else if (modulo === 'PL') {
-          porTabela.PROCESSO_LICITATORIO = await this.importarLicitacoes(zip, tenantId, exercicio);
-          await this.registrarSync(tenantId, 'licitacoes', porTabela.PROCESSO_LICITATORIO);
+          const pl = await this.importarLicitacoes(zip, tenantId, exercicio);
+          porTabela.PROCESSO_LICITATORIO = pl.licitacoes;
+          porTabela.EDITAL_DOC = pl.docs;
+          await this.registrarSync(tenantId, 'licitacoes', pl.licitacoes);
+          if (pl.docs > 0) await this.registrarSync(tenantId, 'documentos', pl.docs);
         } else if (modulo === 'ORCAMENTO') {
           porTabela.PREVISAO_RECEITA = await this.importarPrevisaoReceita(zip, tenantId, carga.id, exercicio);
           // Atualiza a previsão em transp_receitas (arrecadado vem da carga CT).
@@ -413,12 +419,12 @@ export class AplicIngestaoService {
 
   // ---------------------------------------------------------- PL (licitações)
 
-  /** Licitações (PROCESSO_LICITATORIO.XML + ITEM_PROC_LICIT.XML) → transp_licitacoes. */
+  /** Licitações (PROCESSO_LICITATORIO.XML + itens) → transp_licitacoes + editais (PNTP 8.2). */
   private async importarLicitacoes(
     zip: JSZip, tenantId: string, exercicio: number,
-  ): Promise<number> {
+  ): Promise<{ licitacoes: number; docs: number }> {
     const buf = await this.lerEntrada(zip, 'PROCESSO_LICITATORIO.XML');
-    if (!buf) return 0;
+    if (!buf) return { licitacoes: 0, docs: 0 };
     const { rows } = parseDatapacket(buf);
 
     // Agrega ITEM_PROC_LICIT por PLIC_Numero: soma estimada + 1º objeto.
@@ -454,7 +460,43 @@ export class AplicIngestaoService {
       });
       n++;
     }
-    return n;
+
+    // Editais / documentos da licitação (íntegra) → publica (PNTP 8.2).
+    let docs = 0;
+    const docBuf = await this.lerEntrada(zip, 'PROCESSO_LICITATORIO_DOCUMENTO.XML');
+    if (docBuf) {
+      for (const d of parseDatapacket(docBuf).rows) {
+        const arq = nuloSeVazio(d.PLICDOC_NomeArqPDF) ?? nuloSeVazio(d.PLICDOC_NOMEARQRTF);
+        const plic = nuloSeVazio(d.PLIC_Numero);
+        if (!arq || !plic) continue;
+        const numDoc = nuloSeVazio(d.PLICDOC_NumeroDocumento);
+        if (await this.publicarDocumento(zip, tenantId, {
+          nomeArquivo: arq, categoria: 'edital_licitacao',
+          titulo: `Licitação ${plic}${numDoc ? ` - doc ${numDoc}` : ''}`, exercicio,
+        })) docs++;
+      }
+    }
+    return { licitacoes: n, docs };
+  }
+
+  /** Notas fiscais (NOTA_FISCAL.XML) da carga CT → publica o PDF da NF. */
+  private async importarNotasFiscais(
+    zip: JSZip, tenantId: string, exercicio: number,
+  ): Promise<number> {
+    const buf = await this.lerEntrada(zip, 'NOTA_FISCAL.XML');
+    if (!buf) return 0;
+    let docs = 0;
+    for (const r of parseDatapacket(buf).rows) {
+      const arq = nuloSeVazio(r.NTFSC_NomeArqPDF);
+      if (!arq) continue;
+      const emp = nuloSeVazio(r.EMP_Numero);
+      const num = nuloSeVazio(r.NTFSC_Numero);
+      if (await this.publicarDocumento(zip, tenantId, {
+        nomeArquivo: arq, categoria: 'nota_fiscal',
+        titulo: `Nota fiscal ${num ?? '-'}${emp ? ` (empenho ${emp})` : ''}`, exercicio,
+      })) docs++;
+    }
+    return docs;
   }
 
   /** Nome do credor (para o fornecedor do contrato), se já cadastrado por uma carga CT. */

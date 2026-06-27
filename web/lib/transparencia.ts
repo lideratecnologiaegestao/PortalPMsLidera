@@ -97,6 +97,22 @@ export interface AplicCredores { exercicio: number | null; criterio: string; cre
 export const getAplicResumo = (ex?: number) =>
   api<AplicResumo>(`despesas/resumo${ex ? `?exercicio=${ex}` : ''}`);
 
+// /api/transparencia/recursos/* — contabilidade por fonte de recurso (Fase 5).
+export interface FonteSaldo { fonte: string | null; nome: string | null; saldo: number }
+export interface SaldoPorFonte { ate: string | null; total: number; fontes: FonteSaldo[] }
+export interface FonteArrecadado { fonte: string | null; nome: string | null; arrecadado: number }
+export interface ArrecadadoPeriodo {
+  periodo: { de: string; ate: string };
+  arrecadadoTotal: number;
+  porFonte: FonteArrecadado[];
+}
+export const getSaldoPorFonte = (ate?: string) =>
+  api<SaldoPorFonte | null>(`recursos/saldo-fonte${ate ? `?ate=${ate}` : ''}`);
+export const getCaixaEquivalentes = (ate?: string) =>
+  api<SaldoPorFonte | null>(`recursos/caixa${ate ? `?ate=${ate}` : ''}`);
+export const getArrecadadoPeriodo = (de: string, ate: string, fonte?: string) =>
+  api<ArrecadadoPeriodo | null>(`recursos/arrecadado?de=${de}&ate=${ate}${fonte ? `&fonte=${fonte}` : ''}`);
+
 export const getAplicCredores = (ex?: number) =>
   api<AplicCredores>(`despesas/credores${ex ? `?exercicio=${ex}` : ''}`);
 

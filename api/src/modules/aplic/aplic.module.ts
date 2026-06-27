@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { PntpModule } from '../pntp/pntp.module';
 import { AplicController } from './aplic.controller';
 import { AplicPublicController } from './aplic-public.controller';
+import { AplicRecursosController } from './aplic-recursos.controller';
 import { AplicIngestaoService } from './aplic-ingestao.service';
 import { AplicConsultaService } from './aplic-consulta.service';
 import { AplicConfigService } from './aplic-config.service';
@@ -15,7 +16,7 @@ import { StorageService } from '../storage/storage.service';
  */
 @Module({
   imports: [PntpModule],
-  controllers: [AplicController, AplicPublicController],
+  controllers: [AplicController, AplicPublicController, AplicRecursosController],
   providers: [AplicIngestaoService, AplicConsultaService, AplicConfigService, StorageService],
   exports: [AplicIngestaoService, AplicConsultaService, AplicConfigService],
 })

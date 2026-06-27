@@ -61,8 +61,19 @@ export default async function TransparenciaPage() {
         </p>
       </header>
 
-      {/* Destaques: documentos e dados abertos */}
-      <div className="grid gap-4 sm:grid-cols-2">
+      {/* Destaques: documentos, dados abertos e recursos por fonte */}
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <a
+          href="/transparencia/recursos"
+          className="rounded-lg border border-border bg-muted/30 p-4 transition hover:border-primary"
+        >
+          <span className="font-heading text-lg font-semibold text-primary">Recursos por fonte</span>
+          <p className="text-sm text-fg/80">
+            Saldo disponível e caixa por fonte de recurso e receita arrecadada por período,
+            direto da contabilidade oficial (APLIC/TCE-MT).
+          </p>
+          <p className="mt-2 text-sm text-fg/60">Disponibilidade · caixa · arrecadação</p>
+        </a>
         <a
           href="/transparencia/documentos"
           className="rounded-lg border border-border bg-muted/30 p-4 transition hover:border-primary"
