@@ -11,13 +11,23 @@ import type { Request } from 'express';
 import { timingSafeEqual } from 'crypto';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
+import { HttpService } from '@nestjs/axios';
 import { PrismaService } from '../../prisma/prisma.service';
 import { TenantContext } from '../../common/tenant/tenant.context';
 import { redisCommands } from '../queue/redis.config';
 import { AtendimentoConversaService } from '../atendimento/atendimento-conversa.service';
+import { AtendimentoWhatsappAgenteService } from '../atendimento/atendimento-whatsapp-agente.service';
+import { ContatosService } from '../notificacoes/contatos.service';
 import { WhatsappCanaisService } from './whatsapp-canais.service';
 import { TelegramProvider } from './telegram.provider';
 import { QUEUE_ATENDIMENTO, JOB_ATEND_PROCESSAR_MENSAGEM } from '../queue/queue.constants';
+
+/**
+ * Regex para reconhecer código de vínculo Telegram enviado por um funcionário.
+ * Aceita: "123456", "/vincular 123456", "/start 123456".
+ * Captura o código numérico de 6 dígitos no grupo 1.
+ */
+const RE_VINCULO_CODIGO = /^\/?(vincular|start)\s+(\d{6})$|^(\d{6})$/i;
 
 const IDEMPOTENCIA_TTL = 60 * 60 * 24; // 24h
 
@@ -38,6 +48,10 @@ const IDEMPOTENCIA_TTL = 60 * 60 * 24; // 24h
  * (e o tenant) pelo webhook_secret UNIQUE via prisma.platform(), depois criamos
  * o TenantContext para todo processamento subsequente.
  *
+ * Detecção de agente: antes de processar como cidadão, chama
+ * AtendimentoWhatsappAgenteService.tentarRotearComoAgente com canalTipo='telegram'.
+ * Apenas agentes com telegram_verificado=true são reconhecidos (anti-spoofing).
+ *
  * NUNCA logar o bot token em claro.
  */
 @Controller('webhooks/telegram')
@@ -48,6 +62,9 @@ export class TelegramWebhookController {
     private readonly prisma: PrismaService,
     private readonly canaisService: WhatsappCanaisService,
     private readonly conversaService: AtendimentoConversaService,
+    private readonly agente: AtendimentoWhatsappAgenteService,
+    private readonly contatos: ContatosService,
+    private readonly http: HttpService,
     @InjectQueue(QUEUE_ATENDIMENTO) private readonly fila: Queue,
   ) {}
 
@@ -74,9 +91,17 @@ export class TelegramWebhookController {
 
     const body = (req.body ?? {}) as Record<string, unknown>;
 
+    // Acknowledge imediato do callback_query para remover o "relógio" no botão
+    // (best-effort — antes do processamento assíncrono para resposta mais rápida).
+    const callbackQueryId = (body.callback_query as { id?: string } | undefined)?.id;
+    if (callbackQueryId && canal.metaToken) {
+      const provider = new TelegramProvider(this.http, { token: canal.metaToken });
+      provider.answerCallback(callbackQueryId).catch(() => void 0);
+    }
+
     // Responde 200 imediatamente — Telegram reentrega se não receber 2xx rapidamente.
     setImmediate(() =>
-      this.processar(canal.tenantId, canal.id, canal.secretariaId ?? null, body).catch((e) =>
+      this.processar(canal.tenantId, canal.id, canal.secretariaId ?? null, canal.metaToken ?? null, body).catch((e) =>
         this.log.error(`Webhook Telegram [${canal.id}] processamento: ${(e as Error).message}`),
       ),
     );
@@ -88,6 +113,7 @@ export class TelegramWebhookController {
     tenantId: string,
     canalId: string,
     secretariaId: string | null,
+    canalToken: string | null,
     body: Record<string, unknown>,
   ) {
     const inbound = new TelegramProvider(null as never, { token: '' }).parseInbound(body);
@@ -107,6 +133,51 @@ export class TelegramWebhookController {
 
     const identificador = inbound.from;
     if (!identificador) return;
+
+    // Detecção de código de vínculo — ANTES de agente e cidadão.
+    // Qualquer mensagem de texto que case com o padrão é tratada como tentativa
+    // de vínculo do funcionário (ex.: "123456" ou "/vincular 123456").
+    if (inbound.texto) {
+      const matchVinculo = inbound.texto.trim().match(RE_VINCULO_CODIGO);
+      if (matchVinculo) {
+        // Grupo 2 = after /vincular|/start; grupo 3 = digits-only format.
+        const codigo = matchVinculo[2] ?? matchVinculo[3];
+        try {
+          const resultado = await this.contatos.vincularTelegramPorCodigo(tenantId, codigo, identificador);
+          if (resultado.ok) {
+            const nomeStr = resultado.nome ? `, ${resultado.nome}` : '';
+            if (canalToken) {
+              const provider = new TelegramProvider(this.http, { token: canalToken });
+              await provider
+                .sendText(
+                  identificador,
+                  `Telegram vinculado${nomeStr}! Voce ja pode atender por aqui (digite AJUDA).`,
+                )
+                .catch(() => void 0);
+            }
+            return; // consumido — não trata como agente nem cidadão
+          }
+          // Código inválido/expirado: não interrompe o fluxo (pode ser mensagem legítima "123456")
+        } catch (e) {
+          this.log.warn(
+            `Webhook Telegram [${canalId}]: erro ao tentar vínculo código=${codigo?.slice(0, 3)}xxx: ${(e as Error).message}`,
+          );
+        }
+      }
+    }
+
+    // Detecção de agente — ANTES de criar conversa de cidadão.
+    // Só roteamos quando há texto (comandos/respostas); outros tipos seguem fluxo normal.
+    if (inbound.texto) {
+      const foiAgente = await this.agente.tentarRotearComoAgente(
+        tenantId,
+        identificador,
+        inbound.texto,
+        canalId,
+        'telegram',
+      );
+      if (foiAgente) return;
+    }
 
     await TenantContext.run({ tenantId }, async () => {
       // Busca conversa ativa pelo (canal, chat_id).

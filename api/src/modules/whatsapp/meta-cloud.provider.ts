@@ -4,6 +4,7 @@ import { firstValueFrom } from 'rxjs';
 import {
   ButtonsInput,
   InboundMessage,
+  ListInput,
   MediaInput,
   ProviderNome,
   SendResult,
@@ -112,9 +113,10 @@ export class MetaCloudProvider implements WhatsappProvider {
 
   async sendButtons(to: string, payload: ButtonsInput): Promise<SendResult> {
     // A Meta limita a 3 botões de resposta rápida (reply buttons).
+    // id ≤ 256 chars (usamos até 200 por segurança); title ≤ 20 chars.
     const buttons = payload.buttons.slice(0, 3).map((b) => ({
       type: 'reply',
-      reply: { id: b.id, title: b.label.slice(0, 20) },
+      reply: { id: b.id.slice(0, 200), title: b.label.slice(0, 20) },
     }));
     return this.post({
       to: this.normalizar(to),
@@ -123,6 +125,37 @@ export class MetaCloudProvider implements WhatsappProvider {
         type: 'button',
         body: { text: payload.message },
         action: { buttons },
+      },
+    });
+  }
+
+  /**
+   * Envia lista interativa (interactive.type='list') via Meta Cloud API.
+   * Suporta até 10 linhas em 1 section.
+   * Limites: button ≤ 20 chars, row.id ≤ 200 chars, row.title ≤ 24 chars.
+   * O `row.id` carrega o `valor` da opção do bot (texto que o bot entende),
+   * de modo que ao selecionar uma opção o bot recebe o valor correto sem
+   * precisar fazer lookup adicional.
+   */
+  async sendList(to: string, payload: ListInput): Promise<SendResult> {
+    const rows = payload.rows.slice(0, 10).map((r) => {
+      const row: Record<string, string> = {
+        id: r.id.slice(0, 200),
+        title: r.label.slice(0, 24),
+      };
+      if (r.descricao) row.description = r.descricao.slice(0, 72);
+      return row;
+    });
+    return this.post({
+      to: this.normalizar(to),
+      type: 'interactive',
+      interactive: {
+        type: 'list',
+        body: { text: payload.message },
+        action: {
+          button: (payload.tituloBotao ?? 'Escolher').slice(0, 20),
+          sections: [{ rows }],
+        },
       },
     });
   }
@@ -192,10 +225,15 @@ export class MetaCloudProvider implements WhatsappProvider {
       const msg = value?.messages?.[0];
       if (!msg?.from || !msg.id) return null; // sem mensagem (status, etc.)
 
+      // Preferir o `id` da resposta interativa — o bot popula o id com o `valor`
+      // da opção (texto que o sistema já entende), evitando lookup adicional.
+      // Fallback para title/text quando id não estiver disponível.
       const texto =
         msg.text?.body ??
         msg.button?.text ??
+        msg.interactive?.button_reply?.id ??
         msg.interactive?.button_reply?.title ??
+        msg.interactive?.list_reply?.id ??
         msg.interactive?.list_reply?.title ??
         undefined;
 

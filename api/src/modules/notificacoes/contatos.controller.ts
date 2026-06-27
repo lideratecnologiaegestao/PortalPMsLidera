@@ -1,7 +1,9 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
+  HttpCode,
   Post,
   Put,
   UnauthorizedException,
@@ -30,7 +32,13 @@ export class ContatosController {
   @Put()
   salvar(
     @CurrentUser() user: AuthUser | undefined,
-    @Body() dto: { whatsapp?: string; email?: string; notifWhatsapp?: boolean; notifEmail?: boolean },
+    @Body() dto: {
+      whatsapp?: string;
+      email?: string;
+      notifWhatsapp?: boolean;
+      notifEmail?: boolean;
+      notifTelegram?: boolean;
+    },
   ) {
     if (!user) throw new UnauthorizedException('Não autenticado.');
     return this.contatos.salvar(user.sub, dto);
@@ -52,5 +60,30 @@ export class ContatosController {
   ) {
     if (!user) throw new UnauthorizedException('Não autenticado.');
     return this.contatos.reenviar(user.sub, body.canal);
+  }
+
+  /**
+   * Gera um código de vínculo Telegram de 6 dígitos.
+   * O funcionário envia esse código para o bot do Telegram da prefeitura
+   * (mensagem de texto, ex.: "123456" ou "/vincular 123456").
+   * TTL: 15 minutos. Código é de uso único.
+   */
+  @Post('telegram/codigo')
+  gerarCodigoTelegram(@CurrentUser() user?: AuthUser) {
+    if (!user) throw new UnauthorizedException('Não autenticado.');
+    return this.contatos.gerarCodigoVinculoTelegram(user.sub).then((r) => ({
+      ...r,
+      instrucao: 'Envie este código para o bot do Telegram da prefeitura (ex.: "123456" ou "/vincular 123456").',
+    }));
+  }
+
+  /**
+   * Remove o vínculo Telegram do funcionário (desvincula o bot).
+   */
+  @Delete('telegram')
+  @HttpCode(204)
+  async removerTelegram(@CurrentUser() user?: AuthUser) {
+    if (!user) throw new UnauthorizedException('Não autenticado.');
+    await this.contatos.removerTelegram(user.sub);
   }
 }

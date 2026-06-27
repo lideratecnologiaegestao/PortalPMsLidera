@@ -3,7 +3,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { TenantContext } from '../../common/tenant/tenant.context';
 import { redisCommands } from '../queue/redis.config';
-import { ButtonsInput, MediaInput, SendResult, TemplateInput, WhatsappProvider } from './whatsapp-provider.interface';
+import { ButtonsInput, ListInput, MediaInput, SendResult, TemplateInput, WhatsappProvider } from './whatsapp-provider.interface';
 import { WhatsappConfigService, TenantWhatsappConfigDecifrada } from './whatsapp-config.service';
 import { WhatsappCanaisService } from './whatsapp-canais.service';
 import { EvolutionProvider } from './evolution.provider';
@@ -145,6 +145,25 @@ export class WhatsappService {
   }
 
   /**
+   * Envia lista interativa (4–10 opções) via provider do tenant.
+   * Fallback automático para texto numerado quando o provider não implementa sendList.
+   */
+  async enviarLista(
+    numero: string,
+    payload: ListInput,
+  ): Promise<{ id?: string }> {
+    const tenantId = TenantContext.tenantId();
+    if (!tenantId) throw new Error('TenantContext ausente ao enviar lista WhatsApp.');
+    const textoFallback = `${payload.message}\n\n${payload.rows.map((r, i) => `${i + 1}. ${r.label}`).join('\n')}`;
+    const r = await this.enviarComResiliencia(
+      tenantId,
+      (p) => (p.sendList ? p.sendList(numero, payload) : p.sendText(numero, textoFallback)),
+      numero,
+    );
+    return { id: r.id };
+  }
+
+  /**
    * Envia um template aprovado (HSM) — necessário para INICIAR conversa fora da
    * janela de 24h via API Oficial da Meta. Providers sem suporte a template
    * (Z-API/Evolution) degradam: enviam o `textoFallback` como mensagem comum.
@@ -218,6 +237,41 @@ export class WhatsappService {
       numero,
     );
     return { id: r.id };
+  }
+
+  /**
+   * Envia botões de resposta rápida (≤3) por um canal específico (multi-número Meta).
+   * Fallback para texto quando o provider não implementa sendButtons.
+   */
+  async enviarBotoesPorCanal(
+    canalId: string,
+    numero: string,
+    payload: ButtonsInput,
+  ): Promise<{ id?: string }> {
+    const r = await this.enviarPorCanalComResiliencia(
+      canalId,
+      (p) => (p.sendButtons ? p.sendButtons(numero, payload) : p.sendText(numero, payload.message)),
+      numero,
+    );
+    return { id: r.id };
+  }
+
+  /**
+   * Envia lista interativa (4–10 opções) por um canal específico (multi-número Meta).
+   * Fallback para texto numerado quando o provider não implementa sendList.
+   */
+  async enviarListaPorCanal(
+    canalId: string,
+    numero: string,
+    payload: ListInput,
+  ): Promise<{ id?: string }> {
+    const textoFallback = `${payload.message}\n\n${payload.rows.map((r, i) => `${i + 1}. ${r.label}`).join('\n')}`;
+    const res = await this.enviarPorCanalComResiliencia(
+      canalId,
+      (p) => (p.sendList ? p.sendList(numero, payload) : p.sendText(numero, textoFallback)),
+      numero,
+    );
+    return { id: res.id };
   }
 
   async enviarTemplatePorCanal(

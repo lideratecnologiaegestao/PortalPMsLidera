@@ -15,6 +15,7 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { TenantContext } from '../../common/tenant/tenant.context';
 import { redisCommands } from '../queue/redis.config';
 import { AtendimentoConversaService } from '../atendimento/atendimento-conversa.service';
+import { AtendimentoWhatsappAgenteService } from '../atendimento/atendimento-whatsapp-agente.service';
 import { WhatsappConfigService } from './whatsapp-config.service';
 import { ZApiProvider } from './zapi.provider';
 import { EvolutionProvider } from './evolution.provider';
@@ -46,6 +47,8 @@ export class WhatsappWebhookController {
     private readonly configService: WhatsappConfigService,
     @Inject(forwardRef(() => AtendimentoConversaService))
     private readonly conversaService: AtendimentoConversaService,
+    @Inject(forwardRef(() => AtendimentoWhatsappAgenteService))
+    private readonly agente: AtendimentoWhatsappAgenteService,
     @InjectQueue(QUEUE_ATENDIMENTO) private readonly fila: Queue,
   ) {}
 
@@ -188,6 +191,15 @@ export class WhatsappWebhookController {
     const identificador = inbound.from.replace(/\D/g, '');
     if (!identificador) return;
 
+    const texto = inbound.texto?.slice(0, 5000) ?? '[mensagem sem texto]';
+
+    // Detecção de agente — ANTES de criar conversa de cidadão.
+    // Se o remetente for um ouvidor/assistente/admin verificado, trata como
+    // mensagem de agente (comandos ou resposta ao cidadão) e interrompe o fluxo.
+    if (await this.agente.tentarRotearComoAgente(tenantId, identificador, texto)) {
+      return;
+    }
+
     // Acha ou cria conversa
     let conversa = await TenantContext.run({ tenantId }, async () => {
       return this.prisma.db.atendimentoConversa.findFirst({
@@ -217,8 +229,6 @@ export class WhatsappWebhookController {
       this.log.warn(`Webhook Z-API: não foi possível criar conversa para ${identificador}`);
       return;
     }
-
-    const texto = inbound.texto?.slice(0, 5000) ?? '[mensagem sem texto]';
 
     const msg = await this.conversaService.persistirMensagem(conversa.id, tenantId, {
       autorTipo: 'visitante',

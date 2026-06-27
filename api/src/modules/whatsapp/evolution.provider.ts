@@ -4,6 +4,7 @@ import { firstValueFrom } from 'rxjs';
 import {
   ButtonsInput,
   InboundMessage,
+  ListInput,
   MediaInput,
   ProviderNome,
   SendResult,
@@ -99,6 +100,21 @@ export class EvolutionProvider implements WhatsappProvider {
     } catch (e) {
       return { ok: false, erro: (e as Error).message };
     }
+  }
+
+  /**
+   * Envia lista de opções via Evolution API.
+   *
+   * NOTA: A Evolution API v2 possui endpoint de lista interativa, mas o suporte
+   * varia por versão e pelo tipo de instância WhatsApp conectada. Para garantir
+   * entrega confiável em todos os ambientes, este método usa fallback de texto
+   * numerado — idêntico ao comportamento do sendButtons quando o endpoint falha.
+   * O `id` de cada row carrega o `valor` da opção do bot.
+   */
+  async sendList(to: string, payload: ListInput): Promise<SendResult> {
+    // Fallback: texto numerado (compatível com qualquer versão/instância Evolution)
+    const linhas = payload.rows.map((r, i) => `${i + 1}. ${r.label}`).join('\n');
+    return this.sendText(to, `${payload.message}\n\n${linhas}`);
   }
 
   async getStatus(): Promise<{ conectado: boolean; detalhe?: string }> {

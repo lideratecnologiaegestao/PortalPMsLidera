@@ -13,6 +13,7 @@ import { Queue } from 'bullmq';
 import { PrismaService } from '../../prisma/prisma.service';
 import { TenantContext } from '../../common/tenant/tenant.context';
 import { AtendimentoConversaService } from './atendimento-conversa.service';
+import { AtendimentoWhatsappAgenteService } from './atendimento-whatsapp-agente.service';
 import { QUEUE_ATENDIMENTO, JOB_ATEND_PROCESSAR_MENSAGEM } from '../queue/queue.constants';
 
 /**
@@ -34,6 +35,7 @@ export class WebhookEvolutionController {
   constructor(
     private readonly prisma: PrismaService,
     private readonly conversaService: AtendimentoConversaService,
+    private readonly agente: AtendimentoWhatsappAgenteService,
     @InjectQueue(QUEUE_ATENDIMENTO) private readonly fila: Queue,
   ) {}
 
@@ -73,6 +75,13 @@ export class WebhookEvolutionController {
     }
 
     const tenantId = tenant.id;
+
+    // 3b. Detecção de agente — ANTES de criar conversa de cidadão.
+    // Se o remetente for um ouvidor/assistente/admin verificado, trata como
+    // mensagem de agente (comandos ou resposta ao cidadão) e interrompe o fluxo.
+    if (await this.agente.tentarRotearComoAgente(tenantId, numero, texto)) {
+      return { ok: true, agente: true };
+    }
 
     // 4. Achar ou criar conversa por número (identificador = número E.164)
     const identificador = numero.replace(/\D/g, '');

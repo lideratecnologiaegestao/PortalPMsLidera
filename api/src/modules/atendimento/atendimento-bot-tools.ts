@@ -50,11 +50,19 @@ export const FERRAMENTAS_OUVIDORIA: FerramentaIA[] = [
   {
     name: 'chamar_ouvidor',
     description:
-      'Transfere o atendimento para um ATENDENTE HUMANO da ouvidoria (chat humanizado). Use SOMENTE quando o cidadão PEDIR EXPLICITAMENTE para falar com uma pessoa/atendente humano. NÃO use para responder dúvidas (responda você mesmo, inclusive temas de saúde) nem para relatos a registrar (use `abrir_manifestacao`). A equipe da ouvidoria é avisada no painel.',
+      'Transfere o atendimento para um ATENDENTE HUMANO (chat humanizado). Use SOMENTE quando o cidadão PEDIR EXPLICITAMENTE para falar com uma pessoa/atendente humano. NÃO use para responder dúvidas (responda você mesmo, inclusive temas de saúde) nem para relatos a registrar (use `abrir_manifestacao`). ' +
+      'Informe o parâmetro `secretaria` com o nome EXATO de uma das secretarias da lista fornecida no contexto (ex.: "Secretaria de Saúde") quando o assunto pertencer claramente a uma área específica — isso roteia o cidadão diretamente para os atendentes daquela secretaria. Se estiver em dúvida, NÃO invente: deixe `secretaria` vazio para cair na fila geral da ouvidoria.',
     input_schema: {
       type: 'object',
       properties: {
         motivo: { type: 'string', description: 'Motivo resumido da transferência.' },
+        secretaria: {
+          type: 'string',
+          description:
+            'Nome da secretaria/área mais adequada para atender, escolhida EXATAMENTE da lista "SECRETARIAS DISPONÍVEIS PARA ENCAMINHAMENTO" fornecida no contexto do sistema. ' +
+            'Use o nome completo como aparece na lista (ex.: "Secretaria de Saúde", "Assistência Social", "Secretaria de Obras"). ' +
+            'Deixe vazio se não houver correspondência clara — nunca invente um nome que não esteja na lista.',
+        },
       },
     },
   },
@@ -71,7 +79,26 @@ export function ouvidoriaAddendum(): string {
     'Para status de um protocolo, use `consultar_protocolo`. ' +
     'Use `chamar_ouvidor` SOMENTE quando o cidadão pedir explicitamente para falar com uma pessoa/atendente — ' +
     'nunca para responder dúvidas (responda você mesmo, inclusive temas de saúde) nem para relatos (use `abrir_manifestacao`). ' +
+    'Ao usar `chamar_ouvidor`, use o parâmetro `secretaria` para informar a área responsável pelo caso ' +
+    '(ex.: assuntos de saúde/UBS → Secretaria de Saúde; benefício social/CRAS/CREAS → Assistência Social; ' +
+    'buraco/iluminação → Secretaria de Obras). ' +
+    'Use exatamente o nome que aparece na lista de secretarias disponíveis do contexto; se não houver correspondência, deixe vazio. ' +
     'NUNCA invente protocolo, chave ou status — use sempre as ferramentas. Seja acolhedor e claro.'
+  );
+}
+
+/**
+ * Retorna o addendum com a lista de secretarias injetada.
+ * Chamado em `responderFaq` quando há secretarias disponíveis no tenant.
+ */
+export function ouvidoriaAddendumComSecretarias(secretarias: { nome: string }[]): string {
+  const base = ouvidoriaAddendum();
+  if (!secretarias.length) return base;
+  const lista = secretarias.map((s) => s.nome).join('; ');
+  return (
+    base +
+    `\n\nSECRETARIAS DISPONÍVEIS PARA ENCAMINHAMENTO: ${lista}. ` +
+    'Use exatamente um desses nomes no parâmetro `secretaria` da tool `chamar_ouvidor` (ou deixe vazio se não houver correspondência clara).'
   );
 }
 
@@ -79,8 +106,12 @@ export function ouvidoriaAddendum(): string {
 export interface CtxOuvidoriaBot {
   manifestacoes: ManifestacoesService;
   tramitacao: TramitacaoService;
-  /** Escala a conversa para um atendente humano (com regra de expediente). */
-  escalar: () => Promise<void>;
+  /**
+   * Escala a conversa para um atendente humano (com regra de expediente).
+   * @param secretariaNome Nome da secretaria informado pela IA; o service resolve para id.
+   *                       Se ausente ou inválido, escala para a fila geral (ouvidoria).
+   */
+  escalar: (secretariaNome?: string) => Promise<void>;
   /** Vincula a manifestação recém-aberta à conversa (cross-link no painel). */
   vincular: (manifestacaoId: string, protocolo: string) => Promise<void>;
 }
@@ -141,11 +172,12 @@ export async function executarFerramentaOuvidoria(
     }
 
     case 'chamar_ouvidor': {
-      await ctx.escalar();
+      const secretariaNome = input.secretaria ? String(input.secretaria).trim() : undefined;
+      await ctx.escalar(secretariaNome || undefined);
       return {
         ok: true,
         instrucao:
-          'Transferência iniciada. Avise o cidadão que um atendente da ouvidoria assumirá em instantes; fora do horário, o retorno é no próximo expediente.',
+          'Transferência iniciada. Avise o cidadão que um atendente assumirá em instantes; fora do horário, o retorno é no próximo expediente.',
       };
     }
 

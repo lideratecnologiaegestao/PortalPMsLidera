@@ -4,6 +4,7 @@ import { firstValueFrom } from 'rxjs';
 import {
   ButtonsInput,
   InboundMessage,
+  ListInput,
   MediaInput,
   ProviderNome,
   SendResult,
@@ -144,6 +145,22 @@ export class ZApiProvider implements WhatsappProvider {
     }
   }
 
+  /**
+   * Envia lista de opções via Z-API.
+   *
+   * NOTA: A Z-API não documenta de forma confiável um endpoint de lista interativa
+   * equivalente ao `interactive.type='list'` da Meta Cloud API.
+   * O endpoint `/send-button-list` da Z-API suporta botões simples (≤3), não listas.
+   * Por segurança, este método usa SEMPRE o fallback de texto numerado para Z-API,
+   * garantindo entrega mesmo em contas sem suporte a botões interativos.
+   * Se/quando a Z-API documentar um endpoint de lista confiável, substituir aqui.
+   */
+  async sendList(to: string, payload: ListInput): Promise<SendResult> {
+    // Fallback: texto numerado (compatível com qualquer conta Z-API)
+    const linhas = payload.rows.map((r, i) => `${i + 1}. ${r.label}`).join('\n');
+    return this.sendText(to, `${payload.message}\n\n${linhas}`);
+  }
+
   async getStatus(): Promise<{ conectado: boolean; detalhe?: string }> {
     try {
       const resp = await firstValueFrom(
@@ -194,9 +211,17 @@ export class ZApiProvider implements WhatsappProvider {
       ).replace(/\D/g, '');
       if (!phone) return null;
 
-      // Texto da mensagem
+      // Texto da mensagem.
+      // Preferir o `buttonResponseMessage.selectedButtonId` / `listResponseMessage.listType`
+      // (resposta a botão/lista interativa) ao texto livre — o bot popula o id com o `valor`.
+      const buttonResp = body.buttonResponseMessage as Record<string, unknown> | undefined;
+      const listResp = body.listResponseMessage as Record<string, unknown> | undefined;
       const textObj = body.text as Record<string, unknown> | undefined;
       const texto = String(
+        // Resposta a botão interativo Z-API: selectedButtonId carrega o `valor`
+        buttonResp?.selectedButtonId ??
+        // Resposta a lista interativa Z-API: selectedRowId carrega o `valor`
+        listResp?.selectedRowId ??
         textObj?.message ??
         body.message ??
         body.body ??

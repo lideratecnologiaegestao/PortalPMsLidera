@@ -4,6 +4,7 @@ import { firstValueFrom } from 'rxjs';
 import {
   ButtonsInput,
   InboundMessage,
+  ListInput,
   MediaInput,
   ProviderNome,
   SendResult,
@@ -95,6 +96,15 @@ export class InstagramProvider implements WhatsappProvider {
     // Degrada para texto simples com as opções listadas
     const opcoes = payload.buttons.map((b) => `• ${b.label}`).join('\n');
     return this.sendText(to, `${payload.message}\n\n${opcoes}`);
+  }
+
+  /**
+   * Instagram Direct não suporta mensagem de lista interativa.
+   * Degrada para texto numerado.
+   */
+  async sendList(to: string, payload: ListInput): Promise<SendResult> {
+    const linhas = payload.rows.map((r, i) => `${i + 1}. ${r.label}`).join('\n');
+    return this.sendText(to, `${payload.message}\n\n${linhas}`);
   }
 
   /** Templates HSM não são suportados no Instagram Direct. */

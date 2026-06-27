@@ -10,9 +10,10 @@ import { WhatsappService } from '../whatsapp/whatsapp.service';
 import { sanitizarTexto } from '../ia/ia.prompts';
 import {
   FERRAMENTAS_OUVIDORIA,
-  ouvidoriaAddendum,
+  ouvidoriaAddendumComSecretarias,
   executarFerramentaOuvidoria,
 } from './atendimento-bot-tools';
+import { destinoCidadao } from './atendimento-destino.util';
 
 // Intents de falar com atendente
 const PALAVRAS_ATENDENTE = [
@@ -86,16 +87,17 @@ export class AtendimentoBotService {
       try {
         const c = await this.prisma.db.atendimentoConversa.findUnique({
           where: { id: conversaId },
-        }) as { id: string; status: string; canal: 'widget' | 'whatsapp' | 'instagram' | 'messenger' | 'telegram' | string; visitanteTelefone: string | null; botTentativas: number; canalId?: string | null } | null;
+        }) as { id: string; status: string; canal: 'widget' | 'whatsapp' | 'instagram' | 'messenger' | 'telegram' | string; visitanteTelefone: string | null; visitanteIdentificador?: string | null; visitanteNome?: string | null; assunto?: string | null; botTentativas: number; canalId?: string | null } | null;
         if (!c || c.status !== 'bot') return;
 
-        // Atalho para enviar resposta do bot com roteamento WhatsApp automático (migration 081)
+        // Atalho para enviar resposta do bot com roteamento automático (migration 083)
         const responder = (conteudo: string, opcoes?: { label: string; valor: string }[]) =>
           this.enviarRespostaBot(
             conversaId,
             tenantId,
             conteudo,
             c.visitanteTelefone,
+            c.visitanteIdentificador,
             c.canal,
             c.canalId,
             opcoes,
@@ -132,7 +134,8 @@ export class AtendimentoBotService {
         const intent = this.detectarIntent(texto, c);
 
         if (intent === 'falar_com_atendente') {
-          await this.escalarComExpediente(conversaId, tenantId);
+          const sec = await this.classificarSecretariaPorTexto(tenantId, texto, c.assunto ?? undefined);
+          await this.escalarComExpediente(conversaId, tenantId, sec);
           return;
         }
 
@@ -227,7 +230,7 @@ export class AtendimentoBotService {
     tenantId: string,
     protocolo: string,
     chave: string | null,
-    c: { canal: string; visitanteTelefone: string | null; canalId?: string | null },
+    c: { canal: string; visitanteTelefone: string | null; visitanteIdentificador?: string | null; canalId?: string | null },
   ) {
     try {
       const detalhe = await this.tramitacao.acompanhar(protocolo, chave ?? undefined);
@@ -237,6 +240,7 @@ export class AtendimentoBotService {
         tenantId,
         `Encontrei sua solicitação:\n${resumo}\n\nDeseja falar com um atendente para mais detalhes?`,
         c.visitanteTelefone,
+        c.visitanteIdentificador,
         c.canal,
         c.canalId,
       );
@@ -246,6 +250,7 @@ export class AtendimentoBotService {
         tenantId,
         'Não encontrei o protocolo informado. Verifique os dados e tente novamente, ou fale com um atendente.',
         c.visitanteTelefone,
+        c.visitanteIdentificador,
         c.canal,
         c.canalId,
       );
@@ -257,7 +262,7 @@ export class AtendimentoBotService {
     tenantId: string,
     texto: string,
     tentativas: number,
-    c: { canal: string; visitanteTelefone: string | null; canalId?: string | null },
+    c: { canal: string; visitanteTelefone: string | null; visitanteIdentificador?: string | null; canalId?: string | null; visitanteNome?: string | null; assunto?: string | null },
   ) {
     // Recupera histórico (até 10 mensagens) para passar à IA
     const historico = await this.prisma.db.atendimentoMensagem.findMany({
@@ -280,16 +285,44 @@ export class AtendimentoBotService {
     // não-anônima) é coletado pelo próprio fluxo de tool — aqui mascaramos para o RAG.
     const perguntaSegura = sanitizarTexto(redigirPII(texto));
 
+    // Contexto deste atendimento informado pelo PRÓPRIO cidadão no formulário de
+    // início (nome/assunto). Sem isso a IA respondia "não tenho acesso ao seu nome"
+    // mesmo o cidadão tendo se identificado nesta sessão. (E-mail não entra no
+    // prompt — minimização LGPD; serve só para contato.)
+    const nomeVisitante = c.visitanteNome?.trim();
+    const assuntoVisitante = c.assunto?.trim();
+    const ctxPartes: string[] = [];
+    if (nomeVisitante) ctxPartes.push(`Nome: ${nomeVisitante}`);
+    if (assuntoVisitante) ctxPartes.push(`Assunto: ${assuntoVisitante}`);
+    const contextoVisitante = ctxPartes.length
+      ? `\n\nDADOS DESTE ATENDIMENTO (informados pelo próprio cidadão agora, no início da conversa): ${ctxPartes.join('; ')}. ` +
+        `Você TEM acesso a esses dados desta sessão — use o primeiro nome ao cumprimentar quando fizer sentido e leve o assunto em conta. ` +
+        `NUNCA afirme que "não tem acesso" ao nome/assunto que o cidadão já informou aqui. Não invente nem peça de novo dados já fornecidos.`
+      : '';
+
+    // Busca secretarias do tenant para roteamento automático (best-effort; sem secretarias → escala genérico).
+    let secretariasTenant: { id: string; nome: string }[] = [];
+    try {
+      secretariasTenant = await this.prisma.db.secretaria.findMany({
+        select: { id: true, nome: true },
+        orderBy: { nome: 'asc' },
+      });
+    } catch {
+      // sem secretarias → addendum sem lista, escala genérico
+    }
+
     // Ferramentas de ação da ouvidoria, ligadas a ESTA conversa (RLS já ativo).
     const extra = {
       tools: FERRAMENTAS_OUVIDORIA,
-      systemAddendum: ouvidoriaAddendum(),
+      systemAddendum:
+        ouvidoriaAddendumComSecretarias(secretariasTenant) + contextoVisitante,
       executar: (nome: string, input: Record<string, unknown>) =>
         executarFerramentaOuvidoria(
           {
             manifestacoes: this.manifestacoes,
             tramitacao: this.tramitacao,
-            escalar: () => this.escalarComExpediente(conversaId, tenantId),
+            escalar: (secretariaNome?: string) =>
+              this.escalarComExpediente(conversaId, tenantId, secretariaNome),
             vincular: (manifestacaoId: string, protocolo: string) =>
               this.vincularManifestacao(conversaId, tenantId, manifestacaoId, protocolo),
           },
@@ -311,6 +344,7 @@ export class AtendimentoBotService {
         tenantId,
         resultado.resposta,
         c.visitanteTelefone,
+        c.visitanteIdentificador,
         c.canal,
         c.canalId,
       );
@@ -325,6 +359,7 @@ export class AtendimentoBotService {
           tenantId,
           'Posso transferi-lo(a) para um atendente humano se preferir. Deseja ser atendido(a) por uma pessoa?',
           c.visitanteTelefone,
+          c.visitanteIdentificador,
           c.canal,
           c.canalId,
         );
@@ -341,6 +376,7 @@ export class AtendimentoBotService {
           tenantId,
           'Desculpe, não consegui processar sua solicitação. Gostaria de falar com um atendente?',
           c.visitanteTelefone,
+          c.visitanteIdentificador,
           c.canal,
           c.canalId,
         );
@@ -348,16 +384,149 @@ export class AtendimentoBotService {
     }
   }
 
-  private async escalarComExpediente(conversaId: string, tenantId: string) {
+  private async escalarComExpediente(
+    conversaId: string,
+    tenantId: string,
+    secretariaNome?: string,
+  ) {
     const dentro = await this.expediente.dentroDoExpediente(tenantId);
-    await this.conversa.escalar(conversaId, tenantId, dentro);
+    const secretariaId = secretariaNome
+      ? await this.resolverSecretariaId(tenantId, secretariaNome)
+      : undefined;
+    await this.conversa.escalar(conversaId, tenantId, dentro, secretariaId);
+  }
+
+  /**
+   * Tenta identificar a secretaria mais adequada para o atendimento a partir do
+   * texto da mensagem e do assunto da conversa, sem custo de IA.
+   *
+   * Estratégia (best-effort, nunca lança):
+   *  1. Normaliza (sem acento, minúsculo) o texto+assunto combinados.
+   *  2. Remove stopwords irrelevantes do nome das secretarias.
+   *  3. Verifica se qualquer TOKEN significativo do nome de uma secretaria aparece
+   *     no texto normalizado.
+   *  4. Aplica um mapa de ALIASES (buraco→obras, vacina→saude …) para termos do
+   *     dia-a-dia que não constam nos nomes oficiais.
+   *  5. Retorna o NOME da secretaria encontrada (para `resolverSecretariaId`) ou
+   *     undefined quando não há correspondência clara (→ fila genérica).
+   *
+   * LGPD: não há PII do cidadão no retorno — apenas o nome de secretaria.
+   */
+  private async classificarSecretariaPorTexto(
+    tenantId: string,
+    texto: string,
+    assunto?: string,
+  ): Promise<string | undefined> {
+    // Stopwords que não ajudam a identificar a secretaria
+    const STOPWORDS = new Set(['secretaria', 'municipal', 'municipio', 'prefeitura', 'de', 'da', 'do', 'e', 'a', 'o', 'em', 'por']);
+
+    // Mapa de aliases de termos do dia-a-dia → token que deve aparecer no nome normalizado da secretaria
+    const ALIASES: Array<{ termos: string[]; token: string }> = [
+      { termos: ['buraco', 'asfalto', 'iluminacao', 'poste', 'calcada', 'via', 'pavimentacao', 'pavimentação', 'calcada', 'calçada', 'tapa-buraco', 'tapaburaco', 'rua', 'estrada', 'obras'], token: 'obras' },
+      { termos: ['vacina', 'vacinacao', 'posto', 'consulta', 'saude', 'remedio', 'upa', 'hospital', 'clinica', 'medico', 'enfermeiro', 'dengue', 'covid', 'saúde'], token: 'saude' },
+      { termos: ['escola', 'matricula', 'creche', 'professor', 'educacao', 'aluno', 'ensino', 'pedagogico', 'educação', 'matrícula'], token: 'educacao' },
+      { termos: ['iptu', 'imposto', 'tributo', 'certidao', 'divida', 'divida', 'dívida', 'certidão', 'iss', 'itr', 'fiscal'], token: 'fazenda' },
+      { termos: ['cras', 'creas', 'bolsa', 'auxilio', 'cadunico', 'cad', 'beneficio', 'assistencia', 'social', 'vulnerabilidade', 'vulnerável', 'auxílio', 'benefício'], token: 'assistencia' },
+      { termos: ['meio', 'ambiente', 'arvore', 'poda', 'lixo', 'residuo', 'animal', 'abandono', 'desmatamento', 'queimada', 'resíduos', 'coleta'], token: 'ambiente' },
+    ];
+
+    const normalizar = (s: string) =>
+      s
+        .normalize('NFD')
+        .replace(/[̀-ͯ]/g, '')
+        .toLowerCase()
+        .trim();
+
+    try {
+      const secretarias = await this.prisma.db.secretaria.findMany({ select: { nome: true } });
+      if (!secretarias.length) return undefined;
+
+      const textoNorm = normalizar(`${texto} ${assunto ?? ''}`);
+
+      // 1. Match por tokens significativos do nome da secretaria no texto
+      for (const sec of secretarias) {
+        const tokens = normalizar(sec.nome)
+          .split(/\s+/)
+          .filter((t) => t.length > 3 && !STOPWORDS.has(t));
+        for (const token of tokens) {
+          // Garante match de palavra (não apenas substring parcial de palavra maior)
+          const regex = new RegExp(`\\b${token}\\b`);
+          if (regex.test(textoNorm)) {
+            return sec.nome;
+          }
+        }
+      }
+
+      // 2. Match por aliases
+      for (const { termos, token } of ALIASES) {
+        const aliasRegex = new RegExp(`\\b(${termos.join('|')})\\b`);
+        if (aliasRegex.test(textoNorm)) {
+          // Procura a secretaria cujo nome normalizado contém o token do alias
+          const encontrada = secretarias.find((s) =>
+            normalizar(s.nome)
+              .split(/\s+/)
+              .some((t) => t.includes(token) || token.includes(t)),
+          );
+          if (encontrada) return encontrada.nome;
+        }
+      }
+
+      return undefined;
+    } catch {
+      // best-effort: nunca bloqueia a escalada por falha de classificação
+      return undefined;
+    }
+  }
+
+  /**
+   * Resolve nome de secretaria (vindo da IA) para um ID do banco.
+   * Normaliza acentos e caixa; aceita match exato ou por `includes`.
+   * Nunca lança — retorna undefined quando não há correspondência.
+   */
+  private async resolverSecretariaId(
+    tenantId: string,
+    nome: string,
+  ): Promise<string | undefined> {
+    if (!nome.trim()) return undefined;
+    try {
+      const secretarias = await TenantContext.run({ tenantId }, () =>
+        this.prisma.db.secretaria.findMany({ select: { id: true, nome: true } }),
+      );
+      const normalizar = (s: string) =>
+        s
+          .normalize('NFD')
+          .replace(/[̀-ͯ]/g, '')
+          .toLowerCase()
+          .trim();
+      const alvo = normalizar(nome);
+      // 1. match exato normalizado
+      let encontrada = secretarias.find((s) => normalizar(s.nome) === alvo);
+      // 2. fallback: o nome fornecido contém o nome da secretaria ou vice-versa
+      if (!encontrada) {
+        encontrada = secretarias.find(
+          (s) =>
+            normalizar(s.nome).includes(alvo) || alvo.includes(normalizar(s.nome)),
+        );
+      }
+      return encontrada?.id;
+    } catch {
+      // best-effort: nunca bloqueia a escalada por falha de lookup
+      return undefined;
+    }
   }
 
   /**
    * Persiste uma resposta do bot E envia por WhatsApp quando a conversa vier de webhook.
-   * Roteamento de saída (migration 081):
-   *   - canalId presente → enviarPorCanal (multi-número Meta)
-   *   - canalId ausente  → enviar (config única, retrocompat)
+   * Roteamento de saída:
+   *   - canalId presente → enviar*PorCanal (multi-número Meta)
+   *   - canalId ausente  → enviar* (config única, retrocompat)
+   *
+   * Menus interativos (quando `opcoes` fornecida para canal externo):
+   *   - ≤ 3 opções → reply buttons (sendButtons / enviarBotoes)
+   *   - 4–10 opções → lista interativa (sendList / enviarLista)
+   *   - Fallback automático para texto embutido nos métodos do WhatsappService.
+   *   - O widget web continua recebendo `opcoes` via socket (não é alterado).
+   *
    * É best-effort: falha no envio WhatsApp não impede a persistência.
    */
   private async enviarRespostaBot(
@@ -365,41 +534,70 @@ export class AtendimentoBotService {
     tenantId: string,
     conteudo: string,
     telefone: string | null | undefined,
+    identificador: string | null | undefined,
     canal: string,
     canalId: string | null | undefined,
     opcoes?: { label: string; valor: string }[],
   ) {
+    // Sempre persiste (incluindo opcoes para o widget web)
     await this.conversa.persistirMensagem(conversaId, tenantId, {
       autorTipo: 'bot',
       conteudo,
       ...(opcoes?.length ? { opcoes } : {}),
     });
 
-    // Envio de saída para canais externos (migration 083: messenger + telegram)
-    // Telegram usa visitanteIdentificador (chat_id) como destino — visitanteTelefone pode ser null.
+    // Envio de saída para canais externos (migration 083: messenger + instagram + telegram)
+    // destinoCidadao: whatsapp→telefone; messenger/instagram/telegram→PSID/chat_id
     const canalExterno = ['whatsapp', 'instagram', 'messenger', 'telegram'].includes(canal);
-    if (canalExterno && (telefone || canal === 'telegram')) {
+    const destino = destinoCidadao({ canal, visitanteTelefone: telefone, visitanteIdentificador: identificador });
+    if (canalExterno && destino) {
       try {
         await TenantContext.run({ tenantId }, async () => {
-          if (canalId) {
-            // Para Telegram, o destino é o visitanteIdentificador (chat_id), não o telefone.
-            // O WhatsappService.enviarPorCanal usa o segundo argumento como "to" — para Telegram
-            // o TelegramProvider.sendText recebe o chat_id diretamente.
-            // Para obter o identificador correto, consultamos a conversa.
-            let destino = telefone;
-            if (canal === 'telegram' && !destino) {
-              const conv = await this.prisma.db.atendimentoConversa.findUnique({
-                where: { id: conversaId },
-                select: { visitanteIdentificador: true },
-              });
-              destino = conv?.visitanteIdentificador ?? null;
+          if (!destino) return;
+
+          // Se há opções, tenta enviar menus interativos; o fallback para texto
+          // é tratado internamente pelo WhatsappService (provider sem suporte → texto numerado).
+          if (opcoes?.length) {
+            // Monta rows/buttons: id = valor (texto que o bot já entende), label truncado a 24 chars
+            if (opcoes.length <= 3) {
+              // Reply buttons (≤ 3)
+              const buttonsPayload = {
+                message: conteudo,
+                buttons: opcoes.map((o) => ({ id: o.valor, label: o.label.slice(0, 24) })),
+              };
+              if (canalId) {
+                await this.whatsapp.enviarBotoesPorCanal(canalId, destino, buttonsPayload);
+              } else if (canal === 'whatsapp') {
+                await this.whatsapp.enviarBotoes(destino, buttonsPayload);
+              } else {
+                // Canal sem canalId não-WhatsApp (raro) → texto simples
+                await this.whatsapp.enviar(destino, conteudo);
+              }
+            } else {
+              // Lista interativa (4–10 opções)
+              const listaPayload = {
+                message: conteudo,
+                tituloBotao: 'Escolher',
+                rows: opcoes.slice(0, 10).map((o) => ({
+                  id: o.valor,
+                  label: o.label.slice(0, 24),
+                })),
+              };
+              if (canalId) {
+                await this.whatsapp.enviarListaPorCanal(canalId, destino, listaPayload);
+              } else if (canal === 'whatsapp') {
+                await this.whatsapp.enviarLista(destino, listaPayload);
+              } else {
+                await this.whatsapp.enviar(destino, conteudo);
+              }
             }
-            if (destino) {
+          } else {
+            // Sem opções — envio de texto simples
+            if (canalId) {
               await this.whatsapp.enviarPorCanal(canalId, destino, conteudo);
+            } else if (canal === 'whatsapp') {
+              await this.whatsapp.enviar(destino, conteudo);
             }
-          } else if (canal === 'whatsapp' && telefone) {
-            // Fallback retrocompat somente para WhatsApp sem canalId
-            await this.whatsapp.enviar(telefone, conteudo);
           }
         });
       } catch (e) {

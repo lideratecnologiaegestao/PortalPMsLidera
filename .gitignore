@@ -61,6 +61,9 @@ portfolio/Propostas/
 /campanhas-*.png
 /barao-aedes-*.jpeg
 
+# Storage de runtime do ambiente de dev (uploads/PDFs gerados pela API; NÃO é fonte)
+api/storage-dev/
+
 # Terraform — artefatos locais (providers, state, locks gerados no validate/apply)
 .terraform/
 .terraform.lock.hcl

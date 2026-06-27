@@ -44,6 +44,6 @@ import { WhatsappModule } from '../whatsapp/whatsapp.module';
     StorageService,
   ],
   // WhatsappModule é re-exportado (inclui WhatsappService e WhatsappConfigService)
-  exports: [NotificacoesService, EmailService, WhatsappModule],
+  exports: [NotificacoesService, EmailService, WhatsappModule, ContatosService],
 })
 export class NotificacoesModule {}

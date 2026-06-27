@@ -218,6 +218,7 @@ describe('WhatsappService', () => {
       Object.assign(process.env, originalEnv);
     });
   });
+
 });
 
 // ---- Testes de isolamento de tenant ---------------------------------------

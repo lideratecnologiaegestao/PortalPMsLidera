@@ -21,6 +21,7 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { TenantContext } from '../../common/tenant/tenant.context';
 import { redisCommands } from '../queue/redis.config';
 import { AtendimentoConversaService } from '../atendimento/atendimento-conversa.service';
+import { AtendimentoWhatsappAgenteService } from '../atendimento/atendimento-whatsapp-agente.service';
 import { WhatsappConfigService } from './whatsapp-config.service';
 import { MetaCloudProvider } from './meta-cloud.provider';
 import { QUEUE_ATENDIMENTO, JOB_ATEND_PROCESSAR_MENSAGEM } from '../queue/queue.constants';
@@ -51,6 +52,8 @@ export class WhatsappMetaWebhookController {
     private readonly configService: WhatsappConfigService,
     @Inject(forwardRef(() => AtendimentoConversaService))
     private readonly conversaService: AtendimentoConversaService,
+    @Inject(forwardRef(() => AtendimentoWhatsappAgenteService))
+    private readonly agente: AtendimentoWhatsappAgenteService,
     @InjectQueue(QUEUE_ATENDIMENTO) private readonly fila: Queue,
   ) {}
 
@@ -140,6 +143,13 @@ export class WhatsappMetaWebhookController {
     const identificador = inbound.from.replace(/\D/g, '');
     if (!identificador) return;
 
+    const texto = inbound.texto?.slice(0, 5000) ?? '[mensagem sem texto]';
+
+    // Detecção de agente — ANTES de criar conversa de cidadão.
+    if (await this.agente.tentarRotearComoAgente(tenantId, identificador, texto)) {
+      return;
+    }
+
     let conversa = await TenantContext.run({ tenantId }, () =>
       this.prisma.db.atendimentoConversa.findFirst({
         where: {
@@ -168,7 +178,6 @@ export class WhatsappMetaWebhookController {
       return;
     }
 
-    const texto = inbound.texto?.slice(0, 5000) ?? '[mensagem sem texto]';
     const msg = await this.conversaService.persistirMensagem(conversa.id, tenantId, {
       autorTipo: 'visitante',
       conteudo: texto,

@@ -24,7 +24,7 @@ export interface AtendimentoConfig {
 
 export type AtendStatusType = 'bot' | 'aguardando_agente' | 'em_atendimento' | 'encerrada';
 export type AutorTipo = 'visitante' | 'bot' | 'agente' | 'sistema';
-export type CanalTipo = 'widget' | 'whatsapp';
+export type CanalTipo = 'widget' | 'whatsapp' | 'instagram' | 'messenger' | 'telegram';
 
 export interface MensagemAtend {
   id: string;

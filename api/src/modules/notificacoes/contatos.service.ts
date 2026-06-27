@@ -12,6 +12,7 @@ interface SalvarDto {
   email?: string;
   notifWhatsapp?: boolean;
   notifEmail?: boolean;
+  notifTelegram?: boolean;
 }
 
 const hash = (s: string) => createHash('sha256').update(s).digest('hex');
@@ -33,10 +34,23 @@ export class ContatosService {
   ) {}
 
   async obter(userId: string) {
+    const tenantId = TenantContext.tenantId()!;
     const [c, user] = await Promise.all([
       this.prisma.db.userContato.findFirst({ where: { userId } }),
       this.prisma.db.user.findUnique({ where: { id: userId }, select: { email: true } }),
     ]);
+
+    // Verifica se o tenant possui canal Telegram ativo (para exibir a aba no frontend).
+    const canalTelegram = await this.prisma.db.tenantWhatsappCanal.findFirst({
+      where: { tenantId, tipo: 'telegram', ativo: true },
+      select: { id: true },
+    });
+
+    // Mascara o chat_id: expõe somente os 4 últimos dígitos para LGPD.
+    const chatIdMascarado = c?.telegramChatId
+      ? `****${c.telegramChatId.slice(-4)}`
+      : null;
+
     return {
       whatsapp: c?.whatsapp ?? '',
       whatsappVerificado: c?.whatsappVerificado ?? false,
@@ -44,7 +58,14 @@ export class ContatosService {
       emailVerificado: c?.emailVerificado ?? false,
       notifWhatsapp: c?.notifWhatsapp ?? true,
       notifEmail: c?.notifEmail ?? true,
-      canais: { whatsapp: this.whatsapp.habilitado, email: await this.email.configurado() },
+      telegram: chatIdMascarado,
+      telegramVerificado: c?.telegramVerificado ?? false,
+      notifTelegram: c?.notifTelegram ?? true,
+      canais: {
+        whatsapp: this.whatsapp.habilitado,
+        email: await this.email.configurado(),
+        telegram: !!canalTelegram,
+      },
     };
   }
 
@@ -78,6 +99,7 @@ export class ContatosService {
     }
     if (dto.notifWhatsapp !== undefined) data.notifWhatsapp = dto.notifWhatsapp;
     if (dto.notifEmail !== undefined) data.notifEmail = dto.notifEmail;
+    if (dto.notifTelegram !== undefined) data.notifTelegram = dto.notifTelegram;
 
     const row = atual
       ? await this.prisma.db.userContato.update({ where: { id: atual.id }, data: data as any })
@@ -116,6 +138,112 @@ export class ContatosService {
     if (!c || !destino) throw new BadRequestException('Contato não cadastrado.');
     await this.gerarEnviarCodigo(c.id, canal, destino);
     return { ok: true };
+  }
+
+  // ----------------------------------------------------------- telegram
+
+  /**
+   * Gera um código de vínculo Telegram de 6 dígitos (fluxo invertido: o funcionário
+   * envia o código para o bot, não o contrário).
+   *
+   * O código é armazenado apenas como hash SHA-256 (mesmo padrão WhatsApp/e-mail).
+   * TTL de 15 minutos. Zera chat_id e verificado até que o bot complete o vínculo.
+   */
+  async gerarCodigoVinculoTelegram(userId: string): Promise<{ codigo: string; expiraEm: Date }> {
+    const tenantId = TenantContext.tenantId()!;
+    const codigo = String(randomInt(100000, 1000000)); // 6 dígitos
+    const expiraEm = new Date(Date.now() + 15 * 60 * 1000);
+
+    const atual = await this.prisma.db.userContato.findFirst({ where: { userId } });
+
+    const telegramData = {
+      telegramCodigo: hash(codigo),
+      telegramCodigoExp: expiraEm,
+      telegramVerificado: false,
+      telegramChatId: null as string | null,
+    };
+
+    if (atual) {
+      await this.prisma.db.userContato.update({
+        where: { id: atual.id },
+        data: telegramData,
+      });
+    } else {
+      await this.prisma.db.userContato.create({
+        data: { tenantId, userId, ...telegramData } as any,
+      });
+    }
+
+    return { codigo, expiraEm };
+  }
+
+  /**
+   * Chamado pelo webhook do Telegram ao receber um código de vínculo de um usuário
+   * desconhecido. Procura o `userContato` com o hash do código não-expirado dentro
+   * do tenant do canal (garantia anti-cross-tenant). Se encontrar, seta chat_id e
+   * marca como verificado. Limpa o código (uso único).
+   */
+  async vincularTelegramPorCodigo(
+    tenantId: string,
+    codigo: string,
+    chatId: string,
+  ): Promise<{ ok: boolean; nome?: string }> {
+    return TenantContext.run({ tenantId }, async () => {
+      const codigoHash = hash((codigo ?? '').trim());
+      const agora = new Date();
+
+      const c = await this.prisma.db.userContato.findFirst({
+        where: {
+          telegramCodigo: codigoHash,
+          telegramCodigoExp: { gt: agora },
+        },
+      });
+
+      if (!c) return { ok: false };
+
+      await this.prisma.db.userContato.update({
+        where: { id: c.id },
+        data: {
+          telegramChatId: chatId,
+          telegramVerificado: true,
+          telegramCodigo: null,
+          telegramCodigoExp: null,
+        },
+      });
+
+      // Busca nome do funcionário para a mensagem de confirmação (best-effort).
+      let nome: string | undefined;
+      try {
+        const user = await this.prisma.db.user.findUnique({
+          where: { id: c.userId },
+          select: { nome: true },
+        });
+        nome = user?.nome ?? undefined;
+      } catch {
+        // best-effort
+      }
+
+      this.log.log(`Telegram vinculado: userId=${c.userId} chatId=${chatId.slice(-4)} (tenant ${tenantId})`);
+      return { ok: true, nome };
+    });
+  }
+
+  /**
+   * Remove o vínculo Telegram do usuário (desvincula o bot). Limpa chat_id,
+   * verificação e qualquer código pendente.
+   */
+  async removerTelegram(userId: string): Promise<void> {
+    const c = await this.prisma.db.userContato.findFirst({ where: { userId } });
+    if (!c) return;
+    await this.prisma.db.userContato.update({
+      where: { id: c.id },
+      data: {
+        telegramChatId: null,
+        telegramVerificado: false,
+        telegramCodigo: null,
+        telegramCodigoExp: null,
+      },
+    });
   }
 
   // ----------------------------------------------------------- helpers

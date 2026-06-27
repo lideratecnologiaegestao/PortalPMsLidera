@@ -25,6 +25,7 @@ export interface NotifPayload {
 export interface Alvo {
   userId?: string;
   email?: string;
-  whatsapp?: string; // só preenchido se verificado e opt-in
+  whatsapp?: string;  // só preenchido se verificado e opt-in
+  telegram?: string;  // chat_id Telegram — só preenchido se telegramVerificado && notifTelegram
   notifEmail: boolean;
 }

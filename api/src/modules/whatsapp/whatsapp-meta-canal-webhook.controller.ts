@@ -19,6 +19,7 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { TenantContext } from '../../common/tenant/tenant.context';
 import { redisCommands } from '../queue/redis.config';
 import { AtendimentoConversaService } from '../atendimento/atendimento-conversa.service';
+import { AtendimentoWhatsappAgenteService } from '../atendimento/atendimento-whatsapp-agente.service';
 import { WhatsappCanaisService } from './whatsapp-canais.service';
 import { MetaCloudProvider } from './meta-cloud.provider';
 import { InstagramProvider } from './instagram.provider';
@@ -55,6 +56,7 @@ export class WhatsappMetaCanalWebhookController {
     private readonly prisma: PrismaService,
     private readonly canaisService: WhatsappCanaisService,
     private readonly conversaService: AtendimentoConversaService,
+    private readonly agente: AtendimentoWhatsappAgenteService,
     @InjectQueue(QUEUE_ATENDIMENTO) private readonly fila: Queue,
   ) {}
 
@@ -173,6 +175,15 @@ export class WhatsappMetaCanalWebhookController {
       : ehMessenger
         ? 'messenger'
         : 'whatsapp';
+
+    // Detecção de agente — apenas para WhatsApp (PSID de Instagram/Messenger não é número de telefone).
+    // O ouvidor atende SOMENTE pelo WhatsApp da prefeitura, não por Instagram/Messenger (spec B).
+    if (!ehPSID) {
+      const textoAgente = inbound.texto?.slice(0, 5000) ?? '';
+      if (await this.agente.tentarRotearComoAgente(tenantId, identificador, textoAgente, canalId)) {
+        return;
+      }
+    }
 
     await TenantContext.run({ tenantId }, async () => {
       // Busca conversa ativa pelo (canal, número/PSID) — prioriza o canal de origem.

@@ -22,6 +22,7 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { AtendimentoConversaService } from './atendimento-conversa.service';
 import { AtendimentoConfigService } from './atendimento-config.service';
 import { WhatsappService } from '../whatsapp/whatsapp.service';
+import { destinoCidadao } from './atendimento-destino.util';
 
 /**
  * Console de administração do atendimento omnichannel.
@@ -122,10 +123,8 @@ export class AtendimentoAdminController {
         );
         // Roteamento para todos os canais externos (migration 083: messenger + telegram)
         if (c && ['whatsapp', 'instagram', 'messenger', 'telegram'].includes(c.canal)) {
-          // Telegram usa visitanteIdentificador (chat_id); demais usam visitanteTelefone.
-          const destino = c.canal === 'telegram'
-            ? (c.visitanteIdentificador ?? c.visitanteTelefone)
-            : c.visitanteTelefone;
+          // destinoCidadao: whatsapp→telefone, messenger/instagram/telegram→PSID/chat_id
+          const destino = destinoCidadao(c);
           if (destino) {
             if (c.canalId) {
               // Messenger/Telegram/Instagram/WhatsApp: sempre via canalId (provider resolvido pelo tipo)

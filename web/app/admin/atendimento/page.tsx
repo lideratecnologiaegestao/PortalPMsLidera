@@ -52,7 +52,16 @@ const STATUS_COR: Record<AtendStatusType, string> = {
 const CANAL_LABEL: Record<CanalTipo, string> = {
   widget: 'Widget',
   whatsapp: 'WhatsApp',
+  instagram: 'Instagram',
+  messenger: 'Messenger',
+  telegram: 'Telegram',
 };
+
+function canalLabel(canal: string): string {
+  if (canal in CANAL_LABEL) return CANAL_LABEL[canal as CanalTipo];
+  // Fallback: capitaliza o valor bruto para nunca renderizar vazio
+  return canal.charAt(0).toUpperCase() + canal.slice(1);
+}
 
 function Badge({ status }: { status: AtendStatusType }) {
   return (
@@ -65,7 +74,7 @@ function Badge({ status }: { status: AtendStatusType }) {
 function CanalBadge({ canal }: { canal: CanalTipo }) {
   return (
     <span className={`${ui.badge} ${canal === 'whatsapp' ? 'bg-success/20 text-success' : 'bg-secondary/10 text-secondary'}`}>
-      {CANAL_LABEL[canal]}
+      {canalLabel(canal)}
     </span>
   );
 }
@@ -271,6 +280,21 @@ export default function AtendimentoAdminPage() {
     }
   }
 
+  // ── Deep-link: abre a conversa de ?conversa=<id> (alerta WhatsApp ao ouvidor) ──
+  const deepLinkRef = useRef(false);
+  useEffect(() => {
+    if (deepLinkRef.current) return;
+    const id =
+      typeof window !== 'undefined'
+        ? new URLSearchParams(window.location.search).get('conversa')
+        : null;
+    if (id) {
+      deepLinkRef.current = true;
+      abrirConversa(id);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   // ── Ações ─────────────────────────────────────────────────────────────────
   function feedback(msg: string) {
     setOk(msg);
@@ -394,6 +418,9 @@ export default function AtendimentoAdminPage() {
     { value: '', label: 'Todos os canais' },
     { value: 'widget', label: 'Widget' },
     { value: 'whatsapp', label: 'WhatsApp' },
+    { value: 'instagram', label: 'Instagram' },
+    { value: 'messenger', label: 'Messenger' },
+    { value: 'telegram', label: 'Telegram' },
   ];
 
   const tagsMap = Object.fromEntries(tags.map((t) => [t.id, t]));

@@ -1,10 +1,12 @@
 import {
+  ConflictException,
   Injectable,
   NotFoundException,
   UnprocessableEntityException,
 } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { TenantContext } from '../../common/tenant/tenant.context';
+import { NotificacoesService } from '../notificacoes/notificacoes.service';
 import { assinarVisitante } from './visitor-token.util';
 
 // --- FSM ---
@@ -38,6 +40,29 @@ export function redigirPII(texto: string): string {
   return s;
 }
 
+/**
+ * Personaliza a saudação com o primeiro nome informado no início do atendimento.
+ * - Se a saudação tiver o placeholder `{nome}`, interpola.
+ * - Senão, prefixa um cumprimento pelo nome.
+ * - Sem nome, devolve a saudação como está.
+ */
+export function personalizarSaudacao(saudacao: string, nome?: string | null): string {
+  const primeiroNome = nome?.trim().split(/\s+/)[0];
+  if (!primeiroNome) return saudacao;
+  // 1) Placeholder explícito: o tenant decide onde o nome entra.
+  if (/\{nome\}/i.test(saudacao)) return saudacao.replace(/\{nome\}/gi, primeiroNome);
+  // 2) Já começa com uma saudação (Olá/Oi)? injeta o nome no vocativo, sem duplicar
+  //    o cumprimento. Ex.: "Olá, seja bem-vindo…" → "Olá, Bruno! Seja bem-vindo…".
+  const m = saudacao.match(/^(\s*)(olá|ola|oi)\s*[,!.]?\s*/i);
+  if (m) {
+    const resto = saudacao.slice(m[0].length);
+    const restoCap = resto ? resto.charAt(0).toUpperCase() + resto.slice(1) : resto;
+    return `Olá, ${primeiroNome}! ${restoCap}`.trim();
+  }
+  // 3) Sem saudação inicial: prefixa um cumprimento pelo nome.
+  return `Olá, ${primeiroNome}! ${saudacao}`;
+}
+
 @Injectable()
 export class AtendimentoConversaService {
   // Injetado pelo módulo via setter (evita dependência circular com gateway)
@@ -46,7 +71,10 @@ export class AtendimentoConversaService {
     emitirTenant(tenantId: string, evento: string, payload: unknown): void;
   };
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly notificacoes: NotificacoesService,
+  ) {}
 
   setGateway(gw: {
     emitir(conversaId: string, evento: string, payload: unknown): void;
@@ -93,14 +121,14 @@ export class AtendimentoConversaService {
         },
       });
 
-      // Grava saudação do bot se configurada
+      // Grava saudação do bot se configurada (personalizada pelo nome quando houver)
       if (tenant?.atendimentoSaudacao) {
         await this.prisma.db.atendimentoMensagem.create({
           data: {
             tenantId: opts.tenantId,
             conversaId: c.id,
             autorTipo: 'bot',
-            conteudo: tenant.atendimentoSaudacao,
+            conteudo: personalizarSaudacao(tenant.atendimentoSaudacao, opts.visitanteNome),
             interno: false,
           },
         });
@@ -178,7 +206,7 @@ export class AtendimentoConversaService {
             tenantId: opts.tenantId,
             conversaId: c.id,
             autorTipo: 'bot',
-            conteudo: tenant.atendimentoSaudacao,
+            conteudo: personalizarSaudacao(tenant.atendimentoSaudacao, opts.visitanteNome),
             interno: false,
           },
         });
@@ -388,25 +416,44 @@ export class AtendimentoConversaService {
 
   async assumir(conversaId: string, tenantId: string, agenteId: string) {
     return TenantContext.run({ tenantId }, async () => {
-      const c = await this.prisma.db.atendimentoConversa.findUnique({
-        where: { id: conversaId },
-      });
-      if (!c) throw new NotFoundException('Conversa não encontrada.');
-      validarTransicao(c.status as Status, 'em_atendimento');
-
-      const atualizada = await this.prisma.db.atendimentoConversa.update({
-        where: { id: conversaId },
+      // LOCK ATÔMICO: "o primeiro a assumir trava". O UPDATE condicional só altera
+      // a linha se ela ainda estiver `aguardando_agente` — uma única transação
+      // vence a corrida; os demais recebem count=0. Evita dois atendentes na mesma
+      // conversa (o findUnique+update anterior tinha janela de corrida).
+      const r = await this.prisma.db.atendimentoConversa.updateMany({
+        where: { id: conversaId, status: 'aguardando_agente' },
         data: { status: 'em_atendimento', agenteId, ultimaAtividadeEm: new Date() },
+      });
+
+      if (r.count === 0) {
+        // Não travou: ou não existe, ou já foi assumida por alguém.
+        const atual = await this.prisma.db.atendimentoConversa.findUnique({
+          where: { id: conversaId },
+          select: { id: true, status: true, agenteId: true },
+        });
+        if (!atual) throw new NotFoundException('Conversa não encontrada.');
+        // Idempotente: o PRÓPRIO agente reassumindo a sua conversa em andamento.
+        if (!(atual.status === 'em_atendimento' && atual.agenteId === agenteId)) {
+          throw new ConflictException(
+            'Este atendimento já foi assumido por outro atendente.',
+          );
+        }
+      }
+
+      const atualizada = await this.prisma.db.atendimentoConversa.findUnique({
+        where: { id: conversaId },
         include: { agente: { select: { id: true, nome: true } } },
       });
 
-      await this.gravarEvento(conversaId, tenantId, 'assumida', agenteId, {});
-
-      this.gateway?.emitir(conversaId, 'atend:status', {
-        status: 'em_atendimento',
-        agenteId,
-        agenteNome: atualizada.agente?.nome,
-      });
+      // Só gera evento/emite quando ESTE agente foi quem travou agora.
+      if (r.count > 0) {
+        await this.gravarEvento(conversaId, tenantId, 'assumida', agenteId, {});
+        this.gateway?.emitir(conversaId, 'atend:status', {
+          status: 'em_atendimento',
+          agenteId,
+          agenteNome: atualizada?.agente?.nome,
+        });
+      }
 
       return atualizada;
     });
@@ -451,6 +498,11 @@ export class AtendimentoConversaService {
         agenteNome: atualizada.agente?.nome,
       });
 
+      // Notifica agente atribuído (fire-and-forget, LGPD-safe)
+      void this.notificacoes
+        .avisarAgente(tenantId, dados.agenteId, { conversaId, canal: atualizada.canal })
+        .catch(() => undefined);
+
       return atualizada;
     });
   }
@@ -487,6 +539,11 @@ export class AtendimentoConversaService {
         assunto: atualizada.assunto,
         secretariaId,
       });
+
+      // Notifica atendentes da secretaria destino (fire-and-forget, LGPD-safe)
+      void this.notificacoes
+        .avisarAtendentesSecretaria(tenantId, secretariaId, { conversaId, canal: atualizada.canal })
+        .catch(() => undefined);
 
       return atualizada;
     });
@@ -534,7 +591,12 @@ export class AtendimentoConversaService {
     });
   }
 
-  async escalar(conversaId: string, tenantId: string, dentroExpediente: boolean) {
+  async escalar(
+    conversaId: string,
+    tenantId: string,
+    dentroExpediente: boolean,
+    secretariaId?: string,
+  ) {
     return TenantContext.run({ tenantId }, async () => {
       const c = await this.prisma.db.atendimentoConversa.findUnique({
         where: { id: conversaId },
@@ -543,12 +605,33 @@ export class AtendimentoConversaService {
 
       if (dentroExpediente) {
         validarTransicao(c.status as Status, 'aguardando_agente');
+
+        // Valida se a secretaria existe antes de usá-la (evita gravar id inválido)
+        let secretariaResolvida: string | undefined;
+        if (secretariaId) {
+          const sec = await this.prisma.db.secretaria.findUnique({
+            where: { id: secretariaId },
+            select: { id: true },
+          });
+          secretariaResolvida = sec?.id;
+        }
+
+        const dataUpdate: Record<string, unknown> = {
+          status: 'aguardando_agente',
+          ultimaAtividadeEm: new Date(),
+        };
+        if (secretariaResolvida) {
+          dataUpdate.secretariaId = secretariaResolvida;
+        }
+
         const atualizada = await this.prisma.db.atendimentoConversa.update({
           where: { id: conversaId },
-          data: { status: 'aguardando_agente', ultimaAtividadeEm: new Date() },
+          data: dataUpdate as any,
         });
 
-        await this.gravarEvento(conversaId, tenantId, 'escalada', null, {});
+        await this.gravarEvento(conversaId, tenantId, 'escalada', null, {
+          ...(secretariaResolvida ? { secretariaId: secretariaResolvida } : {}),
+        });
 
         // Confirmação visível ao visitante de que está sendo transferido.
         await this.persistirMensagem(conversaId, tenantId, {
@@ -564,6 +647,21 @@ export class AtendimentoConversaService {
           assunto: atualizada.assunto,
           secretariaId: atualizada.secretariaId,
         });
+
+        if (secretariaResolvida) {
+          // Roteamento para secretaria específica: notifica atendentes daquela secretaria
+          void this.notificacoes
+            .avisarAtendentesSecretaria(tenantId, secretariaResolvida, {
+              conversaId,
+              canal: atualizada.canal,
+            })
+            .catch(() => undefined);
+        } else {
+          // Fila geral: notifica ouvidores via WhatsApp + e-mail (fire-and-forget, LGPD-safe)
+          void this.notificacoes
+            .avisarOuvidoresAtendimento(tenantId, { conversaId, canal: atualizada.canal })
+            .catch(() => undefined);
+        }
 
         return atualizada;
       } else {

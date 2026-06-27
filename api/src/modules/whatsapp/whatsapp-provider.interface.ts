@@ -27,6 +27,27 @@ export interface ButtonsInput {
 }
 
 /**
+ * Mensagem de lista interativa (≤ 10 linhas).
+ * Suporte nativo: Meta Cloud API (WhatsApp).
+ * Fallback texto numerado: Z-API, Evolution, Telegram, Instagram, Messenger.
+ *
+ * Limites Meta: button ≤ 20 chars, row.title ≤ 24 chars, row.id ≤ 200 chars.
+ */
+export interface ListInput {
+  message: string;
+  /** Texto do botão que abre a lista (ex.: 'Escolher'). Máximo 20 chars. */
+  tituloBotao?: string;
+  rows: {
+    /** Identificador da opção — deve carregar o `valor` que o bot já entende. */
+    id: string;
+    /** Rótulo curto exibido ao usuário (máx. 24 chars). */
+    label: string;
+    /** Descrição opcional exibida abaixo do rótulo (máx. 72 chars). */
+    descricao?: string;
+  }[];
+}
+
+/**
  * Mensagem de template aprovado pela Meta (HSM). Único formato permitido para
  * INICIAR conversa fora da janela de 24h. `componentes` segue o formato da
  * Graph API (header/body/button com parameters). Só o provider Meta suporta;
@@ -68,6 +89,13 @@ export interface WhatsappProvider {
 
   /** Opcional — providers que não suportam botões interativos podem omitir. */
   sendButtons?(to: string, payload: ButtonsInput): Promise<SendResult>;
+
+  /**
+   * Opcional — envia lista interativa (4–10 opções).
+   * Suporte nativo apenas no Meta Cloud API (WhatsApp).
+   * Providers sem suporte real devem degradar para texto numerado.
+   */
+  sendList?(to: string, payload: ListInput): Promise<SendResult>;
 
   /**
    * Opcional — envia template aprovado (HSM). Necessário para iniciar conversa

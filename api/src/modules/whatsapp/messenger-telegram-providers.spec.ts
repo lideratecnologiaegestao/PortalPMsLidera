@@ -288,21 +288,86 @@ describe('TelegramProvider', () => {
   });
 
   describe('sendButtons', () => {
-    it('degrada para texto simples', async () => {
+    it('envia inline keyboard nativo quando ids cabem em 64 bytes', async () => {
       const http = makeHttp({ ok: true, result: { message_id: 10 } });
       const p = new TelegramProvider(http as any, CREDS);
 
-      await p.sendButtons('123', {
+      const r = await p.sendButtons('123', {
         message: 'Escolha:',
         buttons: [
-          { id: '1', label: 'Sim' },
-          { id: '2', label: 'Não' },
+          { id: 'sim', label: 'Sim' },
+          { id: 'nao', label: 'Não' },
         ],
       });
 
-      const body = http.post.mock.calls[0][1] as { text: string };
-      expect(body.text).toContain('Sim');
-      expect(body.text).toContain('Não');
+      expect(r.ok).toBe(true);
+      const body = http.post.mock.calls[0][1] as {
+        chat_id: string;
+        text: string;
+        reply_markup: { inline_keyboard: { text: string; callback_data: string }[][] };
+      };
+      expect(body.text).toBe('Escolha:');
+      expect(body.reply_markup.inline_keyboard).toHaveLength(2);
+      expect(body.reply_markup.inline_keyboard[0][0].callback_data).toBe('sim');
+      expect(body.reply_markup.inline_keyboard[1][0].callback_data).toBe('nao');
+      expect(body.reply_markup.inline_keyboard[0][0].text).toBe('Sim');
+    });
+
+    it('cada botão ocupa uma linha (1 por linha)', async () => {
+      const http = makeHttp({ ok: true, result: { message_id: 11 } });
+      const p = new TelegramProvider(http as any, CREDS);
+
+      await p.sendButtons('123', {
+        message: 'Menu:',
+        buttons: [
+          { id: 'a', label: 'A' },
+          { id: 'b', label: 'B' },
+          { id: 'c', label: 'C' },
+        ],
+      });
+
+      const body = http.post.mock.calls[0][1] as {
+        reply_markup: { inline_keyboard: unknown[][] };
+      };
+      // 3 botões = 3 linhas, cada linha tem 1 botão
+      expect(body.reply_markup.inline_keyboard).toHaveLength(3);
+      body.reply_markup.inline_keyboard.forEach((linha) => {
+        expect(linha).toHaveLength(1);
+      });
+    });
+
+    it('degrada para texto quando ALGUM id excede 64 bytes UTF-8', async () => {
+      const http = makeHttp({ ok: true, result: { message_id: 12 } });
+      const p = new TelegramProvider(http as any, CREDS);
+
+      const idLongo = 'x'.repeat(65); // 65 bytes — acima do limite
+      await p.sendButtons('123', {
+        message: 'Escolha:',
+        buttons: [
+          { id: 'curto', label: 'Curto' },
+          { id: idLongo, label: 'Longo' },
+        ],
+      });
+
+      const body = http.post.mock.calls[0][1] as { text: string; reply_markup?: unknown };
+      // Deve ter degradado para texto (sem reply_markup)
+      expect(body.reply_markup).toBeUndefined();
+      expect(body.text).toContain('Curto');
+      expect(body.text).toContain('Longo');
+    });
+
+    it('id com exatamente 64 bytes não dispara fallback', async () => {
+      const http = makeHttp({ ok: true, result: { message_id: 13 } });
+      const p = new TelegramProvider(http as any, CREDS);
+
+      const id64 = 'a'.repeat(64); // exatamente no limite — OK
+      await p.sendButtons('123', {
+        message: 'Menu:',
+        buttons: [{ id: id64, label: 'Opção' }],
+      });
+
+      const body = http.post.mock.calls[0][1] as { reply_markup?: { inline_keyboard?: unknown } };
+      expect(body.reply_markup?.inline_keyboard).toBeDefined();
     });
   });
 
@@ -380,15 +445,83 @@ describe('TelegramProvider', () => {
       expect(p.parseInbound(update)).toBeNull();
     });
 
-    it('retorna null para update sem message (callback_query, etc.)', () => {
+    it('parseia callback_query — toque em botão inline keyboard', () => {
       const p = new TelegramProvider(null as any, CREDS);
 
       const update = {
         update_id: 100000003,
-        callback_query: { id: 'cb-001', data: 'btn_click' },
+        callback_query: {
+          id: 'cbq-abc-999',
+          data: 'menu_esic',
+          from: { id: 987654321, first_name: 'Maria', username: 'maria_cidada' },
+          message: {
+            message_id: 50,
+            chat: { id: 987654321 },
+          },
+        },
       };
 
-      expect(p.parseInbound(update)).toBeNull();
+      const r = p.parseInbound(update);
+
+      expect(r).not.toBeNull();
+      expect(r!.messageId).toBe('cbq-cbq-abc-999');
+      expect(r!.from).toBe('987654321'); // chat.id, não from.id
+      expect(r!.texto).toBe('menu_esic');
+      expect(r!.tipo).toBe('callback');
+      expect(r!.nome).toBe('Maria');
+    });
+
+    it('callback_query usa message.chat.id (não from.id) para bater com conversa existente', () => {
+      const p = new TelegramProvider(null as any, CREDS);
+
+      // Cenário: chat_id diferente de from.id (grupo, canal, etc.)
+      const update = {
+        callback_query: {
+          id: 'cbq-xyz',
+          data: 'opcao_1',
+          from: { id: 111, first_name: 'João' },
+          message: { chat: { id: 999 } }, // chat_id prevalece
+        },
+      };
+
+      const r = p.parseInbound(update);
+      expect(r).not.toBeNull();
+      expect(r!.from).toBe('999');
+    });
+
+    it('callback_query sem message.chat usa from.id como fallback', () => {
+      const p = new TelegramProvider(null as any, CREDS);
+
+      const update = {
+        callback_query: {
+          id: 'cbq-fallback',
+          data: 'opcao_x',
+          from: { id: 555, first_name: 'Pedro' },
+          // sem message.chat
+        },
+      };
+
+      const r = p.parseInbound(update);
+      expect(r).not.toBeNull();
+      expect(r!.from).toBe('555');
+    });
+
+    it('retorna null para callback_query sem id ou sem data', () => {
+      const p = new TelegramProvider(null as any, CREDS);
+
+      // sem id
+      expect(
+        p.parseInbound({
+          callback_query: { data: 'opcao', from: { id: 1 }, message: { chat: { id: 1 } } },
+        }),
+      ).toBeNull();
+
+      // sem data
+      expect(
+        p.parseInbound({
+          callback_query: { id: 'cbq-1', from: { id: 1 }, message: { chat: { id: 1 } } },
+        }),
+      ).toBeNull();
     });
 
     it('retorna null para payload malformado', () => {
@@ -396,6 +529,86 @@ describe('TelegramProvider', () => {
       expect(p.parseInbound(null)).toBeNull();
       expect(p.parseInbound({})).toBeNull();
       expect(p.parseInbound('string')).toBeNull();
+    });
+  });
+
+  describe('sendList', () => {
+    it('envia inline keyboard nativo quando ids cabem em 64 bytes', async () => {
+      const http = makeHttp({ ok: true, result: { message_id: 20 } });
+      const p = new TelegramProvider(http as any, CREDS);
+
+      const r = await p.sendList('456', {
+        message: 'Selecione o serviço:',
+        tituloBotao: 'Ver opções',
+        rows: [
+          { id: 'esic', label: 'e-SIC', descricao: 'Informações ao cidadão' },
+          { id: 'ouvidoria', label: 'Ouvidoria', descricao: 'Reclamações e sugestões' },
+          { id: 'protocolo', label: 'Protocolo', descricao: 'Consultar protocolo' },
+        ],
+      });
+
+      expect(r.ok).toBe(true);
+      const body = http.post.mock.calls[0][1] as {
+        text: string;
+        reply_markup: { inline_keyboard: { text: string; callback_data: string }[][] };
+      };
+      expect(body.text).toBe('Selecione o serviço:');
+      expect(body.reply_markup.inline_keyboard).toHaveLength(3);
+      expect(body.reply_markup.inline_keyboard[0][0].callback_data).toBe('esic');
+      expect(body.reply_markup.inline_keyboard[1][0].callback_data).toBe('ouvidoria');
+      expect(body.reply_markup.inline_keyboard[2][0].callback_data).toBe('protocolo');
+    });
+
+    it('degrada para texto numerado quando ALGUM id excede 64 bytes', async () => {
+      const http = makeHttp({ ok: true, result: { message_id: 21 } });
+      const p = new TelegramProvider(http as any, CREDS);
+
+      const idLongo = 'z'.repeat(65);
+      await p.sendList('456', {
+        message: 'Escolha:',
+        rows: [
+          { id: 'curto', label: 'Curto' },
+          { id: idLongo, label: 'Longo demais' },
+        ],
+      });
+
+      const body = http.post.mock.calls[0][1] as { text: string; reply_markup?: unknown };
+      expect(body.reply_markup).toBeUndefined();
+      expect(body.text).toContain('1. Curto');
+      expect(body.text).toContain('2. Longo demais');
+    });
+  });
+
+  describe('answerCallback', () => {
+    it('chama /answerCallbackQuery com o callback_query_id correto', async () => {
+      const http = makeHttp({ ok: true });
+      const p = new TelegramProvider(http as any, CREDS);
+
+      await p.answerCallback('cbq-abc-123');
+
+      expect(http.post).toHaveBeenCalledWith(
+        expect.stringContaining('/answerCallbackQuery'),
+        { callback_query_id: 'cbq-abc-123' },
+        expect.any(Object),
+      );
+    });
+
+    it('não lança em caso de erro (best-effort)', async () => {
+      const http = makeHttpError('Bad Request');
+      const p = new TelegramProvider(http as any, CREDS);
+
+      // Não deve lançar
+      await expect(p.answerCallback('cbq-err')).resolves.toBeUndefined();
+    });
+
+    it('URL inclui o bot token correto', async () => {
+      const http = makeHttp({ ok: true });
+      const p = new TelegramProvider(http as any, CREDS);
+
+      await p.answerCallback('cbq-token-test');
+
+      const url = http.post.mock.calls[0][0] as string;
+      expect(url).toContain('bot' + CREDS.token);
     });
   });
 });

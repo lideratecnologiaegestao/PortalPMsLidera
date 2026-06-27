@@ -4,6 +4,7 @@ import { firstValueFrom } from 'rxjs';
 import {
   ButtonsInput,
   InboundMessage,
+  ListInput,
   MediaInput,
   ProviderNome,
   SendResult,
@@ -84,10 +85,102 @@ export class TelegramProvider implements WhatsappProvider {
     }
   }
 
-  /** Degrada botões para texto simples com opções listadas. */
+  /**
+   * Envia botões como inline keyboard nativo do Telegram.
+   * Cada botão ocupa uma linha; callback_data = id (valor que o bot já entende).
+   * Se QUALQUER id exceder 64 bytes UTF-8 (limite do Telegram), degrada para
+   * texto simples para evitar truncamento silencioso que quebraria a lógica do bot.
+   */
   async sendButtons(chatId: string, payload: ButtonsInput): Promise<SendResult> {
-    const opcoes = payload.buttons.map((b) => `• ${b.label}`).join('\n');
-    return this.sendText(chatId, `${payload.message}\n\n${opcoes}`);
+    const temIdLongo = payload.buttons.some(
+      (b) => Buffer.byteLength(b.id, 'utf8') > 64,
+    );
+    if (temIdLongo) {
+      const opcoes = payload.buttons.map((b) => `• ${b.label}`).join('\n');
+      return this.sendText(chatId, `${payload.message}\n\n${opcoes}`);
+    }
+
+    const inline_keyboard = payload.buttons.map((b) => [
+      { text: b.label.slice(0, 64), callback_data: b.id },
+    ]);
+
+    try {
+      const resp = await firstValueFrom(
+        this.http.post(
+          `${this.baseUrl}/sendMessage`,
+          {
+            chat_id: chatId,
+            text: payload.message,
+            reply_markup: { inline_keyboard },
+          },
+          { timeout: 20000 },
+        ),
+      );
+      const result = (resp.data as { result?: { message_id?: number } })?.result;
+      return { ok: true, id: result?.message_id !== undefined ? String(result.message_id) : undefined };
+    } catch (e) {
+      const err = e as { response?: { data?: { description?: string } }; message?: string };
+      return { ok: false, erro: err.response?.data?.description ?? err.message ?? 'erro desconhecido' };
+    }
+  }
+
+  /**
+   * Envia lista como inline keyboard nativo do Telegram (1 botão por linha).
+   * callback_data = row.id (valor que o bot já entende).
+   * Se QUALQUER id exceder 64 bytes UTF-8 (limite do Telegram), degrada para
+   * texto numerado para evitar truncamento silencioso.
+   */
+  async sendList(chatId: string, payload: ListInput): Promise<SendResult> {
+    const temIdLongo = payload.rows.some(
+      (r) => Buffer.byteLength(r.id, 'utf8') > 64,
+    );
+    if (temIdLongo) {
+      const linhas = payload.rows.map((r, i) => `${i + 1}. ${r.label}`).join('\n');
+      return this.sendText(chatId, `${payload.message}\n\n${linhas}`);
+    }
+
+    const inline_keyboard = payload.rows.map((r) => [
+      { text: r.label.slice(0, 64), callback_data: r.id },
+    ]);
+
+    try {
+      const resp = await firstValueFrom(
+        this.http.post(
+          `${this.baseUrl}/sendMessage`,
+          {
+            chat_id: chatId,
+            text: payload.message,
+            reply_markup: { inline_keyboard },
+          },
+          { timeout: 20000 },
+        ),
+      );
+      const result = (resp.data as { result?: { message_id?: number } })?.result;
+      return { ok: true, id: result?.message_id !== undefined ? String(result.message_id) : undefined };
+    } catch (e) {
+      const err = e as { response?: { data?: { description?: string } }; message?: string };
+      return { ok: false, erro: err.response?.data?.description ?? err.message ?? 'erro desconhecido' };
+    }
+  }
+
+  /**
+   * Responde ao Telegram confirmando o processamento de um callback_query.
+   * Remove o ícone de "carregando" (relógio) exibido sobre o botão pressionado.
+   * Best-effort: captura erros sem lançar.
+   */
+  async answerCallback(callbackQueryId: string): Promise<void> {
+    try {
+      await firstValueFrom(
+        this.http.post(
+          `${this.baseUrl}/answerCallbackQuery`,
+          { callback_query_id: callbackQueryId },
+          { timeout: 10000 },
+        ),
+      );
+    } catch (e) {
+      const err = e as { message?: string };
+      this.log.debug(`answerCallbackQuery falhou (best-effort): ${err.message ?? 'erro desconhecido'}`);
+    }
   }
 
   /** Templates HSM não são suportados no Telegram. */
@@ -114,8 +207,14 @@ export class TelegramProvider implements WhatsappProvider {
 
   /**
    * Normaliza um update do Telegram para InboundMessage.
-   * Estrutura: {update_id, message:{message_id, from:{id,first_name,username}, chat:{id}, text}}.
-   * Ignora updates sem message.text (fotos, stickers, etc.).
+   *
+   * Suporta dois tipos de update:
+   * - message: {message_id, from, chat:{id}, text} — mensagem de texto normal.
+   * - callback_query: {id, data, from, message:{chat:{id}}} — toque em botão inline.
+   *   O `texto` retornado é o `data` do botão (= o id/valor que o bot entende).
+   *   O `messageId` usa o prefixo 'cbq-' para garantir idempotência separada.
+   *
+   * Ignora updates sem texto/data utilizável (fotos, stickers, delivery, etc.).
    */
   parseInbound(raw: unknown): InboundMessage | null {
     try {
@@ -127,8 +226,35 @@ export class TelegramProvider implements WhatsappProvider {
           chat?: { id?: number };
           text?: string;
         };
+        callback_query?: {
+          id?: string;
+          data?: string;
+          from?: { id?: number; first_name?: string; username?: string };
+          message?: {
+            chat?: { id?: number };
+          };
+        };
       };
 
+      // Toque em botão inline keyboard.
+      if (update.callback_query) {
+        const cbq = update.callback_query;
+        if (!cbq.id || !cbq.data) return null;
+
+        // Usa message.chat.id para garantir que o from bate com a conversa existente.
+        const chatId = cbq.message?.chat?.id ?? cbq.from?.id;
+        if (!chatId) return null;
+
+        return {
+          messageId: `cbq-${cbq.id}`,
+          from: String(chatId),
+          texto: cbq.data,
+          tipo: 'callback',
+          nome: cbq.from?.first_name,
+        };
+      }
+
+      // Mensagem de texto normal.
       const msg = update.message;
       if (!msg || !msg.text) return null;
       if (msg.message_id === undefined || !msg.chat?.id) return null;

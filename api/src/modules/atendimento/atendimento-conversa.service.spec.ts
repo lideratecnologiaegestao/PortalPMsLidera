@@ -50,6 +50,7 @@ describe('AtendimentoConversaService — unidade', () => {
           atendimentoConversa: {
             findUnique: jest.fn(),
             update: jest.fn(),
+            updateMany: jest.fn(),
             create: jest.fn(),
             findMany: jest.fn(),
             count: jest.fn(),
@@ -60,6 +61,7 @@ describe('AtendimentoConversaService — unidade', () => {
             findUnique: jest.fn(),
           },
           atendimentoEvento: { create: jest.fn() },
+          secretaria: { findUnique: jest.fn() },
           tenant: {
             findFirst: jest.fn().mockResolvedValue({
               atendimentoSaudacao: 'Olá!',
@@ -72,7 +74,12 @@ describe('AtendimentoConversaService — unidade', () => {
           tenant: { findUnique: jest.fn() },
         }),
       };
-      service = new AtendimentoConversaService(prismaMock as any);
+      const notifMock = {
+        avisarOuvidoresAtendimento: jest.fn().mockResolvedValue(undefined),
+        avisarAtendentesSecretaria: jest.fn().mockResolvedValue(undefined),
+        avisarAgente: jest.fn().mockResolvedValue(undefined),
+      };
+      service = new AtendimentoConversaService(prismaMock as any, notifMock as any);
     });
 
     it('permite bot → aguardando_agente', async () => {
@@ -125,17 +132,20 @@ describe('AtendimentoConversaService — unidade', () => {
       ).resolves.toBeDefined();
     });
 
-    it('rejeita bot → em_atendimento (assumir) com 422', async () => {
-      // bot → em_atendimento NÃO é transição direta permitida
-      // aguardando_agente → em_atendimento é o caminho correto
+    it('rejeita assumir conversa não disponível (status bot) com ConflictException', async () => {
+      // assumir via updateMany: só funciona quando status='aguardando_agente'.
+      // Quando count=0, busca a conversa e lança ConflictException se não é o próprio agente.
+      prismaMock.db.atendimentoConversa.updateMany.mockResolvedValue({ count: 0 });
       prismaMock.db.atendimentoConversa.findUnique.mockResolvedValue({
         id: 'c1',
         status: 'bot',
+        agenteId: null,
       });
 
+      const { ConflictException } = await import('@nestjs/common');
       await expect(
         service.assumir('c1', 'tenant1', 'agente1'),
-      ).rejects.toThrow(UnprocessableEntityException);
+      ).rejects.toThrow(ConflictException);
     });
   });
 
@@ -164,7 +174,8 @@ describe('AtendimentoConversaService — unidade', () => {
         platform: jest.fn().mockReturnValue({ tenant: { findUnique: jest.fn() } }),
       };
 
-      const svcA = new AtendimentoConversaService(prismaMockA as any);
+      const notifMockA = { avisarOuvidoresAtendimento: jest.fn().mockResolvedValue(undefined) };
+      const svcA = new AtendimentoConversaService(prismaMockA as any, notifMockA as any);
 
       const { NotFoundException } = await import('@nestjs/common');
       await expect(

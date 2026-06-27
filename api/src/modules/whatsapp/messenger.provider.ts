@@ -4,6 +4,7 @@ import { firstValueFrom } from 'rxjs';
 import {
   ButtonsInput,
   InboundMessage,
+  ListInput,
   MediaInput,
   ProviderNome,
   SendResult,
@@ -97,6 +98,15 @@ export class MessengerProvider implements WhatsappProvider {
   async sendButtons(to: string, payload: ButtonsInput): Promise<SendResult> {
     const opcoes = payload.buttons.map((b) => `• ${b.label}`).join('\n');
     return this.sendText(to, `${payload.message}\n\n${opcoes}`);
+  }
+
+  /**
+   * Facebook Messenger não suporta mensagem de lista interativa no mesmo formato
+   * da Cloud API de WhatsApp. Degrada para texto numerado.
+   */
+  async sendList(to: string, payload: ListInput): Promise<SendResult> {
+    const linhas = payload.rows.map((r, i) => `${i + 1}. ${r.label}`).join('\n');
+    return this.sendText(to, `${payload.message}\n\n${linhas}`);
   }
 
   /** Templates HSM não são suportados no Messenger. */

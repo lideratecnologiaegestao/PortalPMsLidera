@@ -1,14 +1,17 @@
 import { Module, OnModuleInit } from '@nestjs/common';
+import { HttpModule } from '@nestjs/axios';
 import { BullModule } from '@nestjs/bullmq';
 import { QUEUE_ATENDIMENTO } from '../queue/queue.constants';
 import { IaModule } from '../ia/ia.module';
 import { ManifestacoesModule } from '../manifestacoes/manifestacoes.module';
+import { NotificacoesModule } from '../notificacoes/notificacoes.module';
 import { WhatsappModule } from '../whatsapp/whatsapp.module';
 import { AtendimentoGateway } from './atendimento.gateway';
 import { AtendimentoConversaService } from './atendimento-conversa.service';
 import { AtendimentoBotService } from './atendimento-bot.service';
 import { AtendimentoConfigService } from './atendimento-config.service';
 import { AtendimentoWorker } from './atendimento.worker';
+import { AtendimentoWhatsappAgenteService } from './atendimento-whatsapp-agente.service';
 import { ExpedienteService } from './expediente.service';
 import { AtendimentoController } from './atendimento.controller';
 import { AtendimentoAdminController } from './atendimento-admin.controller';
@@ -36,9 +39,11 @@ import { TelegramWebhookController } from '../whatsapp/telegram-webhook.controll
         removeOnFail: { count: 1000 },
       },
     }),
-    IaModule,            // IaService.chatMultiturno
-    ManifestacoesModule, // TramitacaoService
-    WhatsappModule,      // adapter (envio) + WhatsappConfigService (webhook de entrada)
+    HttpModule,           // HttpService (TelegramWebhookController → answerCallback)
+    IaModule,             // IaService.chatMultiturno
+    ManifestacoesModule,  // TramitacaoService
+    NotificacoesModule,   // NotificacoesService (aviso WhatsApp+e-mail ao escalar)
+    WhatsappModule,       // adapter (envio) + WhatsappConfigService (webhook de entrada)
   ],
   controllers: [
     AtendimentoController,
@@ -55,6 +60,7 @@ import { TelegramWebhookController } from '../whatsapp/telegram-webhook.controll
     AtendimentoBotService,
     AtendimentoConfigService,
     AtendimentoWorker,
+    AtendimentoWhatsappAgenteService,
     ExpedienteService,
   ],
   exports: [AtendimentoConversaService, AtendimentoGateway],
