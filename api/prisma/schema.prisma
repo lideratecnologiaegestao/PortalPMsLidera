@@ -533,6 +533,29 @@ model AplicPagamentoLiquidacao {
   @@map("aplic_pagamento_liquidacao")
 }
 
+/// Movimentos contábeis por fonte de recurso (APLIC, Fase 5) — migration 090. RLS aplica.
+model AplicMovContabil {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId    String   @map("tenant_id") @db.Uuid
+  cargaId     String?  @map("carga_id") @db.Uuid
+  exercicio   Int
+  competencia String?
+  grupo       String
+  conta       String
+  data        DateTime? @db.Date
+  natureza    String?
+  drgrp       String?
+  dresp       String?
+  destrec     String?
+  debito      Decimal  @default(0) @db.Decimal(16, 2)
+  credito     Decimal  @default(0) @db.Decimal(16, 2)
+  criadoEm    DateTime @default(now()) @map("criado_em") @db.Timestamptz(6)
+  @@index([tenantId, exercicio, competencia], map: "aplic_mov_contabil_escopo_idx")
+  @@index([tenantId, grupo, data], map: "aplic_mov_contabil_consulta_idx")
+  @@index([tenantId, grupo, dresp], map: "aplic_mov_contabil_fonte_idx")
+  @@map("aplic_mov_contabil")
+}
+
 /// Receita arrecadada derivada da contabilidade (APLIC) — migration 088. RLS aplica.
 model AplicReceitaArrecadada {
   id              String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid

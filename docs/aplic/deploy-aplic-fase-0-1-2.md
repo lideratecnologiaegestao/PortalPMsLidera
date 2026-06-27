@@ -31,8 +31,13 @@ psql "$DATABASE_URL" -f db/086_aplic_habilitado_ug.sql
 psql "$DATABASE_URL" -f db/087_aplic_previsao_receita.sql
 psql "$DATABASE_URL" -f db/088_aplic_receita_arrecadada.sql
 psql "$DATABASE_URL" -f db/089_transp_documentos_fonte.sql
+psql "$DATABASE_URL" -f db/090_aplic_mov_contabil.sql
 # ou: cd api && npm run db:migrate   (aplica db/*.sql em ordem; idempotente)
 ```
+
+> **Consulta fiscal por fonte (chatbot):** com a carga CT importada, o assistente
+> responde "saldo por fonte de recurso", "saldo de caixa e equivalentes" e "quanto foi
+> arrecadado de tal data a tal data" — números de consulta determinística (nunca IA).
 
 - `086`: colunas `tenants.aplic_habilitado` (default false) + `tenants.aplic_ug` (CHECK 7 díg) +
   índices ÚNICOS anti-duplicação em `aplic_empenho/liquidacao/pagamento/pagamento_liquidacao`.

@@ -61,6 +61,41 @@ export const FERRAMENTAS_FISCAIS: FerramentaIA[] = [
       required: ['numero'],
     },
   },
+  {
+    name: 'fiscal_saldo_por_fonte',
+    description:
+      'Saldo disponível por FONTE DE RECURSO (Disponibilidade por Destinação de Recursos, contabilidade). Use para "saldo por fonte", "quanto sobrou em cada fonte/recurso", "disponibilidade por fonte".',
+    input_schema: {
+      type: 'object',
+      properties: { dataAte: { type: 'string', description: 'Saldo até esta data (AAAA-MM-DD). Omitir = até hoje na carga.' } },
+    },
+  },
+  {
+    name: 'fiscal_saldo_caixa',
+    description:
+      'Saldo de CAIXA E EQUIVALENTES DE CAIXA (banco/aplicações), por fonte de recurso. Use para "quanto há em caixa", "saldo bancário", "caixa por fonte".',
+    input_schema: {
+      type: 'object',
+      properties: {
+        dataAte: { type: 'string', description: 'Saldo até esta data (AAAA-MM-DD).' },
+        fonte: { type: 'string', description: 'Código da fonte/destinação (DRESP), opcional.' },
+      },
+    },
+  },
+  {
+    name: 'fiscal_arrecadado_periodo',
+    description:
+      'Quanto foi ARRECADADO (receita realizada) entre duas datas, total e por fonte. Use para "quanto arrecadou de tal data a tal data", "receita arrecadada no período".',
+    input_schema: {
+      type: 'object',
+      properties: {
+        dataInicio: { type: 'string', description: 'Data inicial (AAAA-MM-DD).' },
+        dataFim: { type: 'string', description: 'Data final (AAAA-MM-DD).' },
+        fonte: { type: 'string', description: 'Código da fonte/destinação (DRESP), opcional.' },
+      },
+      required: ['dataInicio', 'dataFim'],
+    },
+  },
 ];
 
 /** Executa uma ferramenta fiscal no contexto de tenant atual (RLS). */
@@ -83,6 +118,18 @@ export async function executarFerramentaFiscal(
       return consulta.porCredor(String(input?.nome ?? ''), exercicio);
     case 'fiscal_situacao_empenho':
       return consulta.situacaoEmpenho(String(input?.numero ?? ''), exercicio);
+    case 'fiscal_saldo_por_fonte':
+      return consulta.saldoPorFonte(input?.dataAte ? String(input.dataAte) : undefined);
+    case 'fiscal_saldo_caixa':
+      return consulta.saldoCaixaEquivalentes(
+        input?.dataAte ? String(input.dataAte) : undefined,
+        input?.fonte ? String(input.fonte) : undefined,
+      );
+    case 'fiscal_arrecadado_periodo':
+      return consulta.arrecadadoPeriodo(
+        String(input?.dataInicio ?? ''), String(input?.dataFim ?? ''),
+        input?.fonte ? String(input.fonte) : undefined,
+      );
     default:
       return { erro: `Ferramenta desconhecida: ${nome}` };
   }

@@ -12,6 +12,7 @@ import {
 import { exigirNomeCargaTce } from './aplic-nomenclatura.util';
 import { modalidadeLicitacao } from './aplic-tabelas.ref';
 import { extrairReceitaArrecadada } from './aplic-receita.util';
+import { extrairMovContabil } from './aplic-contabil.util';
 
 export interface ResultadoImportacao {
   cargaId: string;
@@ -115,8 +116,17 @@ export class AplicIngestaoService {
           porTabela.LIQUIDACAO_EMPENHO = await this.importarLiquidacoes(zip, tenantId, carga.id, exercicio, competencia);
           porTabela.PAGAMENTO_EMPENHO = await this.importarPagamentos(zip, tenantId, carga.id, exercicio, competencia);
           porTabela.PAGAMENTO_EMPENHO_LIQUIDACAO = await this.importarPagLiq(zip, tenantId, carga.id, exercicio, competencia);
-          // Receita arrecadada derivada do lançamento contábil (6.2.1.2 por natureza).
-          porTabela.RECEITA_ARRECADADA = await this.importarReceitaArrecadada(zip, tenantId, carga.id, exercicio, competencia);
+          // Lê o lançamento contábil diário UMA vez (dezenas de MB) e deriva:
+          // receita arrecadada por natureza + movimentos por fonte (caixa/DDR/receita).
+          const lancBuf = await this.lerEntrada(zip, 'LANCAMENTO_CONTABIL_DIARIO_TCE.XML');
+          let lancXml: string | null = null;
+          if (lancBuf && lancBuf.length > 300 * 1024 * 1024) {
+            this.log.warn(`LANCAMENTO_CONTABIL_DIARIO ${lancBuf.length} bytes — acima do limite; contabilidade não processada.`);
+          } else if (lancBuf) {
+            lancXml = lancBuf.toString('latin1');
+          }
+          porTabela.RECEITA_ARRECADADA = await this.importarReceitaArrecadada(lancXml, tenantId, carga.id, exercicio, competencia);
+          porTabela.MOV_CONTABIL = await this.importarMovContabil(lancXml, tenantId, carga.id, exercicio, competencia);
           await this.recomputarTranspReceitas(tenantId, exercicio);
         } else if (modulo === 'CC') {
           const cc = await this.importarContratos(zip, tenantId, exercicio);
@@ -486,16 +496,11 @@ export class AplicIngestaoService {
    * competência. Devolve a qtd de naturezas.
    */
   private async importarReceitaArrecadada(
-    zip: JSZip, tenantId: string, cargaId: string, exercicio: number, competencia: string | null,
+    lancXml: string | null, tenantId: string, cargaId: string, exercicio: number, competencia: string | null,
   ): Promise<number> {
-    const buf = await this.lerEntrada(zip, 'LANCAMENTO_CONTABIL_DIARIO_TCE.XML');
     await this.prisma.db.aplicReceitaArrecadada.deleteMany({ where: { tenantId, exercicio, competencia } });
-    if (!buf) return 0;
-    if (buf.length > 300 * 1024 * 1024) {
-      this.log.warn(`LANCAMENTO_CONTABIL_DIARIO ${buf.length} bytes — acima do limite; receita arrecadada não processada.`);
-      return 0;
-    }
-    const naturezas = extrairReceitaArrecadada(buf.toString('latin1'))
+    if (!lancXml) return 0;
+    const naturezas = extrairReceitaArrecadada(lancXml)
       .filter((n) => n.arrecadado !== 0 || n.deducao !== 0);
     if (!naturezas.length) return 0;
     await this.prisma.db.aplicReceitaArrecadada.createMany({
@@ -506,6 +511,28 @@ export class AplicIngestaoService {
       })),
     });
     return naturezas.length;
+  }
+
+  /**
+   * Movimentos contábeis de caixa/DDR/receita por FONTE (Fase 5), do lançamento
+   * diário já lido. Carga mensal: substitui a competência. Devolve a qtd de linhas.
+   */
+  private async importarMovContabil(
+    lancXml: string | null, tenantId: string, cargaId: string, exercicio: number, competencia: string | null,
+  ): Promise<number> {
+    await this.prisma.db.aplicMovContabil.deleteMany({ where: { tenantId, exercicio, competencia } });
+    if (!lancXml) return 0;
+    const movs = extrairMovContabil(lancXml).filter((m) => m.debito !== 0 || m.credito !== 0);
+    if (!movs.length) return 0;
+    await this.prisma.db.aplicMovContabil.createMany({
+      data: movs.map((m) => ({
+        tenantId, cargaId, exercicio, competencia,
+        grupo: m.grupo, conta: m.conta, data: m.data, natureza: m.natureza,
+        drgrp: m.drgrp, dresp: m.dresp, destrec: m.destrec,
+        debito: m.debito, credito: m.credito,
+      })),
+    });
+    return movs.length;
   }
 
   /**

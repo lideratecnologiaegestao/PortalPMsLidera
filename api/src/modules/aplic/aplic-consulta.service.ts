@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
+import { nomeFonte } from './aplic-fontes.ref';
 
 /**
  * Consultas PRECISAS sobre a carga APLIC (execução da despesa), via SQL
@@ -207,6 +208,55 @@ export class AplicConsultaService {
     }));
   }
 
+  // ----------------------------------------------------- contabilidade por fonte (Fase 5)
+
+  /** Saldo por FONTE DE RECURSO (Disponibilidade por Destinação — conta 8.2.1.1), até a data. */
+  async saldoPorFonte(dataAte?: string, limite = 50) {
+    const ate = parseDataISO(dataAte);
+    const rows = await this.prisma.db.$queryRaw<{ drgrp: string | null; dresp: string | null; saldo: string }[]>`
+      SELECT drgrp, dresp, coalesce(sum(credito - debito), 0) AS saldo
+      FROM aplic_mov_contabil
+      WHERE grupo = 'ddr' AND (${ate}::date IS NULL OR data <= ${ate})
+      GROUP BY drgrp, dresp HAVING coalesce(sum(credito - debito), 0) <> 0
+      ORDER BY saldo DESC LIMIT ${Math.min(Math.max(limite, 1), 200)}`;
+    const fontes = rows.map((r) => ({ fonte: r.dresp, nome: nomeFonte(r.drgrp, r.dresp), saldo: num(r.saldo) }));
+    return { ate: ate ? ate.toISOString().slice(0, 10) : null, total: round2(fontes.reduce((a, b) => a + b.saldo, 0)), fontes };
+  }
+
+  /** Saldo de CAIXA E EQUIVALENTES DE CAIXA (conta 1.1.1.x), por fonte, até a data. */
+  async saldoCaixaEquivalentes(dataAte?: string, fonte?: string) {
+    const ate = parseDataISO(dataAte);
+    const f = fonte?.trim() || null;
+    const rows = await this.prisma.db.$queryRaw<{ drgrp: string | null; dresp: string | null; saldo: string }[]>`
+      SELECT drgrp, dresp, coalesce(sum(debito - credito), 0) AS saldo
+      FROM aplic_mov_contabil
+      WHERE grupo = 'caixa' AND (${ate}::date IS NULL OR data <= ${ate}) AND (${f}::text IS NULL OR dresp = ${f})
+      GROUP BY drgrp, dresp HAVING coalesce(sum(debito - credito), 0) <> 0
+      ORDER BY saldo DESC LIMIT 200`;
+    const fontes = rows.map((r) => ({ fonte: r.dresp, nome: nomeFonte(r.drgrp, r.dresp), saldo: num(r.saldo) }));
+    return { ate: ate ? ate.toISOString().slice(0, 10) : null, total: round2(fontes.reduce((a, b) => a + b.saldo, 0)), fontes };
+  }
+
+  /** Receita ARRECADADA num período (conta 6.2.1.2), total + por fonte. */
+  async arrecadadoPeriodo(dataInicio: string, dataFim: string, fonte?: string) {
+    const de = parseDataISO(dataInicio);
+    const ate = parseDataISO(dataFim);
+    if (!de || !ate) return { erro: 'Informe data inicial e final no formato AAAA-MM-DD.' };
+    const f = fonte?.trim() || null;
+    const rows = await this.prisma.db.$queryRaw<{ drgrp: string | null; dresp: string | null; total: string }[]>`
+      SELECT drgrp, dresp, coalesce(sum(credito - debito), 0) AS total
+      FROM aplic_mov_contabil
+      WHERE grupo = 'receita' AND data BETWEEN ${de} AND ${ate} AND (${f}::text IS NULL OR dresp = ${f})
+      GROUP BY drgrp, dresp HAVING coalesce(sum(credito - debito), 0) <> 0
+      ORDER BY total DESC LIMIT 100`;
+    const porFonte = rows.map((r) => ({ fonte: r.dresp, nome: nomeFonte(r.drgrp, r.dresp), arrecadado: num(r.total) }));
+    return {
+      periodo: { de: de.toISOString().slice(0, 10), ate: ate.toISOString().slice(0, 10) },
+      arrecadadoTotal: round2(porFonte.reduce((a, b) => a + b.arrecadado, 0)),
+      porFonte,
+    };
+  }
+
   // ---------------------------------------------------------------- helpers
 
   private async buscarPorDigitos(digitos: string) {
@@ -256,6 +306,20 @@ function num(v: unknown): number {
 }
 function round2(n: number): number {
   return Math.round(n * 100) / 100;
+}
+
+/** Converte 'AAAA-MM-DD' ou 'DD/MM/AAAA' em Date (UTC) ou null. */
+function parseDataISO(s?: string | null): Date | null {
+  if (!s) return null;
+  const t = String(s).trim();
+  const iso = t.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  const br = t.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+  let y: number, m: number, d: number;
+  if (iso) { y = +iso[1]; m = +iso[2]; d = +iso[3]; }
+  else if (br) { d = +br[1]; m = +br[2]; y = +br[3]; }
+  else return null;
+  const dt = new Date(Date.UTC(y, m - 1, d));
+  return Number.isNaN(dt.getTime()) ? null : dt;
 }
 
 /**
