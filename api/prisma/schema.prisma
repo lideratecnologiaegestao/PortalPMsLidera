@@ -1584,6 +1584,12 @@ model OrgaoUnidade {
   cargo       String?
   telefone    String?
   email       String?
+  endereco    String?
+  cep         String?
+  horario     String?
+  fotoUrl     String?    @map("foto_url")
+  latitude    Float?
+  longitude   Float?
   ordem       Int        @default(0)
   ativo       Boolean    @default(true)
   criadoEm    DateTime   @default(now()) @map("criado_em") @db.Timestamptz(6)

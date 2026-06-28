@@ -54,6 +54,21 @@ export default function Servicos() {
         Acesse os serviços do município. Formulários completos abrem no portal; ações
         do cidadão (denúncia, acompanhar) abrem direto no app.
       </Subtitulo>
+
+      <Card
+        onPress={() => router.push('/unidades-proximas')}
+        style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}
+      >
+        <View style={{ width: 42, height: 42, borderRadius: 21, backgroundColor: c.primary + '14', alignItems: 'center', justifyContent: 'center' }}>
+          <Icone nome="map-marker-radius" tamanho={22} cor={c.primary} />
+        </View>
+        <View style={{ flex: 1 }}>
+          <Text style={{ color: c.fg, fontWeight: '700', fontSize: 16 }}>Unidades perto de mim</Text>
+          <Text style={{ color: c.muted, fontSize: 11, marginTop: 1 }}>Disponível no app</Text>
+        </View>
+        <Icone nome="chevron-right" tamanho={20} cor={c.muted} />
+      </Card>
+
       {itens.map((a) => {
         const isNativo = Boolean(ROTAS_NATIVAS[a.path]);
         return (

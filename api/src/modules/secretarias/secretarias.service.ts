@@ -12,8 +12,28 @@ export interface DadosUnidade {
   cargo?: string;
   telefone?: string;
   email?: string;
+  endereco?: string;
+  cep?: string;
+  horario?: string;
+  fotoUrl?: string;
+  latitude?: number | null;
+  longitude?: number | null;
   ordem?: number;
   ativo?: boolean;
+}
+
+/**
+ * Normaliza uma coordenada vinda do front (pode chegar como string, vazio ou
+ * fora de faixa). Retorna o número válido, `null` para limpar, ou `undefined`
+ * para "não mexer" (no update parcial).
+ */
+function coordOuNull(v: unknown, max: number): number | null {
+  if (v === '' || v === null || v === undefined) return null;
+  const n = typeof v === 'number' ? v : Number(v);
+  if (!Number.isFinite(n) || Math.abs(n) > max) {
+    throw new BadRequestException('Coordenada inválida.');
+  }
+  return n;
 }
 
 export interface DadosAutoridade {
@@ -87,6 +107,13 @@ export class SecretariasService {
         id: true, nome: true, sigla: true, responsavel: true, fotoUrl: true, descricao: true,
         sobre: true, competencias: true, secretarioBio: true, secretarioCargo: true,
         endereco: true, cep: true, horario: true, email: true, telefone: true, slug: true,
+        unidades: {
+          where: { ativo: true }, orderBy: [{ ordem: 'asc' }, { nome: 'asc' }],
+          select: {
+            id: true, nome: true, sigla: true, responsavel: true, cargo: true, telefone: true, email: true,
+            endereco: true, cep: true, horario: true, fotoUrl: true, latitude: true, longitude: true,
+          },
+        },
       },
     });
     if (!s) throw new NotFoundException('Secretaria não encontrada.');
@@ -332,6 +359,9 @@ export class SecretariasService {
         tenantId, orgaoId, nome: dto.nome.trim(), sigla: dto.sigla?.trim() || null,
         responsavel: dto.responsavel?.trim() || null, cargo: dto.cargo?.trim() || null,
         telefone: dto.telefone?.trim() || null, email: dto.email?.trim() || null,
+        endereco: dto.endereco?.trim() || null, cep: dto.cep?.trim() || null,
+        horario: dto.horario?.trim() || null, fotoUrl: dto.fotoUrl?.trim() || null,
+        latitude: coordOuNull(dto.latitude, 90), longitude: coordOuNull(dto.longitude, 180),
         ordem: dto.ordem ?? 0, ativo: dto.ativo ?? true,
       },
     });
@@ -346,6 +376,12 @@ export class SecretariasService {
     if (dto.cargo !== undefined) data.cargo = dto.cargo?.trim() || null;
     if (dto.telefone !== undefined) data.telefone = dto.telefone?.trim() || null;
     if (dto.email !== undefined) data.email = dto.email?.trim() || null;
+    if (dto.endereco !== undefined) data.endereco = dto.endereco?.trim() || null;
+    if (dto.cep !== undefined) data.cep = dto.cep?.trim() || null;
+    if (dto.horario !== undefined) data.horario = dto.horario?.trim() || null;
+    if (dto.fotoUrl !== undefined) data.fotoUrl = dto.fotoUrl?.trim() || null;
+    if (dto.latitude !== undefined) data.latitude = coordOuNull(dto.latitude, 90);
+    if (dto.longitude !== undefined) data.longitude = coordOuNull(dto.longitude, 180);
     if (dto.ordem !== undefined) data.ordem = dto.ordem ?? 0;
     if (dto.ativo !== undefined) data.ativo = dto.ativo;
     return this.prisma.db.orgaoUnidade.update({ where: { id }, data });
@@ -388,6 +424,32 @@ export class SecretariasService {
     return this.prisma.db.gabineteAutoridade.delete({ where: { id } }).then(() => ({ excluido: true }));
   }
 
+  // ------------------------------------------------ proximidade (público)
+  /**
+   * Unidades de atendimento mais próximas de um ponto (lat/lng), dentro de um
+   * raio em metros. Usa PostGIS (índice GIST em `geo`). Multi-tenant: roda via
+   * `prisma.db`, então o GUC de tenant é aplicado na transação e o RLS isola as
+   * unidades/órgãos do tenant. Só retorna unidades ativas com coordenadas.
+   */
+  async unidadesProximas(lat: number, lng: number, raioMetros: number) {
+    if (!Number.isFinite(lat) || Math.abs(lat) > 90 || !Number.isFinite(lng) || Math.abs(lng) > 180) {
+      throw new BadRequestException('Coordenadas inválidas.');
+    }
+    const raio = Math.min(Math.max(Number(raioMetros) || 5000, 100), 50000);
+    return this.prisma.db.$queryRaw`
+      SELECT u.id, u.nome, u.sigla, u.responsavel, u.cargo, u.telefone, u.email,
+             u.endereco, u.cep, u.horario, u.foto_url AS "fotoUrl",
+             ST_Y(u.geo::geometry) AS latitude, ST_X(u.geo::geometry) AS longitude,
+             round(ST_Distance(u.geo, ST_SetSRID(ST_MakePoint(${lng}, ${lat}), 4326)::geography))::int AS "distanciaM",
+             s.nome AS "orgaoNome", s.sigla AS "orgaoSigla", s.slug AS "orgaoSlug"
+        FROM orgao_unidades u
+        JOIN secretarias s ON s.id = u.orgao_id AND s.ativo = true
+       WHERE u.ativo = true AND u.geo IS NOT NULL
+         AND ST_DWithin(u.geo, ST_SetSRID(ST_MakePoint(${lng}, ${lat}), 4326)::geography, ${raio})
+       ORDER BY ST_Distance(u.geo, ST_SetSRID(ST_MakePoint(${lng}, ${lat}), 4326)::geography) ASC
+       LIMIT 50`;
+  }
+
   // ------------------------------------------------ estrutura (público)
   /**
    * Estrutura organizacional montada automaticamente: gabinete (com
@@ -404,7 +466,10 @@ export class SecretariasService {
         secretarioCargo: true, fotoUrl: true, descricao: true, email: true, telefone: true,
         unidades: {
           where: { ativo: true }, orderBy: [{ ordem: 'asc' }, { nome: 'asc' }],
-          select: { id: true, nome: true, sigla: true, responsavel: true, cargo: true, telefone: true, email: true },
+          select: {
+            id: true, nome: true, sigla: true, responsavel: true, cargo: true, telefone: true, email: true,
+            endereco: true, cep: true, horario: true, fotoUrl: true, latitude: true, longitude: true,
+          },
         },
       },
     });

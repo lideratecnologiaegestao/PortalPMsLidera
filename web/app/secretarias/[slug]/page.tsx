@@ -6,6 +6,8 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { getSecretariaBySlug } from '../../../lib/portal-api';
+import { googleMapsLink, wazeLink, temLocalizacao, enderecoBusca } from '../../../lib/geo-links';
+import CopiarTexto from '../../../components/portal/CopiarTexto';
 
 export const revalidate = 60;
 
@@ -13,12 +15,17 @@ interface NoticiaRef { slug: string; titulo: string; resumo: string | null; imag
 interface GaleriaItem { id: string; tipo: string; fonte: string; titulo: string | null; url: string | null; youtubeId: string | null }
 interface Trabalho { id: string; titulo: string; descricao: string | null; imagemUrl: string | null; data: string | null }
 interface DocRef { id: string; titulo: string; numero: string | null; ano: number | null; downloads: number; arquivoUrl: string | null; tipo: { nome: string } | null }
+interface Unidade {
+  id: string; nome: string; sigla: string | null; responsavel: string | null; cargo: string | null;
+  telefone: string | null; email: string | null; endereco: string | null; cep: string | null;
+  horario: string | null; fotoUrl: string | null; latitude: number | null; longitude: number | null;
+}
 interface Secretaria {
   id: string; nome: string; sigla: string | null; responsavel: string | null; fotoUrl: string | null;
   descricao: string | null; sobre: string | null; competencias: string | null; secretarioBio: string | null;
   secretarioCargo: string | null; endereco: string | null; cep: string | null; horario: string | null;
   email: string | null; telefone: string | null; slug: string;
-  noticias: NoticiaRef[]; galeria: GaleriaItem[]; trabalhos: Trabalho[]; documentos: DocRef[];
+  noticias: NoticiaRef[]; galeria: GaleriaItem[]; trabalhos: Trabalho[]; documentos: DocRef[]; unidades: Unidade[];
 }
 
 export async function generateMetadata({ params }: { params: { slug: string } }): Promise<Metadata> {
@@ -40,6 +47,37 @@ function Secao({ titulo, children, link }: { titulo: string; children: React.Rea
       </div>
       {children}
     </section>
+  );
+}
+
+function UnidadeBloco({ u }: { u: Unidade }) {
+  const gLink = googleMapsLink(u);
+  const wLink = wazeLink(u);
+  const copiavel = enderecoBusca(u);
+  return (
+    <article className="overflow-hidden rounded-lg border border-border bg-bg shadow-sm">
+      {u.fotoUrl && (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={u.fotoUrl} alt={`Fachada da unidade ${u.nome}`} className="h-40 w-full object-cover" loading="lazy" />
+      )}
+      <div className="p-4">
+        <h3 className="font-heading text-base font-bold text-fg">{u.nome}{u.sigla ? <span className="font-normal text-fg/50"> ({u.sigla})</span> : null}</h3>
+        {u.responsavel && <p className="text-sm text-fg/70">{u.responsavel}{u.cargo ? ` — ${u.cargo}` : ''}</p>}
+        <dl className="mt-2 space-y-1 text-sm">
+          {u.endereco && <div><dt className="sr-only">Endereço</dt><dd className="text-fg/80">📍 {u.endereco}{u.cep ? ` — CEP ${u.cep}` : ''}</dd></div>}
+          {u.horario && <div><dt className="sr-only">Horário</dt><dd className="text-fg/70">🕒 {u.horario}</dd></div>}
+          {u.telefone && <div><dt className="sr-only">Telefone</dt><dd><a href={`tel:${u.telefone}`} className="text-primary hover:underline">📞 {u.telefone}</a></dd></div>}
+          {u.email && <div><dt className="sr-only">E-mail</dt><dd><a href={`mailto:${u.email}`} className="break-all text-primary hover:underline">✉ {u.email}</a></dd></div>}
+        </dl>
+        {temLocalizacao(u) && (
+          <div className="mt-3 flex flex-wrap gap-2">
+            {gLink && <a href={gLink} target="_blank" rel="noreferrer" className="rounded bg-primary px-3 py-1.5 text-xs font-semibold text-primary-fg hover:opacity-90">Abrir no Google Maps</a>}
+            {wLink && <a href={wLink} target="_blank" rel="noreferrer" className="rounded border border-primary px-3 py-1.5 text-xs font-semibold text-primary hover:bg-primary/10">Abrir no Waze</a>}
+            {copiavel && <CopiarTexto texto={copiavel} rotulo="Copiar endereço" />}
+          </div>
+        )}
+      </div>
+    </article>
   );
 }
 
@@ -109,6 +147,15 @@ export default async function SecretariaDetalhePage({ params }: { params: { slug
       {sec.competencias && (
         <Secao titulo="Competências">
           <div className="prose-portal max-w-none text-fg/85" dangerouslySetInnerHTML={{ __html: sec.competencias }} />
+        </Secao>
+      )}
+
+      {/* Unidades / locais de atendimento */}
+      {sec.unidades.length > 0 && (
+        <Secao titulo="Unidades e locais de atendimento">
+          <div className="grid gap-4 sm:grid-cols-2">
+            {sec.unidades.map((u) => <UnidadeBloco key={u.id} u={u} />)}
+          </div>
         </Secao>
       )}
 

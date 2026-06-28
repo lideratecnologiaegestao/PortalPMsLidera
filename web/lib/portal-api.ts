@@ -164,7 +164,11 @@ export async function getMenus(local: 'cabecalho' | 'rodape'): Promise<MenuItem[
   }
 }
 
-export interface EstruturaUnidade { id: string; nome: string; sigla?: string | null; responsavel?: string | null; cargo?: string | null; telefone?: string | null; email?: string | null }
+export interface EstruturaUnidade {
+  id: string; nome: string; sigla?: string | null; responsavel?: string | null; cargo?: string | null;
+  telefone?: string | null; email?: string | null; endereco?: string | null; cep?: string | null;
+  horario?: string | null; fotoUrl?: string | null; latitude?: number | null; longitude?: number | null;
+}
 export interface EstruturaOrgao {
   id: string; nome: string; tipo: string; sigla?: string | null; slug?: string | null;
   responsavel?: string | null; secretarioCargo?: string | null; fotoUrl?: string | null;

@@ -21,6 +21,7 @@ import {
 } from '../../../lib/admin-api';
 import { AdminHeader, Aviso, Modal, ui } from '../_components/ui';
 import MediaPicker from '../_components/MediaPicker';
+import { googleMapsLink, wazeLink } from '../../../lib/geo-links';
 
 // ─── Tipo ────────────────────────────────────────────────────────────────────
 
@@ -403,8 +404,14 @@ function ModalSecretaria({
           </div>
         )}
 
-        {/* Unidades do órgão (modo edição) */}
-        {editando && <UnidadesManager orgaoId={editando.id} />}
+        {/* Unidades do órgão: agora em modal próprio, acionado por botão na lista. */}
+        {editando && (
+          <p className="rounded border border-dashed border-border bg-muted/20 p-3 text-xs text-fg/60">
+            As <strong>unidades do órgão</strong> (com endereço, GPS, horário e foto da
+            fachada) são gerenciadas em um cadastro próprio: feche e use o botão{' '}
+            <strong>“Unidades”</strong> na linha desta secretaria.
+          </p>
+        )}
 
         {/* Autoridades — só no Gabinete */}
         {editando && form.tipo === 'gabinete' && <AutoridadesManager orgaoId={editando.id} />}
@@ -442,15 +449,36 @@ function ModalSecretaria({
   );
 }
 
-// ─── Gestor de Unidades ───────────────────────────────────────────────────────
+// ─── Gestor de Unidades (modal próprio) ───────────────────────────────────────
 
-interface Unidade { id: string; nome: string; sigla?: string | null; responsavel?: string | null; cargo?: string | null; telefone?: string | null; email?: string | null; ordem: number }
-const unidadeVazia = { id: '' as string, nome: '', sigla: '', responsavel: '', cargo: '', telefone: '', email: '', ordem: 0 };
+interface Unidade {
+  id: string; nome: string; sigla?: string | null; responsavel?: string | null; cargo?: string | null;
+  telefone?: string | null; email?: string | null; endereco?: string | null; cep?: string | null;
+  horario?: string | null; fotoUrl?: string | null; latitude?: number | null; longitude?: number | null; ordem: number;
+}
+const unidadeVazia = {
+  id: '' as string, nome: '', sigla: '', responsavel: '', cargo: '', telefone: '', email: '',
+  endereco: '', cep: '', horario: '', fotoUrl: '', latitude: '', longitude: '', ordem: 0,
+};
+
+/** Modal dedicado: lista + cadastro completo das unidades de um órgão. */
+function ModalUnidades({ orgao, onClose }: { orgao: Secretaria | null; onClose: () => void }) {
+  return (
+    <Modal open={!!orgao} onClose={onClose} title={orgao ? `Unidades — ${orgao.nome}` : 'Unidades do órgão'}>
+      {orgao && <UnidadesManager orgaoId={orgao.id} />}
+      <div className="flex justify-end pt-3">
+        <button type="button" className={ui.btn} onClick={onClose}>Concluir</button>
+      </div>
+    </Modal>
+  );
+}
 
 function UnidadesManager({ orgaoId }: { orgaoId: string }) {
   const [lista, setLista] = useState<Unidade[]>([]);
   const [form, setForm] = useState({ ...unidadeVazia });
   const [erro, setErro] = useState('');
+  const [picker, setPicker] = useState(false);
+  const [gpsMsg, setGpsMsg] = useState('');
 
   const carregar = useCallback(() => {
     adminGet<Unidade[]>(`/api/admin/secretarias/${orgaoId}/unidades`).then(setLista).catch(() => setLista([]));
@@ -458,16 +486,55 @@ function UnidadesManager({ orgaoId }: { orgaoId: string }) {
   useEffect(() => { carregar(); }, [carregar]);
 
   function s<K extends keyof typeof unidadeVazia>(k: K, v: (typeof unidadeVazia)[K]) { setForm((p) => ({ ...p, [k]: v })); }
-  function editar(u: Unidade) { setForm({ id: u.id, nome: u.nome, sigla: u.sigla ?? '', responsavel: u.responsavel ?? '', cargo: u.cargo ?? '', telefone: u.telefone ?? '', email: u.email ?? '', ordem: u.ordem ?? 0 }); }
+  function editar(u: Unidade) {
+    setGpsMsg('');
+    setForm({
+      id: u.id, nome: u.nome, sigla: u.sigla ?? '', responsavel: u.responsavel ?? '', cargo: u.cargo ?? '',
+      telefone: u.telefone ?? '', email: u.email ?? '', endereco: u.endereco ?? '', cep: u.cep ?? '',
+      horario: u.horario ?? '', fotoUrl: u.fotoUrl ?? '',
+      latitude: u.latitude != null ? String(u.latitude) : '', longitude: u.longitude != null ? String(u.longitude) : '',
+      ordem: u.ordem ?? 0,
+    });
+  }
+
+  /** Usa o GPS do dispositivo para preencher lat/lng (útil em visita à unidade). */
+  function capturarGps() {
+    setGpsMsg('');
+    if (typeof navigator === 'undefined' || !navigator.geolocation) { setErro('Geolocalização não suportada neste navegador.'); return; }
+    setGpsMsg('Obtendo localização…');
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setForm((p) => ({ ...p, latitude: pos.coords.latitude.toFixed(6), longitude: pos.coords.longitude.toFixed(6) }));
+        setGpsMsg('Coordenadas capturadas do dispositivo.');
+      },
+      () => { setGpsMsg(''); setErro('Não foi possível obter a localização (permissão negada?).'); },
+      { enableHighAccuracy: true, timeout: 10000 },
+    );
+  }
+
+  /** Aceita colar "lat, lng" (formato que o Google Maps copia) em qualquer dos campos. */
+  function colarCoord(e: React.ClipboardEvent<HTMLInputElement>) {
+    const txt = e.clipboardData.getData('text');
+    const m = txt.match(/^\s*(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)\s*$/);
+    if (m) { e.preventDefault(); setForm((p) => ({ ...p, latitude: m[1], longitude: m[2] })); setGpsMsg('Coordenadas coladas do mapa.'); }
+  }
 
   async function salvar() {
     if (!form.nome.trim()) { setErro('Informe o nome da unidade.'); return; }
     setErro('');
-    const body = { nome: form.nome, sigla: form.sigla || undefined, responsavel: form.responsavel || undefined, cargo: form.cargo || undefined, telefone: form.telefone || undefined, email: form.email || undefined, ordem: Number(form.ordem) || 0 };
+    const body = {
+      nome: form.nome, sigla: form.sigla || undefined, responsavel: form.responsavel || undefined,
+      cargo: form.cargo || undefined, telefone: form.telefone || undefined, email: form.email || undefined,
+      endereco: form.endereco || undefined, cep: form.cep || undefined, horario: form.horario || undefined,
+      fotoUrl: form.fotoUrl || undefined,
+      latitude: form.latitude.trim() === '' ? null : Number(form.latitude),
+      longitude: form.longitude.trim() === '' ? null : Number(form.longitude),
+      ordem: Number(form.ordem) || 0,
+    };
     try {
       if (form.id) await adminPut(`/api/admin/secretarias/unidades/${form.id}`, body);
       else await adminPost(`/api/admin/secretarias/${orgaoId}/unidades`, body);
-      setForm({ ...unidadeVazia }); carregar();
+      setForm({ ...unidadeVazia }); setGpsMsg(''); carregar();
     } catch (e) { setErro(e instanceof AdminApiError ? e.message : 'Falha ao salvar unidade.'); }
   }
   async function remover(id: string) {
@@ -475,15 +542,27 @@ function UnidadesManager({ orgaoId }: { orgaoId: string }) {
     catch (e) { setErro(e instanceof AdminApiError ? e.message : 'Falha ao remover.'); }
   }
 
+  const latNum = form.latitude.trim() === '' ? null : Number(form.latitude);
+  const lngNum = form.longitude.trim() === '' ? null : Number(form.longitude);
+  const ponto = { latitude: latNum, longitude: lngNum, endereco: form.endereco, cep: form.cep };
+  const gLink = googleMapsLink(ponto);
+  const wLink = wazeLink(ponto);
+
   return (
-    <div className="rounded border border-border p-3">
-      <h3 className="mb-2 text-sm font-semibold">Unidades do órgão</h3>
+    <div className="space-y-3">
+      <p className="text-xs text-fg/60">
+        Cadastre os locais de atendimento da secretaria. Com endereço e/ou coordenadas, o cidadão
+        abre direto no Google Maps ou no Waze a partir da página pública.
+      </p>
       {erro && <Aviso tipo="erro">{erro}</Aviso>}
       {lista.length > 0 && (
-        <ul className="mb-3 space-y-1">
+        <ul className="space-y-1">
           {lista.map((u) => (
             <li key={u.id} className="flex items-center justify-between rounded bg-muted/40 px-3 py-1.5 text-sm">
-              <span><span className="font-semibold">{u.nome}</span>{u.responsavel ? ` — ${u.responsavel}` : ''}</span>
+              <span>
+                <span className="font-semibold">{u.nome}</span>{u.responsavel ? ` — ${u.responsavel}` : ''}
+                {(u.latitude != null && u.longitude != null) ? ' 📍' : u.endereco ? ' 🗺️' : ''}
+              </span>
               <span className="flex gap-2">
                 <button type="button" className="text-primary hover:underline" onClick={() => editar(u)}>editar</button>
                 <button type="button" className="text-danger hover:underline" onClick={() => remover(u.id)}>remover</button>
@@ -492,19 +571,60 @@ function UnidadesManager({ orgaoId }: { orgaoId: string }) {
           ))}
         </ul>
       )}
-      <div className="grid grid-cols-2 gap-2">
-        <div className="col-span-2"><label className={ui.label}>Nome da unidade *</label><input className={ui.input} value={form.nome} onChange={(e) => s('nome', e.target.value)} placeholder="ex.: Departamento de Vigilância Sanitária" /></div>
-        <div><label className={ui.label}>Sigla</label><input className={ui.input} value={form.sigla} onChange={(e) => s('sigla', e.target.value)} /></div>
-        <div><label className={ui.label}>Ordem</label><input type="number" className={ui.input} value={form.ordem} onChange={(e) => s('ordem', Number(e.target.value))} /></div>
-        <div><label className={ui.label}>Responsável</label><input className={ui.input} value={form.responsavel} onChange={(e) => s('responsavel', e.target.value)} /></div>
-        <div><label className={ui.label}>Cargo</label><input className={ui.input} value={form.cargo} onChange={(e) => s('cargo', e.target.value)} placeholder="ex.: Diretor(a)" /></div>
-        <div><label className={ui.label}>Telefone</label><input className={ui.input} value={form.telefone} onChange={(e) => s('telefone', e.target.value)} /></div>
-        <div><label className={ui.label}>E-mail</label><input className={ui.input} value={form.email} onChange={(e) => s('email', e.target.value)} /></div>
-        <div className="col-span-2 flex justify-end gap-2">
-          {form.id && <button type="button" className={ui.btnGhost} onClick={() => setForm({ ...unidadeVazia })}>Cancelar edição</button>}
-          <button type="button" className={ui.btn} onClick={salvar}>{form.id ? 'Salvar unidade' : 'Adicionar unidade'}</button>
+
+      <div className="rounded border border-border p-3">
+        <h3 className="mb-2 text-sm font-semibold">{form.id ? 'Editar unidade' : 'Nova unidade'}</h3>
+        <div className="grid grid-cols-2 gap-2">
+          <div className="col-span-2"><label className={ui.label}>Nome da unidade *</label><input className={ui.input} value={form.nome} onChange={(e) => s('nome', e.target.value)} placeholder="ex.: Departamento de Vigilância Sanitária" /></div>
+          <div><label className={ui.label}>Sigla</label><input className={ui.input} value={form.sigla} onChange={(e) => s('sigla', e.target.value)} /></div>
+          <div><label className={ui.label}>Ordem</label><input type="number" className={ui.input} value={form.ordem} onChange={(e) => s('ordem', Number(e.target.value))} /></div>
+          <div><label className={ui.label}>Responsável</label><input className={ui.input} value={form.responsavel} onChange={(e) => s('responsavel', e.target.value)} /></div>
+          <div><label className={ui.label}>Cargo</label><input className={ui.input} value={form.cargo} onChange={(e) => s('cargo', e.target.value)} placeholder="ex.: Diretor(a)" /></div>
+          <div><label className={ui.label}>Telefone</label><input className={ui.input} value={form.telefone} onChange={(e) => s('telefone', e.target.value)} /></div>
+          <div><label className={ui.label}>E-mail</label><input className={ui.input} value={form.email} onChange={(e) => s('email', e.target.value)} /></div>
+
+          {/* Localização */}
+          <div className="col-span-2"><label className={ui.label}>Endereço</label><input className={ui.input} value={form.endereco} onChange={(e) => s('endereco', e.target.value)} placeholder="Rua, nº, bairro, cidade — UF" /></div>
+          <div><label className={ui.label}>CEP</label><input className={ui.input} value={form.cep} onChange={(e) => s('cep', e.target.value)} placeholder="00000-000" /></div>
+          <div><label className={ui.label}>Horário de atendimento</label><input className={ui.input} value={form.horario} onChange={(e) => s('horario', e.target.value)} placeholder="Seg a sex, 7h-13h" /></div>
+
+          {/* Coordenadas (GPS) */}
+          <div><label className={ui.label}>Latitude</label><input className={ui.input} value={form.latitude} onChange={(e) => s('latitude', e.target.value)} onPaste={colarCoord} inputMode="decimal" placeholder="-15.601" /></div>
+          <div><label className={ui.label}>Longitude</label><input className={ui.input} value={form.longitude} onChange={(e) => s('longitude', e.target.value)} onPaste={colarCoord} inputMode="decimal" placeholder="-56.097" /></div>
+          <div className="col-span-2 flex flex-wrap items-center gap-2">
+            <button type="button" className={ui.btnGhost} onClick={capturarGps}>📍 Usar localização atual</button>
+            {(latNum != null && lngNum != null) && (
+              <button type="button" className="text-xs text-danger hover:underline" onClick={() => setForm((p) => ({ ...p, latitude: '', longitude: '' }))}>limpar coordenadas</button>
+            )}
+            {gLink && <a href={gLink} target="_blank" rel="noreferrer" className="text-xs text-primary hover:underline">conferir no Google Maps ↗</a>}
+            {wLink && <a href={wLink} target="_blank" rel="noreferrer" className="text-xs text-primary hover:underline">conferir no Waze ↗</a>}
+          </div>
+          <p className="col-span-2 text-xs text-fg/55">
+            Dica: no Google Maps, toque e segure no local, copie as coordenadas e cole no campo Latitude
+            (ele divide automaticamente). {gpsMsg && <span className="text-success">{gpsMsg}</span>}
+          </p>
+
+          {/* Foto da fachada */}
+          <div className="col-span-2">
+            <label className={ui.label}>Foto da fachada</label>
+            <div className="mt-1 flex gap-2">
+              <input type="url" className={`flex-1 ${ui.input}`} value={form.fotoUrl} onChange={(e) => s('fotoUrl', e.target.value)} placeholder="https://..." />
+              <button type="button" className={ui.btnGhost} onClick={() => setPicker(true)} aria-label="Escolher foto da fachada na biblioteca">Escolher imagem</button>
+            </div>
+            {form.fotoUrl && (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={form.fotoUrl} alt="Fachada da unidade" className="mt-2 h-24 w-40 rounded border border-border object-cover" onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }} />
+            )}
+          </div>
+
+          <div className="col-span-2 flex justify-end gap-2">
+            {form.id && <button type="button" className={ui.btnGhost} onClick={() => { setForm({ ...unidadeVazia }); setGpsMsg(''); }}>Cancelar edição</button>}
+            <button type="button" className={ui.btn} onClick={salvar}>{form.id ? 'Salvar unidade' : 'Adicionar unidade'}</button>
+          </div>
         </div>
       </div>
+
+      <MediaPicker open={picker} onClose={() => setPicker(false)} tipo="imagem" onSelect={(a) => { if (a.urlPublica) s('fotoUrl', a.urlPublica); setPicker(false); }} />
     </div>
   );
 }
@@ -609,6 +729,7 @@ export default function SecretariasAdminPage() {
 
   const [modalAberto, setModalAberto] = useState(false);
   const [editando, setEditando] = useState<Secretaria | null>(null);
+  const [unidadesDe, setUnidadesDe] = useState<Secretaria | null>(null);
 
   const [confirmandoId, setConfirmandoId] = useState<string | null>(null);
   const [excluindo, setExcluindo] = useState(false);
@@ -744,6 +865,14 @@ export default function SecretariasAdminPage() {
                       >
                         Editar
                       </button>
+                      <button
+                        type="button"
+                        className={ui.btnGhost}
+                        onClick={() => setUnidadesDe(s)}
+                        aria-label={`Gerenciar unidades de "${s.nome}"`}
+                      >
+                        Unidades
+                      </button>
                       {confirmandoId === s.id ? (
                         <>
                           <button
@@ -822,6 +951,9 @@ export default function SecretariasAdminPage() {
           carregar();
         }}
       />
+
+      {/* Modal de unidades do órgão */}
+      <ModalUnidades orgao={unidadesDe} onClose={() => setUnidadesDe(null)} />
     </div>
   );
 }

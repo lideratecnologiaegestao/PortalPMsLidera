@@ -23,6 +23,33 @@ export async function proximos(lat: number, lng: number, raio = 1000): Promise<P
   return res.json();
 }
 
+// ─── Unidades de atendimento próximas (PostGIS) ──────────────────────────────
+export interface UnidadeProxima {
+  id: string;
+  nome: string;
+  sigla: string | null;
+  responsavel: string | null;
+  cargo: string | null;
+  telefone: string | null;
+  email: string | null;
+  endereco: string | null;
+  cep: string | null;
+  horario: string | null;
+  fotoUrl: string | null;
+  latitude: number;
+  longitude: number;
+  distanciaM: number;
+  orgaoNome: string;
+  orgaoSigla: string | null;
+  orgaoSlug: string | null;
+}
+
+export async function unidadesProximas(lat: number, lng: number, raio = 5000): Promise<UnidadeProxima[]> {
+  const res = await fetch(`${API_URL}/api/secretarias/unidades/proximas?lat=${lat}&lng=${lng}&raio=${raio}`);
+  if (!res.ok) throw new Error('Falha ao buscar unidades próximas.');
+  return res.json();
+}
+
 /** Erro de rede (sem conexão) — o `fetch` rejeita antes de ter resposta HTTP. */
 export class SemRedeError extends Error {}
 

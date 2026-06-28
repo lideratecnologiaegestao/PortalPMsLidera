@@ -35,6 +35,20 @@ export class SecretariasController {
   }
 
   /**
+   * Unidades de atendimento mais próximas de um ponto.
+   * GET /api/secretarias/unidades/proximas?lat=&lng=&raio=  (raio em metros)
+   * Rota literal antes de :slug para não colidir.
+   */
+  @Get('unidades/proximas')
+  unidadesProximas(
+    @Query('lat') lat: string,
+    @Query('lng') lng: string,
+    @Query('raio') raio?: string,
+  ) {
+    return this.service.unidadesProximas(Number(lat), Number(lng), Number(raio ?? 5000));
+  }
+
+  /**
    * Retorna detalhes públicos de uma secretaria ativa pelo slug.
    * GET /api/secretarias/:slug
    * Shape: { id, nome, sigla, responsavel, fotoUrl, descricao, email, telefone, slug }
