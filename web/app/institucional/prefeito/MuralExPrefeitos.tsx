@@ -2,14 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import type { Prefeito } from '../../../lib/portal-api';
-
-/** Período do mandato em texto ("2021 – 2024", "2017", "2021 – atual"). */
-export function mandatoTexto(p: { mandatoInicio: number | null; mandatoFim: number | null; atual: boolean }): string | null {
-  if (p.mandatoInicio == null && p.mandatoFim == null) return null;
-  if (p.mandatoInicio != null && p.mandatoFim != null) return `${p.mandatoInicio} – ${p.mandatoFim}`;
-  if (p.mandatoInicio != null) return p.atual ? `${p.mandatoInicio} – atual` : `${p.mandatoInicio}`;
-  return `${p.mandatoFim}`;
-}
+import { mandatoTexto } from './mandato';
 
 function Iniciais({ nome }: { nome: string }) {
   const i = nome.split(' ').filter(Boolean).slice(0, 2).map((p) => p[0]?.toUpperCase()).join('');

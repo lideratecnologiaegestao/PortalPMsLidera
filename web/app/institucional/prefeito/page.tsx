@@ -2,7 +2,8 @@ import type { Metadata } from 'next';
 import { getPrefeitos, type Prefeito } from '../../../lib/portal-api';
 import PageContainer from '../../../components/portal/PageContainer';
 import SecaoTitulo from '../../../components/portal/SecaoTitulo';
-import MuralExPrefeitos, { mandatoTexto } from './MuralExPrefeitos';
+import MuralExPrefeitos from './MuralExPrefeitos';
+import { mandatoTexto } from './mandato';
 
 export const revalidate = 120;
 
