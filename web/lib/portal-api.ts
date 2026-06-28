@@ -207,11 +207,11 @@ export interface PrefeitosPayload {
 
 export async function getPrefeitos(): Promise<PrefeitosPayload | null> {
   try {
-    const host = headers().get('host') ?? '';
+    // Conteúdo institucional que precisa estar SEMPRE correto (titular/vice) —
+    // sem cache: a página reflete o banco na hora, sem janela de defasagem.
     const res = await fetch(tenantUrl('/api/prefeitos'), {
       headers: tenantHeaders(),
-      // tag por host: permite invalidação sob demanda só deste tenant ao salvar.
-      next: { revalidate: REVALIDATE, tags: ['prefeitos', `prefeitos:${host}`] },
+      cache: 'no-store',
     });
     if (!res.ok) return null;
     return res.json();

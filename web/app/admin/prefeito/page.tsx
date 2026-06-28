@@ -14,11 +14,6 @@ import { adminDelete, adminGet, adminPost, adminPut, AdminApiError } from '../..
 import { AdminHeader, Aviso, Modal, ui } from '../_components/ui';
 import MediaPicker from '../_components/MediaPicker';
 
-/** Antecipa a revalidação da página pública (ISR) — atualiza na hora, sem esperar 120s. */
-function revalidarPublico() {
-  return fetch('/revalidar?tag=prefeitos', { method: 'POST' }).catch(() => undefined);
-}
-
 interface Prefeito {
   id: string; tipo: string; nome: string; genero: string; partido?: string | null; fotoUrl?: string | null;
   mandatoInicio?: number | null; mandatoFim?: number | null; atual: boolean;
@@ -78,7 +73,6 @@ function ModalPrefeito({ open, editando, presetTipo = 'prefeito', onClose, onSal
     try {
       if (editando) await adminPut(`/api/admin/prefeitos/${editando.id}`, body);
       else await adminPost('/api/admin/prefeitos', body);
-      await revalidarPublico();
       onSalvo(); onClose();
     } catch (err) {
       setErro(err instanceof AdminApiError ? err.message : 'Erro ao salvar.');
@@ -199,7 +193,7 @@ export default function PrefeitoAdminPage() {
   useEffect(() => { carregar(); }, [carregar]);
 
   async function excluir(id: string) {
-    try { await adminDelete(`/api/admin/prefeitos/${id}`); await revalidarPublico(); setMsgOk('Registro excluído.'); setConfirmando(null); carregar(); }
+    try { await adminDelete(`/api/admin/prefeitos/${id}`); setMsgOk('Registro excluído.'); setConfirmando(null); carregar(); }
     catch (e) { setErro(e instanceof AdminApiError ? e.message : 'Erro ao excluir.'); }
   }
 
