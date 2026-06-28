@@ -609,16 +609,45 @@ export class SecretariasService {
 
     const CONTROLE = new Set(['procuradoria', 'controladoria', 'contabilidade']);
     const gabinete = orgaos.find((o) => o.tipo === 'gabinete') ?? null;
-    let autoridades: unknown[] = [];
+
+    // Liderança do Executivo: prefeito + vice vêm do módulo Prefeito (cadastro
+    // dedicado). O Gabinete contribui apenas com chefe de gabinete / equipe.
+    const [prefeitoAtual, viceAtual] = await Promise.all([
+      this.prisma.db.prefeito.findFirst({
+        where: { tipo: 'prefeito', atual: true, ativo: true }, orderBy: { mandatoInicio: 'desc' },
+        select: { id: true, nome: true, fotoUrl: true, email: true, telefone: true },
+      }),
+      this.prisma.db.prefeito.findFirst({
+        where: { tipo: 'vice', atual: true, ativo: true }, orderBy: { mandatoInicio: 'desc' },
+        select: { id: true, nome: true, fotoUrl: true, email: true, telefone: true },
+      }),
+    ]);
+
+    const lideranca: any[] = [];
+    if (prefeitoAtual) lideranca.push({ ...prefeitoAtual, cargo: 'prefeito', bio: null });
+    if (viceAtual) lideranca.push({ ...viceAtual, cargo: 'vice_prefeito', bio: null });
+
+    // Autoridades cadastradas no Gabinete, exceto as que agora vêm do módulo Prefeito.
+    let gabineteAutoridades: any[] = [];
     if (gabinete) {
-      autoridades = await this.prisma.db.gabineteAutoridade.findMany({
-        where: { orgaoId: gabinete.id }, orderBy: { ordem: 'asc' },
+      gabineteAutoridades = await this.prisma.db.gabineteAutoridade.findMany({
+        where: { orgaoId: gabinete.id, cargo: { notIn: ['prefeito', 'vice_prefeito', 'primeira_dama'] } },
+        orderBy: { ordem: 'asc' },
         select: { id: true, cargo: true, nome: true, fotoUrl: true, email: true, telefone: true, bio: true },
       });
     }
 
+    const autoridades = [...lideranca, ...gabineteAutoridades];
+
+    // Cabeçalho da liderança: usa o órgão 'gabinete' se existir; senão sintetiza.
+    const cabecalhoGabinete = gabinete ?? {
+      id: null, nome: 'Gabinete do Prefeito', tipo: 'gabinete', sigla: null, slug: null,
+      responsavel: null, secretarioCargo: null, fotoUrl: null, descricao: null,
+      email: null, telefone: null, unidades: [] as unknown[],
+    };
+
     return {
-      gabinete: gabinete ? { ...gabinete, autoridades } : null,
+      gabinete: autoridades.length > 0 ? { ...cabecalhoGabinete, autoridades } : (gabinete ? { ...gabinete, autoridades } : null),
       controle: orgaos.filter((o) => CONTROLE.has(o.tipo)),
       orgaos: orgaos.filter((o) => o.tipo !== 'gabinete' && !CONTROLE.has(o.tipo)),
     };

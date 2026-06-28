@@ -2,7 +2,7 @@ import { IsBoolean, IsIn, IsInt, IsNotEmpty, IsOptional, IsString, Max, Min } fr
 
 export class CriarPrefeitoDto {
   @IsString() @IsNotEmpty() nome!: string;
-  @IsString() @IsOptional() @IsIn(['prefeito', 'vice']) tipo?: string;
+  @IsString() @IsOptional() @IsIn(['prefeito', 'vice', 'primeira_dama']) tipo?: string;
   @IsString() @IsOptional() @IsIn(['masculino', 'feminino']) genero?: string;
   @IsString() @IsOptional() partido?: string;
   @IsString() @IsOptional() fotoUrl?: string;
@@ -19,7 +19,7 @@ export class CriarPrefeitoDto {
 
 export class AtualizarPrefeitoDto {
   @IsString() @IsOptional() @IsNotEmpty() nome?: string;
-  @IsString() @IsOptional() @IsIn(['prefeito', 'vice']) tipo?: string;
+  @IsString() @IsOptional() @IsIn(['prefeito', 'vice', 'primeira_dama']) tipo?: string;
   @IsString() @IsOptional() @IsIn(['masculino', 'feminino']) genero?: string;
   @IsString() @IsOptional() partido?: string;
   @IsString() @IsOptional() fotoUrl?: string;

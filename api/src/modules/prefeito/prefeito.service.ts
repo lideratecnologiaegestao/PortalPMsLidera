@@ -11,6 +11,11 @@ function labelTitular(genero?: string | null): string {
   return 'O Prefeito(a)';
 }
 
+/** Normaliza o tipo para um dos valores válidos. */
+function normalizarTipo(t?: string): string {
+  return t === 'vice' || t === 'primeira_dama' ? t : 'prefeito';
+}
+
 @Injectable()
 export class PrefeitoService {
   private readonly logger = new Logger(PrefeitoService.name);
@@ -21,9 +26,9 @@ export class PrefeitoService {
   ) {}
 
   // ---------------------------------------------------------------- público
-  /** Titular atual + vice atual + galeria de ex-prefeitos. */
+  /** Titular atual + vice atual + primeira-dama atual + galeria de ex-prefeitos. */
   async listarPublico() {
-    const [prefeito, vice, anteriores] = await Promise.all([
+    const [prefeito, vice, primeiraDama, anteriores] = await Promise.all([
       this.prisma.db.prefeito.findFirst({
         where: { tipo: 'prefeito', atual: true, ativo: true },
         orderBy: { mandatoInicio: 'desc' },
@@ -32,12 +37,16 @@ export class PrefeitoService {
         where: { tipo: 'vice', atual: true, ativo: true },
         orderBy: { mandatoInicio: 'desc' },
       }),
+      this.prisma.db.prefeito.findFirst({
+        where: { tipo: 'primeira_dama', atual: true, ativo: true },
+        orderBy: { mandatoInicio: 'desc' },
+      }),
       this.prisma.db.prefeito.findMany({
         where: { tipo: 'prefeito', atual: false, ativo: true },
         orderBy: [{ mandatoInicio: 'desc' }, { ordem: 'asc' }],
       }),
     ]);
-    return { prefeito, vice, anteriores };
+    return { prefeito, vice, primeiraDama, anteriores };
   }
 
   // ----------------------------------------------------------------- admin
@@ -56,7 +65,7 @@ export class PrefeitoService {
   async criar(dto: CriarPrefeitoDto, atorId?: string) {
     const tenantId = TenantContext.tenantId()!;
     if (!dto.nome?.trim()) throw new BadRequestException('Informe o nome.');
-    const tipo = dto.tipo === 'vice' ? 'vice' : 'prefeito';
+    const tipo = normalizarTipo(dto.tipo);
     if (dto.atual) await this.desmarcarAtuais(tipo);
     const p = await this.prisma.db.prefeito.create({
       data: this.montar(tenantId, tipo, dto),
@@ -68,7 +77,7 @@ export class PrefeitoService {
 
   async atualizar(id: string, dto: AtualizarPrefeitoDto, atorId?: string) {
     const atual = await this.buscar(id);
-    const tipo = dto.tipo ? (dto.tipo === 'vice' ? 'vice' : 'prefeito') : atual.tipo;
+    const tipo = dto.tipo ? normalizarTipo(dto.tipo) : atual.tipo;
     if (dto.atual) await this.desmarcarAtuais(tipo, id);
 
     const data: Record<string, unknown> = {};
@@ -122,15 +131,20 @@ export class PrefeitoService {
     });
   }
 
-  /** Mantém o item de menu "A Prefeitura → O Prefeito(a)" com o rótulo do gênero. */
+  /**
+   * Mantém os 3 itens de menu em "A Prefeitura": O Prefeito(a) (rótulo pelo
+   * gênero do titular), Vice-Prefeito(a) e Galeria de Ex-Prefeitos.
+   */
   private async sincronizarMenu() {
     const titular = await this.prisma.db.prefeito.findFirst({
       where: { tipo: 'prefeito', atual: true, ativo: true }, select: { genero: true },
     });
     try {
       await this.menus.sincronizarPrefeito(labelTitular(titular?.genero));
+      await this.menus.sincronizarVice();
+      await this.menus.sincronizarExPrefeitos();
     } catch (err) {
-      this.logger.warn(`Falha ao sincronizar menu do prefeito: ${(err as Error).message}`);
+      this.logger.warn(`Falha ao sincronizar menus do prefeito: ${(err as Error).message}`);
     }
   }
 

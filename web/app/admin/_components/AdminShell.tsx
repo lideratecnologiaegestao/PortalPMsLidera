@@ -258,6 +258,8 @@ const MENU_GROUPS: MenuGroup[] = [
       },
       { href: '/admin/secretarias', label: 'Secretarias', icon: <IconBuilding /> },
       { href: '/admin/prefeito', label: 'Prefeito / Prefeita', icon: <IconPerson /> },
+      { href: '/admin/historia', label: 'História do Município', icon: <IconPages /> },
+      { href: '/admin/hino-brasao', label: 'Hino e Brasão', icon: <IconPages /> },
       { href: '/admin/galeria', label: 'Galeria', icon: <IconPhoto /> },
       { href: '/admin/midia', label: 'Mídia', icon: <IconPhoto /> },
       { href: '/admin/paginas', label: 'Páginas', icon: <IconPages /> },

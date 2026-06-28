@@ -9,3 +9,11 @@ export function mandatoTexto(p: { mandatoInicio: number | null; mandatoFim: numb
   if (p.mandatoInicio != null) return p.atual ? `${p.mandatoInicio} – atual` : `${p.mandatoInicio}`;
   return `${p.mandatoFim}`;
 }
+
+/** Rótulo do cargo conforme tipo + gênero. */
+export function cargoLabel(p: { tipo: string; genero: string }): string {
+  const fem = p.genero === 'feminino';
+  if (p.tipo === 'vice') return fem ? 'Vice-Prefeita' : 'Vice-Prefeito';
+  if (p.tipo === 'primeira_dama') return fem ? 'Primeira-dama' : 'Primeiro-cavalheiro';
+  return fem ? 'Prefeita' : 'Prefeito';
+}

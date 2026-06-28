@@ -202,6 +202,7 @@ export interface Prefeito {
 export interface PrefeitosPayload {
   prefeito: Prefeito | null;
   vice: Prefeito | null;
+  primeiraDama: Prefeito | null;
   anteriores: Prefeito[];
 }
 
@@ -210,6 +211,51 @@ export async function getPrefeitos(): Promise<PrefeitosPayload | null> {
     // Conteúdo institucional que precisa estar SEMPRE correto (titular/vice) —
     // sem cache: a página reflete o banco na hora, sem janela de defasagem.
     const res = await fetch(tenantUrl('/api/prefeitos'), {
+      headers: tenantHeaders(),
+      cache: 'no-store',
+    });
+    if (!res.ok) return null;
+    return res.json();
+  } catch {
+    return null;
+  }
+}
+
+export interface HistoriaMunicipio {
+  titulo: string | null;
+  conteudo: string;
+  formato: string; // 'html' | 'md'
+  imagemUrl: string | null;
+  atualizadoEm: string | null;
+}
+
+export async function getHistoriaMunicipio(): Promise<HistoriaMunicipio | null> {
+  try {
+    // Sempre ao vivo: conteúdo institucional que precisa refletir o banco na hora.
+    const res = await fetch(tenantUrl('/api/historia-municipio'), {
+      headers: tenantHeaders(),
+      cache: 'no-store',
+    });
+    if (!res.ok) return null;
+    const data = await res.json();
+    return data && data.conteudo ? data : null;
+  } catch {
+    return null;
+  }
+}
+
+export interface BrasaoItem { url: string; titulo: string | null }
+export interface HinoBrasao {
+  hinoTexto: string | null;
+  hinoMidiaTipo: string | null; // 'audio' | 'video' | 'youtube'
+  hinoMidiaUrl: string | null;
+  brasaoHistoria: string | null;
+  brasoes: BrasaoItem[];
+}
+
+export async function getHinoBrasao(): Promise<HinoBrasao | null> {
+  try {
+    const res = await fetch(tenantUrl('/api/hino-brasao'), {
       headers: tenantHeaders(),
       cache: 'no-store',
     });

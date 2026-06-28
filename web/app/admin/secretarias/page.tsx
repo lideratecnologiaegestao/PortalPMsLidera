@@ -633,6 +633,7 @@ function UnidadesManager({ orgaoId }: { orgaoId: string }) {
 // ─── Gestor de Autoridades (Gabinete) ─────────────────────────────────────────
 
 interface Autoridade { id: string; cargo: string; nome: string; fotoUrl?: string | null; email?: string | null; telefone?: string | null; bio?: string | null; ordem: number }
+// Rótulos para exibição (inclui cargos antigos que possam existir no banco).
 const CARGOS_AUTORIDADE = [
   { v: 'prefeito', l: 'Prefeito(a)' },
   { v: 'vice_prefeito', l: 'Vice-prefeito(a)' },
@@ -640,7 +641,10 @@ const CARGOS_AUTORIDADE = [
   { v: 'chefe_gabinete', l: 'Chefe de Gabinete' },
   { v: 'outro', l: 'Outro' },
 ];
-const autoridadeVazia = { id: '' as string, cargo: 'prefeito', nome: '', fotoUrl: '', email: '', telefone: '', bio: '', ordem: 0 };
+// Cargos oferecidos no cadastro do Gabinete: só o Chefe de Gabinete.
+// Prefeito, Vice e Primeira-dama agora são cadastrados em /admin/prefeito.
+const CARGOS_GABINETE = [{ v: 'chefe_gabinete', l: 'Chefe de Gabinete' }];
+const autoridadeVazia = { id: '' as string, cargo: 'chefe_gabinete', nome: '', fotoUrl: '', email: '', telefone: '', bio: '', ordem: 0 };
 
 function AutoridadesManager({ orgaoId }: { orgaoId: string }) {
   const [lista, setLista] = useState<Autoridade[]>([]);
@@ -674,8 +678,8 @@ function AutoridadesManager({ orgaoId }: { orgaoId: string }) {
 
   return (
     <div className="rounded border border-primary/40 bg-primary/5 p-3">
-      <h3 className="mb-2 text-sm font-semibold">Autoridades do Gabinete</h3>
-      <p className="mb-2 text-xs text-fg/60">Prefeito, vice, primeira-dama e chefe de gabinete — aparecem em destaque no topo da Estrutura.</p>
+      <h3 className="mb-2 text-sm font-semibold">Gabinete — Chefe de Gabinete</h3>
+      <p className="mb-2 text-xs text-fg/60">Cadastre o <strong>Chefe de Gabinete</strong> (e equipe). O <strong>Prefeito, Vice e Primeira-dama</strong> agora são cadastrados em <a href="/admin/prefeito" className="text-primary hover:underline">Prefeito / Prefeita</a> e aparecem no topo da Estrutura automaticamente.</p>
       {erro && <Aviso tipo="erro">{erro}</Aviso>}
       {lista.length > 0 && (
         <ul className="mb-3 space-y-1">
@@ -693,7 +697,7 @@ function AutoridadesManager({ orgaoId }: { orgaoId: string }) {
       <div className="grid grid-cols-2 gap-2">
         <div><label className={ui.label}>Cargo</label>
           <select className={ui.input} value={form.cargo} onChange={(e) => s('cargo', e.target.value)}>
-            {CARGOS_AUTORIDADE.map((c) => <option key={c.v} value={c.v}>{c.l}</option>)}
+            {CARGOS_GABINETE.map((c) => <option key={c.v} value={c.v}>{c.l}</option>)}
           </select>
         </div>
         <div><label className={ui.label}>Nome *</label><input className={ui.input} value={form.nome} onChange={(e) => s('nome', e.target.value)} /></div>

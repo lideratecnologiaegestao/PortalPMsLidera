@@ -1600,6 +1600,27 @@ model OrgaoUnidade {
   @@map("orgao_unidades")
 }
 
+model HistoriaMunicipio {
+  tenantId     String   @id @map("tenant_id") @db.Uuid
+  titulo       String?
+  conteudo     String   @default("")
+  formato      String   @default("html")
+  imagemUrl    String?  @map("imagem_url")
+  atualizadoEm DateTime @default(now()) @map("atualizado_em") @db.Timestamptz(6)
+  @@map("historia_municipio")
+}
+
+model HinoBrasao {
+  tenantId       String   @id @map("tenant_id") @db.Uuid
+  hinoTexto      String?  @map("hino_texto")
+  hinoMidiaTipo  String?  @map("hino_midia_tipo")
+  hinoMidiaUrl   String?  @map("hino_midia_url")
+  brasaoHistoria String?  @map("brasao_historia")
+  brasoes        Json     @default("[]")
+  atualizadoEm   DateTime @default(now()) @map("atualizado_em") @db.Timestamptz(6)
+  @@map("hino_brasao")
+}
+
 model SecretariaEvento {
   id            String                    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   tenantId      String                    @map("tenant_id") @db.Uuid

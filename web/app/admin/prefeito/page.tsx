@@ -35,8 +35,10 @@ function mandato(p: Prefeito): string {
   return '—';
 }
 
+type TipoPrefeito = 'prefeito' | 'vice' | 'primeira_dama';
+
 function ModalPrefeito({ open, editando, presetTipo = 'prefeito', onClose, onSalvo }: {
-  open: boolean; editando: Prefeito | null; presetTipo?: 'prefeito' | 'vice'; onClose: () => void; onSalvo: () => void;
+  open: boolean; editando: Prefeito | null; presetTipo?: TipoPrefeito; onClose: () => void; onSalvo: () => void;
 }) {
   const [form, setForm] = useState(vazio());
   const [salvando, setSalvando] = useState(false);
@@ -90,13 +92,14 @@ function ModalPrefeito({ open, editando, presetTipo = 'prefeito', onClose, onSal
             <select className={ui.input} value={form.tipo} onChange={(e) => s('tipo', e.target.value)}>
               <option value="prefeito">Prefeito(a)</option>
               <option value="vice">Vice-prefeito(a)</option>
+              <option value="primeira_dama">Primeira-dama / Primeiro-cavalheiro</option>
             </select>
           </div>
           <div>
             <label className={ui.label}>Gênero (rótulo)</label>
             <select className={ui.input} value={form.genero} onChange={(e) => s('genero', e.target.value)}>
-              <option value="masculino">Masculino — “O Prefeito”</option>
-              <option value="feminino">Feminino — “A Prefeita”</option>
+              <option value="masculino">Masculino</option>
+              <option value="feminino">Feminino</option>
             </select>
           </div>
         </div>
@@ -181,7 +184,7 @@ export default function PrefeitoAdminPage() {
   const [msgOk, setMsgOk] = useState('');
   const [modal, setModal] = useState(false);
   const [editando, setEditando] = useState<Prefeito | null>(null);
-  const [preset, setPreset] = useState<'prefeito' | 'vice'>('prefeito');
+  const [preset, setPreset] = useState<TipoPrefeito>('prefeito');
   const [confirmando, setConfirmando] = useState<string | null>(null);
 
   const carregar = useCallback(async () => {
@@ -203,14 +206,16 @@ export default function PrefeitoAdminPage() {
         <div className="flex flex-wrap gap-2">
           <button type="button" className={ui.btn} onClick={() => { setEditando(null); setPreset('prefeito'); setModal(true); }}>+ Novo prefeito</button>
           <button type="button" className={ui.btnGhost} onClick={() => { setEditando(null); setPreset('vice'); setModal(true); }}>+ Novo vice</button>
+          <button type="button" className={ui.btnGhost} onClick={() => { setEditando(null); setPreset('primeira_dama'); setModal(true); }}>+ Primeira-dama</button>
         </div>
       </AdminHeader>
 
       <div className="rounded border border-primary/30 bg-primary/5 p-3 text-sm text-fg/80">
-        <strong>Como cadastrar:</strong> use <strong>“+ Novo prefeito”</strong> para o prefeito(a) e{' '}
-        <strong>“+ Novo vice”</strong> para o vice (também dá para clicar em qualquer registro e trocar o <strong>Cargo</strong>).
-        Marque <strong>“titular atual”</strong> no prefeito e no vice em exercício — eles aparecem no topo da página.
-        Quem não está marcado como atual entra na <strong>galeria de ex-prefeitos</strong>.
+        <strong>Como cadastrar:</strong> <strong>“+ Novo prefeito”</strong>, <strong>“+ Novo vice”</strong> e{' '}
+        <strong>“+ Primeira-dama”</strong> (ou clique em um registro e troque o <strong>Cargo</strong>).
+        Marque <strong>“titular atual”</strong> em quem está em exercício. No menu <em>A Prefeitura</em> cada um tem sua página:{' '}
+        <strong>O Prefeito(a)</strong> (mostra também a primeira-dama), <strong>Vice-Prefeito(a)</strong> e{' '}
+        <strong>Galeria de Ex-Prefeitos</strong> (prefeitos não marcados como atual).
       </div>
 
       {msgOk && <Aviso tipo="ok">{msgOk}</Aviso>}
@@ -237,7 +242,7 @@ export default function PrefeitoAdminPage() {
                 <tr key={p.id}>
                   <td className={ui.td}><span className="font-medium">{p.nome}</span></td>
                   <td className={ui.td}>
-                    <span className={`${ui.badge} bg-muted text-fg`}>{p.tipo === 'vice' ? 'Vice' : 'Prefeito(a)'}</span>
+                    <span className={`${ui.badge} bg-muted text-fg`}>{p.tipo === 'vice' ? 'Vice' : p.tipo === 'primeira_dama' ? 'Primeira-dama' : 'Prefeito(a)'}</span>
                   </td>
                   <td className={ui.td}>{mandato(p)}</td>
                   <td className={ui.td}>

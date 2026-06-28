@@ -296,6 +296,10 @@ export class MenusService {
           { label: 'Notícias', href: '/noticias' },
           { label: 'Secretarias', href: '/secretarias' },
           { label: 'O Prefeito / A Prefeita', href: '/institucional/prefeito' },
+          { label: 'Vice-Prefeito(a)', href: '/institucional/vice-prefeito' },
+          { label: 'Galeria de Ex-Prefeitos', href: '/institucional/ex-prefeitos' },
+          { label: 'História do Município', href: '/institucional/historia' },
+          { label: 'Hino e Brasão', href: '/institucional/hino-brasao' },
           { label: 'Estrutura organizacional', href: '/institucional/estrutura' },
           { label: 'Galeria', href: '/galeria' },
           { label: 'Ouvidoria', href: '/ouvidoria' },
@@ -409,6 +413,37 @@ export class MenusService {
    * ("O Prefeito" / "A Prefeita"). Usa prisma.db (RLS do tenant ativo).
    */
   async sincronizarPrefeito(label: string, href = '/institucional/prefeito'): Promise<void> {
+    await this.garantirItemAPrefeitura({ refTipo: 'prefeito_page', label, href, icone: 'user', ordem: 0 });
+  }
+
+  /** Mantém o item "A Prefeitura → História do Município" (auto-curativo). */
+  async sincronizarHistoria(href = '/institucional/historia'): Promise<void> {
+    await this.garantirItemAPrefeitura({ refTipo: 'historia_page', label: 'História do Município', href, icone: 'pages', ordem: 4 });
+  }
+
+  /** Mantém o item "A Prefeitura → Hino e Brasão" (auto-curativo). */
+  async sincronizarHinoBrasao(href = '/institucional/hino-brasao'): Promise<void> {
+    await this.garantirItemAPrefeitura({ refTipo: 'hino_brasao_page', label: 'Hino e Brasão', href, icone: 'pages', ordem: 5 });
+  }
+
+  /** Mantém o item "A Prefeitura → Vice-Prefeito(a)" (auto-curativo). */
+  async sincronizarVice(href = '/institucional/vice-prefeito'): Promise<void> {
+    await this.garantirItemAPrefeitura({ refTipo: 'vice_page', label: 'Vice-Prefeito(a)', href, icone: 'user', ordem: 1 });
+  }
+
+  /** Mantém o item "A Prefeitura → Galeria de Ex-Prefeitos" (auto-curativo). */
+  async sincronizarExPrefeitos(href = '/institucional/ex-prefeitos'): Promise<void> {
+    await this.garantirItemAPrefeitura({ refTipo: 'ex_prefeitos_page', label: 'Galeria de Ex-Prefeitos', href, icone: 'photo', ordem: 2 });
+  }
+
+  /**
+   * Garante um item de menu singleton (identificado por `refTipo`) sob o grupo
+   * "A Prefeitura". Acha/cria o grupo (por refTipo OU label, fixando o refTipo se
+   * faltar) e cria/atualiza o item. Usa prisma.db (RLS do tenant ativo).
+   */
+  private async garantirItemAPrefeitura(opts: {
+    refTipo: string; label: string; href: string; icone?: string; ordem?: number;
+  }): Promise<void> {
     const tenantId = TenantContext.tenantId()!;
     let grupo = await this.prisma.db.menuItem.findFirst({
       where: { local: 'cabecalho', tipo: 'grupo', OR: [{ refTipo: 'a_prefeitura_root' }, { label: 'A Prefeitura' }] },
@@ -424,17 +459,17 @@ export class MenusService {
     }
 
     const item = await this.prisma.db.menuItem.findFirst({
-      where: { local: 'cabecalho', refTipo: 'prefeito_page' },
+      where: { local: 'cabecalho', refTipo: opts.refTipo },
       select: { id: true },
     });
     if (item) {
       await this.prisma.db.menuItem.update({
         where: { id: item.id },
-        data: { label, href, parentId: grupo.id, ativo: true },
+        data: { label: opts.label, href: opts.href, parentId: grupo.id, ativo: true },
       });
     } else {
       await this.prisma.db.menuItem.create({
-        data: { tenantId, local: 'cabecalho', parentId: grupo.id, label, tipo: 'interno', href, icone: 'user', ordem: 0, ativo: true, refTipo: 'prefeito_page' },
+        data: { tenantId, local: 'cabecalho', parentId: grupo.id, label: opts.label, tipo: 'interno', href: opts.href, icone: opts.icone ?? null, ordem: opts.ordem ?? 0, ativo: true, refTipo: opts.refTipo },
       });
     }
   }
@@ -575,9 +610,13 @@ export class MenusService {
     await db.menuItem.createMany({
       data: [
         { tenantId, local: 'cabecalho', parentId: aPrefeitura.id, label: 'O Prefeito(a)', tipo: 'interno', href: '/institucional/prefeito', icone: 'user', ordem: 0, ativo: true, refTipo: 'prefeito_page' },
-        { tenantId, local: 'cabecalho', parentId: aPrefeitura.id, label: 'Estrutura Organizacional', tipo: 'interno', href: '/institucional/estrutura', ordem: 1, ativo: true },
-        { tenantId, local: 'cabecalho', parentId: aPrefeitura.id, label: 'Contatos', tipo: 'interno', href: '/institucional/contatos', ordem: 2, ativo: true },
-        { tenantId, local: 'cabecalho', parentId: aPrefeitura.id, label: 'Perguntas Frequentes', tipo: 'interno', href: '/institucional/faq', ordem: 3, ativo: true },
+        { tenantId, local: 'cabecalho', parentId: aPrefeitura.id, label: 'Vice-Prefeito(a)', tipo: 'interno', href: '/institucional/vice-prefeito', icone: 'user', ordem: 1, ativo: true, refTipo: 'vice_page' },
+        { tenantId, local: 'cabecalho', parentId: aPrefeitura.id, label: 'Galeria de Ex-Prefeitos', tipo: 'interno', href: '/institucional/ex-prefeitos', icone: 'photo', ordem: 2, ativo: true, refTipo: 'ex_prefeitos_page' },
+        { tenantId, local: 'cabecalho', parentId: aPrefeitura.id, label: 'História do Município', tipo: 'interno', href: '/institucional/historia', icone: 'pages', ordem: 3, ativo: true, refTipo: 'historia_page' },
+        { tenantId, local: 'cabecalho', parentId: aPrefeitura.id, label: 'Hino e Brasão', tipo: 'interno', href: '/institucional/hino-brasao', icone: 'pages', ordem: 4, ativo: true, refTipo: 'hino_brasao_page' },
+        { tenantId, local: 'cabecalho', parentId: aPrefeitura.id, label: 'Estrutura Organizacional', tipo: 'interno', href: '/institucional/estrutura', ordem: 5, ativo: true },
+        { tenantId, local: 'cabecalho', parentId: aPrefeitura.id, label: 'Contatos', tipo: 'interno', href: '/institucional/contatos', ordem: 6, ativo: true },
+        { tenantId, local: 'cabecalho', parentId: aPrefeitura.id, label: 'Perguntas Frequentes', tipo: 'interno', href: '/institucional/faq', ordem: 7, ativo: true },
       ],
     });
 
