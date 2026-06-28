@@ -3,18 +3,21 @@ import {
   Controller,
   Delete,
   Get,
+  Header,
   Param,
   Post,
   Put,
   Query,
+  Res,
   UseGuards,
 } from '@nestjs/common';
+import type { Response } from 'express';
 import { Roles } from '../../common/rbac/roles.decorator';
 import { Role } from '../../common/rbac/roles.enum';
 import { RolesGuard } from '../../common/rbac/roles.guard';
 import { CurrentUser } from '../auth/current-user.decorator';
 import { AuthUser } from '../auth/jwt-auth.guard';
-import { CriarSecretariaDto, AtualizarSecretariaDto } from './secretarias.dto';
+import { CriarSecretariaDto, AtualizarSecretariaDto, DadosEventoDto } from './secretarias.dto';
 import { SecretariasService } from './secretarias.service';
 
 /** Leitura pública de secretarias ativas. */
@@ -46,6 +49,18 @@ export class SecretariasController {
     @Query('raio') raio?: string,
   ) {
     return this.service.unidadesProximas(Number(lat), Number(lng), Number(raio ?? 5000));
+  }
+
+  /**
+   * Arquivo .ics de um evento (Apple/iPhone, Outlook desktop e demais).
+   * GET /api/secretarias/eventos/:id/ics  → text/calendar (download)
+   */
+  @Get('eventos/:id/ics')
+  @Header('Content-Type', 'text/calendar; charset=utf-8')
+  async eventoIcs(@Param('id') id: string, @Res() res: Response) {
+    const { nome, conteudo } = await this.service.eventoIcs(id);
+    res.setHeader('Content-Disposition', `attachment; filename="${nome}"`);
+    res.send(conteudo);
   }
 
   /**
@@ -108,6 +123,24 @@ export class SecretariasAdminController {
   @Delete('unidades/:uid')
   delUnidade(@Param('uid') uid: string) {
     return this.service.excluirUnidade(uid);
+  }
+
+  // eventos (agenda da secretaria)
+  @Get(':id/eventos')
+  listarEventos(@Param('id') id: string) {
+    return this.service.listarEventosAdmin(id);
+  }
+  @Post(':id/eventos')
+  addEvento(@Param('id') id: string, @Body() dto: DadosEventoDto) {
+    return this.service.adicionarEvento(id, dto);
+  }
+  @Put('eventos/:eid')
+  editEvento(@Param('eid') eid: string, @Body() dto: DadosEventoDto) {
+    return this.service.atualizarEvento(eid, dto);
+  }
+  @Delete('eventos/:eid')
+  delEvento(@Param('eid') eid: string) {
+    return this.service.excluirEvento(eid);
   }
 
   // autoridades (gabinete)

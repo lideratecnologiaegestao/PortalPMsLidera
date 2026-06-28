@@ -22,6 +22,7 @@ import {
 import { AdminHeader, Aviso, Modal, ui } from '../_components/ui';
 import MediaPicker from '../_components/MediaPicker';
 import { googleMapsLink, wazeLink } from '../../../lib/geo-links';
+import { toInputValue } from '../../../lib/calendar';
 
 // ─── Tipo ────────────────────────────────────────────────────────────────────
 
@@ -715,6 +716,205 @@ function AutoridadesManager({ orgaoId }: { orgaoId: string }) {
   );
 }
 
+// ─── Gestor de Eventos (modal próprio) ────────────────────────────────────────
+
+interface Evento {
+  id: string; titulo: string; descricao?: string | null; local?: string | null; imagemUrl?: string | null;
+  inicio: string; fim?: string | null; diaInteiro: boolean; timezone: string; ativo: boolean; unidadeIds: string[];
+}
+const FUSOS = [
+  { v: 'America/Cuiaba', l: 'Cuiabá / MT (−04)' },
+  { v: 'America/Sao_Paulo', l: 'Brasília / SP (−03)' },
+  { v: 'America/Manaus', l: 'Manaus / AM (−04)' },
+  { v: 'America/Campo_Grande', l: 'Campo Grande / MS (−04)' },
+  { v: 'America/Rio_Branco', l: 'Rio Branco / AC (−05)' },
+  { v: 'America/Belem', l: 'Belém / PA (−03)' },
+  { v: 'America/Fortaleza', l: 'Fortaleza / NE (−03)' },
+  { v: 'America/Recife', l: 'Recife / PE (−03)' },
+  { v: 'America/Noronha', l: 'Fernando de Noronha (−02)' },
+];
+const eventoVazio = {
+  id: '' as string, titulo: '', descricao: '', local: '', imagemUrl: '',
+  inicio: '', fim: '', diaInteiro: false, timezone: 'America/Cuiaba', ativo: true, unidadeIds: [] as string[],
+};
+
+function ModalEventos({ orgao, onClose }: { orgao: Secretaria | null; onClose: () => void }) {
+  return (
+    <Modal open={!!orgao} onClose={onClose} title={orgao ? `Eventos — ${orgao.nome}` : 'Eventos da secretaria'}>
+      {orgao && <EventosManager orgaoId={orgao.id} />}
+      <div className="flex justify-end pt-3">
+        <button type="button" className={ui.btn} onClick={onClose}>Concluir</button>
+      </div>
+    </Modal>
+  );
+}
+
+function EventosManager({ orgaoId }: { orgaoId: string }) {
+  const [lista, setLista] = useState<Evento[]>([]);
+  const [unidades, setUnidades] = useState<Unidade[]>([]);
+  const [form, setForm] = useState({ ...eventoVazio });
+  const [erro, setErro] = useState('');
+  const [picker, setPicker] = useState(false);
+
+  const carregar = useCallback(() => {
+    adminGet<Evento[]>(`/api/admin/secretarias/${orgaoId}/eventos`).then(setLista).catch(() => setLista([]));
+    adminGet<Unidade[]>(`/api/admin/secretarias/${orgaoId}/unidades`).then(setUnidades).catch(() => setUnidades([]));
+  }, [orgaoId]);
+  useEffect(() => { carregar(); }, [carregar]);
+
+  function s<K extends keyof typeof eventoVazio>(k: K, v: (typeof eventoVazio)[K]) { setForm((p) => ({ ...p, [k]: v })); }
+
+  function editar(e: Evento) {
+    setErro('');
+    setForm({
+      id: e.id, titulo: e.titulo, descricao: e.descricao ?? '', local: e.local ?? '', imagemUrl: e.imagemUrl ?? '',
+      diaInteiro: e.diaInteiro, timezone: e.timezone || 'America/Cuiaba', ativo: e.ativo,
+      inicio: toInputValue(e.inicio, e.timezone || 'America/Cuiaba', e.diaInteiro),
+      fim: e.fim ? toInputValue(e.fim, e.timezone || 'America/Cuiaba', e.diaInteiro) : '',
+      unidadeIds: e.unidadeIds ?? [],
+    });
+  }
+
+  // Ao alternar "dia inteiro" ajusta o formato dos campos de data (date ↔ datetime-local).
+  function toggleDiaInteiro(v: boolean) {
+    setForm((p) => ({
+      ...p, diaInteiro: v,
+      inicio: ajustarData(p.inicio, v),
+      fim: ajustarData(p.fim, v),
+    }));
+  }
+  function ajustarData(valor: string, diaInteiro: boolean): string {
+    if (!valor) return '';
+    if (diaInteiro) return valor.slice(0, 10);
+    return valor.length === 10 ? `${valor}T08:00` : valor;
+  }
+
+  function toggleUnidade(id: string) {
+    setForm((p) => ({ ...p, unidadeIds: p.unidadeIds.includes(id) ? p.unidadeIds.filter((x) => x !== id) : [...p.unidadeIds, id] }));
+  }
+
+  async function salvar() {
+    if (!form.titulo.trim()) { setErro('Informe o título do evento.'); return; }
+    if (!form.inicio) { setErro('Informe a data de início.'); return; }
+    setErro('');
+    const body = {
+      titulo: form.titulo, descricao: form.descricao || undefined, local: form.local || undefined,
+      imagemUrl: form.imagemUrl || undefined, inicio: form.inicio, fim: form.fim || undefined,
+      diaInteiro: form.diaInteiro, timezone: form.timezone, ativo: form.ativo, unidadeIds: form.unidadeIds,
+    };
+    try {
+      if (form.id) await adminPut(`/api/admin/secretarias/eventos/${form.id}`, body);
+      else await adminPost(`/api/admin/secretarias/${orgaoId}/eventos`, body);
+      setForm({ ...eventoVazio }); carregar();
+    } catch (e) { setErro(e instanceof AdminApiError ? e.message : 'Falha ao salvar o evento.'); }
+  }
+  async function remover(id: string) {
+    try { await adminDelete(`/api/admin/secretarias/eventos/${id}`); carregar(); }
+    catch (e) { setErro(e instanceof AdminApiError ? e.message : 'Falha ao remover.'); }
+  }
+
+  const tzLabel = FUSOS.find((f) => f.v === form.timezone)?.l ?? form.timezone;
+
+  return (
+    <div className="space-y-3">
+      <p className="text-xs text-fg/60">
+        Cadastre eventos da secretaria (ex.: campanha de vacinação). Eles aparecem na página pública com botões
+        para adicionar ao Google Agenda, Outlook e iPhone.
+      </p>
+      {erro && <Aviso tipo="erro">{erro}</Aviso>}
+
+      {lista.length > 0 && (
+        <ul className="space-y-1">
+          {lista.map((e) => (
+            <li key={e.id} className="flex items-center justify-between rounded bg-muted/40 px-3 py-1.5 text-sm">
+              <span>
+                <span className="font-semibold">{e.titulo}</span>
+                <span className="text-fg/55"> — {toInputValue(e.inicio, e.timezone || 'America/Cuiaba', true).split('-').reverse().join('/')}</span>
+                {!e.ativo && <span className="ml-1 text-xs text-fg/40">(inativo)</span>}
+              </span>
+              <span className="flex gap-2">
+                <button type="button" className="text-primary hover:underline" onClick={() => editar(e)}>editar</button>
+                <button type="button" className="text-danger hover:underline" onClick={() => remover(e.id)}>remover</button>
+              </span>
+            </li>
+          ))}
+        </ul>
+      )}
+
+      <div className="rounded border border-border p-3">
+        <h3 className="mb-2 text-sm font-semibold">{form.id ? 'Editar evento' : 'Novo evento'}</h3>
+        <div className="grid grid-cols-2 gap-2">
+          <div className="col-span-2"><label className={ui.label}>Título *</label><input className={ui.input} value={form.titulo} onChange={(e) => s('titulo', e.target.value)} placeholder="ex.: Campanha de Vacinação contra a Gripe" /></div>
+          <div className="col-span-2"><label className={ui.label}>Descrição</label><textarea rows={3} className={ui.input} value={form.descricao} onChange={(e) => s('descricao', e.target.value)} placeholder="Orientações ao cidadão (público-alvo, documentos…)" /></div>
+
+          <div className="col-span-2 flex items-center gap-2">
+            <input id="ev-dia" type="checkbox" checked={form.diaInteiro} onChange={(e) => toggleDiaInteiro(e.target.checked)} className="h-4 w-4 rounded border-border accent-primary" />
+            <label htmlFor="ev-dia" className="text-sm font-semibold">Dia inteiro (sem horário)</label>
+          </div>
+
+          <div>
+            <label className={ui.label}>Início *</label>
+            <input type={form.diaInteiro ? 'date' : 'datetime-local'} className={ui.input} value={form.inicio} onChange={(e) => s('inicio', e.target.value)} />
+          </div>
+          <div>
+            <label className={ui.label}>Término</label>
+            <input type={form.diaInteiro ? 'date' : 'datetime-local'} className={ui.input} value={form.fim} onChange={(e) => s('fim', e.target.value)} />
+          </div>
+
+          <div className="col-span-2">
+            <label className={ui.label}>Fuso horário <span className="text-fg/50">({tzLabel})</span></label>
+            <select className={ui.input} value={form.timezone} onChange={(e) => s('timezone', e.target.value)}>
+              {FUSOS.map((f) => <option key={f.v} value={f.v}>{f.l}</option>)}
+            </select>
+          </div>
+
+          <div className="col-span-2">
+            <label className={ui.label}>Unidades onde acontece</label>
+            {unidades.length === 0 ? (
+              <p className="text-xs text-fg/60">Nenhuma unidade cadastrada. Use o botão “Unidades” para cadastrar os locais.</p>
+            ) : (
+              <fieldset className="max-h-36 space-y-1 overflow-y-auto rounded border border-border p-2">
+                <legend className="sr-only">Unidades do evento</legend>
+                {unidades.map((u) => {
+                  const inputId = `ev-un-${u.id}`;
+                  return (
+                    <div key={u.id} className="flex items-center gap-2">
+                      <input id={inputId} type="checkbox" className="h-4 w-4 rounded border-border accent-primary" checked={form.unidadeIds.includes(u.id)} onChange={() => toggleUnidade(u.id)} />
+                      <label htmlFor={inputId} className="cursor-pointer select-none text-sm">{u.nome}{u.sigla ? ` (${u.sigla})` : ''}</label>
+                    </div>
+                  );
+                })}
+              </fieldset>
+            )}
+          </div>
+
+          <div className="col-span-2"><label className={ui.label}>Local (texto livre, opcional)</label><input className={ui.input} value={form.local} onChange={(e) => s('local', e.target.value)} placeholder="Use quando o local não for uma unidade cadastrada" /></div>
+
+          <div className="col-span-2">
+            <label className={ui.label}>Imagem do evento (opcional)</label>
+            <div className="mt-1 flex gap-2">
+              <input type="url" className={`flex-1 ${ui.input}`} value={form.imagemUrl} onChange={(e) => s('imagemUrl', e.target.value)} placeholder="https://..." />
+              <button type="button" className={ui.btnGhost} onClick={() => setPicker(true)}>Escolher imagem</button>
+            </div>
+          </div>
+
+          <div className="col-span-2 flex items-center gap-2">
+            <input id="ev-ativo" type="checkbox" checked={form.ativo} onChange={(e) => s('ativo', e.target.checked)} className="h-4 w-4 rounded border-border accent-primary" />
+            <label htmlFor="ev-ativo" className="text-sm font-semibold">Evento ativo (visível no site)</label>
+          </div>
+
+          <div className="col-span-2 flex justify-end gap-2">
+            {form.id && <button type="button" className={ui.btnGhost} onClick={() => setForm({ ...eventoVazio })}>Cancelar edição</button>}
+            <button type="button" className={ui.btn} onClick={salvar}>{form.id ? 'Salvar evento' : 'Adicionar evento'}</button>
+          </div>
+        </div>
+      </div>
+
+      <MediaPicker open={picker} onClose={() => setPicker(false)} tipo="imagem" onSelect={(a) => { if (a.urlPublica) s('imagemUrl', a.urlPublica); setPicker(false); }} />
+    </div>
+  );
+}
+
 // ─── Página principal ─────────────────────────────────────────────────────────
 
 const PAGE_SIZE = 20;
@@ -730,6 +930,7 @@ export default function SecretariasAdminPage() {
   const [modalAberto, setModalAberto] = useState(false);
   const [editando, setEditando] = useState<Secretaria | null>(null);
   const [unidadesDe, setUnidadesDe] = useState<Secretaria | null>(null);
+  const [eventosDe, setEventosDe] = useState<Secretaria | null>(null);
 
   const [confirmandoId, setConfirmandoId] = useState<string | null>(null);
   const [excluindo, setExcluindo] = useState(false);
@@ -873,6 +1074,14 @@ export default function SecretariasAdminPage() {
                       >
                         Unidades
                       </button>
+                      <button
+                        type="button"
+                        className={ui.btnGhost}
+                        onClick={() => setEventosDe(s)}
+                        aria-label={`Gerenciar eventos de "${s.nome}"`}
+                      >
+                        Eventos
+                      </button>
                       {confirmandoId === s.id ? (
                         <>
                           <button
@@ -954,6 +1163,9 @@ export default function SecretariasAdminPage() {
 
       {/* Modal de unidades do órgão */}
       <ModalUnidades orgao={unidadesDe} onClose={() => setUnidadesDe(null)} />
+
+      {/* Modal de eventos da secretaria */}
+      <ModalEventos orgao={eventosDe} onClose={() => setEventosDe(null)} />
     </div>
   );
 }

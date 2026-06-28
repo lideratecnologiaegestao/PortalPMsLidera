@@ -1,4 +1,5 @@
 import {
+  IsArray,
   IsBoolean,
   IsInt,
   IsNotEmpty,
@@ -78,6 +79,21 @@ export class CriarSecretariaDto {
   @IsBoolean()
   @IsOptional()
   ativo?: boolean;
+}
+
+/** Evento da agenda da secretaria (datas como string local; backend converte por fuso). */
+export class DadosEventoDto {
+  @IsString() @IsOptional() titulo?: string;
+  @IsString() @IsOptional() descricao?: string;
+  @IsString() @IsOptional() local?: string;
+  @IsString() @IsOptional() imagemUrl?: string;
+  @IsString() @IsOptional() inicio?: string; // "YYYY-MM-DD" ou "YYYY-MM-DDTHH:mm"
+  @IsString() @IsOptional() fim?: string;
+  @IsBoolean() @IsOptional() diaInteiro?: boolean;
+  @IsString() @IsOptional() timezone?: string; // IANA, ex.: America/Cuiaba
+  @IsBoolean() @IsOptional() ativo?: boolean;
+  @IsInt() @IsOptional() ordem?: number;
+  @IsArray() @IsOptional() @IsString({ each: true }) unidadeIds?: string[];
 }
 
 export class AtualizarSecretariaDto {

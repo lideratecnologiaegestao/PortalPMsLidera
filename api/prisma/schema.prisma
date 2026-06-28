@@ -1567,6 +1567,7 @@ model Secretaria {
   diarioMaterias  DiarioMateria[]
   unidades        OrgaoUnidade[]
   autoridades     GabineteAutoridade[]
+  eventos         SecretariaEvento[]
   elevationRequests ElevationRequest[]
   formularios       Formulario[]
   iaConteudos       IaConteudo[]
@@ -1594,8 +1595,43 @@ model OrgaoUnidade {
   ativo       Boolean    @default(true)
   criadoEm    DateTime   @default(now()) @map("criado_em") @db.Timestamptz(6)
   orgao       Secretaria @relation(fields: [orgaoId], references: [id], onDelete: Cascade)
+  eventos     SecretariaEventoUnidade[]
   @@index([tenantId, orgaoId, ordem])
   @@map("orgao_unidades")
+}
+
+model SecretariaEvento {
+  id            String                    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId      String                    @map("tenant_id") @db.Uuid
+  secretariaId  String                    @map("secretaria_id") @db.Uuid
+  titulo        String
+  descricao     String?
+  local         String?
+  imagemUrl     String?                   @map("imagem_url")
+  inicio        DateTime                  @db.Timestamptz(6)
+  fim           DateTime?                 @db.Timestamptz(6)
+  diaInteiro    Boolean                   @default(false) @map("dia_inteiro")
+  timezone      String                    @default("America/Cuiaba")
+  ativo         Boolean                   @default(true)
+  ordem         Int                       @default(0)
+  criadoEm      DateTime                  @default(now()) @map("criado_em") @db.Timestamptz(6)
+  atualizadoEm  DateTime                  @default(now()) @map("atualizado_em") @db.Timestamptz(6)
+  secretaria    Secretaria                @relation(fields: [secretariaId], references: [id], onDelete: Cascade)
+  unidades      SecretariaEventoUnidade[]
+  @@index([tenantId, secretariaId, inicio])
+  @@index([tenantId, inicio])
+  @@map("secretaria_eventos")
+}
+
+model SecretariaEventoUnidade {
+  eventoId  String           @map("evento_id") @db.Uuid
+  unidadeId String           @map("unidade_id") @db.Uuid
+  tenantId  String           @map("tenant_id") @db.Uuid
+  evento    SecretariaEvento @relation(fields: [eventoId], references: [id], onDelete: Cascade)
+  unidade   OrgaoUnidade     @relation(fields: [unidadeId], references: [id], onDelete: Cascade)
+  @@id([eventoId, unidadeId])
+  @@index([unidadeId])
+  @@map("secretaria_evento_unidades")
 }
 
 model GabineteAutoridade {
