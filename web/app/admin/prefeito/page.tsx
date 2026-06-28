@@ -14,6 +14,11 @@ import { adminDelete, adminGet, adminPost, adminPut, AdminApiError } from '../..
 import { AdminHeader, Aviso, Modal, ui } from '../_components/ui';
 import MediaPicker from '../_components/MediaPicker';
 
+/** Antecipa a revalidação da página pública (ISR) — atualiza na hora, sem esperar 120s. */
+function revalidarPublico() {
+  return fetch('/revalidar?tag=prefeitos', { method: 'POST' }).catch(() => undefined);
+}
+
 interface Prefeito {
   id: string; tipo: string; nome: string; genero: string; partido?: string | null; fotoUrl?: string | null;
   mandatoInicio?: number | null; mandatoFim?: number | null; atual: boolean;
@@ -35,8 +40,8 @@ function mandato(p: Prefeito): string {
   return '—';
 }
 
-function ModalPrefeito({ open, editando, onClose, onSalvo }: {
-  open: boolean; editando: Prefeito | null; onClose: () => void; onSalvo: () => void;
+function ModalPrefeito({ open, editando, presetTipo = 'prefeito', onClose, onSalvo }: {
+  open: boolean; editando: Prefeito | null; presetTipo?: 'prefeito' | 'vice'; onClose: () => void; onSalvo: () => void;
 }) {
   const [form, setForm] = useState(vazio());
   const [salvando, setSalvando] = useState(false);
@@ -53,8 +58,8 @@ function ModalPrefeito({ open, editando, onClose, onSalvo }: {
       mandatoFim: editando.mandatoFim != null ? String(editando.mandatoFim) : '',
       atual: editando.atual, resumo: editando.resumo ?? '', historia: editando.historia ?? '',
       email: editando.email ?? '', telefone: editando.telefone ?? '', ordem: editando.ordem, ativo: editando.ativo,
-    } : vazio());
-  }, [open, editando]);
+    } : { ...vazio(), tipo: presetTipo });
+  }, [open, editando, presetTipo]);
 
   function s<K extends keyof ReturnType<typeof vazio>>(k: K, v: ReturnType<typeof vazio>[K]) { setForm((p) => ({ ...p, [k]: v })); }
 
@@ -73,6 +78,7 @@ function ModalPrefeito({ open, editando, onClose, onSalvo }: {
     try {
       if (editando) await adminPut(`/api/admin/prefeitos/${editando.id}`, body);
       else await adminPost('/api/admin/prefeitos', body);
+      await revalidarPublico();
       onSalvo(); onClose();
     } catch (err) {
       setErro(err instanceof AdminApiError ? err.message : 'Erro ao salvar.');
@@ -181,6 +187,7 @@ export default function PrefeitoAdminPage() {
   const [msgOk, setMsgOk] = useState('');
   const [modal, setModal] = useState(false);
   const [editando, setEditando] = useState<Prefeito | null>(null);
+  const [preset, setPreset] = useState<'prefeito' | 'vice'>('prefeito');
   const [confirmando, setConfirmando] = useState<string | null>(null);
 
   const carregar = useCallback(async () => {
@@ -192,15 +199,25 @@ export default function PrefeitoAdminPage() {
   useEffect(() => { carregar(); }, [carregar]);
 
   async function excluir(id: string) {
-    try { await adminDelete(`/api/admin/prefeitos/${id}`); setMsgOk('Registro excluído.'); setConfirmando(null); carregar(); }
+    try { await adminDelete(`/api/admin/prefeitos/${id}`); await revalidarPublico(); setMsgOk('Registro excluído.'); setConfirmando(null); carregar(); }
     catch (e) { setErro(e instanceof AdminApiError ? e.message : 'Erro ao excluir.'); }
   }
 
   return (
     <div className="space-y-4">
       <AdminHeader title="Prefeito / Prefeita" description="Cadastro do titular, vice e ex-prefeitos exibidos na página “A Prefeitura → O Prefeito(a)”.">
-        <button type="button" className={ui.btn} onClick={() => { setEditando(null); setModal(true); }}>+ Novo</button>
+        <div className="flex flex-wrap gap-2">
+          <button type="button" className={ui.btn} onClick={() => { setEditando(null); setPreset('prefeito'); setModal(true); }}>+ Novo prefeito</button>
+          <button type="button" className={ui.btnGhost} onClick={() => { setEditando(null); setPreset('vice'); setModal(true); }}>+ Novo vice</button>
+        </div>
       </AdminHeader>
+
+      <div className="rounded border border-primary/30 bg-primary/5 p-3 text-sm text-fg/80">
+        <strong>Como cadastrar:</strong> use <strong>“+ Novo prefeito”</strong> para o prefeito(a) e{' '}
+        <strong>“+ Novo vice”</strong> para o vice (também dá para clicar em qualquer registro e trocar o <strong>Cargo</strong>).
+        Marque <strong>“titular atual”</strong> no prefeito e no vice em exercício — eles aparecem no topo da página.
+        Quem não está marcado como atual entra na <strong>galeria de ex-prefeitos</strong>.
+      </div>
 
       {msgOk && <Aviso tipo="ok">{msgOk}</Aviso>}
       {erro && <Aviso tipo="erro">{erro}</Aviso>}
@@ -256,6 +273,7 @@ export default function PrefeitoAdminPage() {
       <ModalPrefeito
         open={modal}
         editando={editando}
+        presetTipo={preset}
         onClose={() => setModal(false)}
         onSalvo={() => { setMsgOk(editando ? 'Registro atualizado.' : 'Registro criado.'); carregar(); }}
       />

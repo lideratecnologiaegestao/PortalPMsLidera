@@ -207,9 +207,11 @@ export interface PrefeitosPayload {
 
 export async function getPrefeitos(): Promise<PrefeitosPayload | null> {
   try {
+    const host = headers().get('host') ?? '';
     const res = await fetch(tenantUrl('/api/prefeitos'), {
       headers: tenantHeaders(),
-      next: { revalidate: REVALIDATE, tags: ['prefeitos'] },
+      // tag por host: permite invalidação sob demanda só deste tenant ao salvar.
+      next: { revalidate: REVALIDATE, tags: ['prefeitos', `prefeitos:${host}`] },
     });
     if (!res.ok) return null;
     return res.json();
