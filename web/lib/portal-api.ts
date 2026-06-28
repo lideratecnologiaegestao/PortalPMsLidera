@@ -194,6 +194,30 @@ export async function getEstrutura(): Promise<Estrutura | null> {
   }
 }
 
+export interface Prefeito {
+  id: string; tipo: string; nome: string; genero: string; partido: string | null; fotoUrl: string | null;
+  mandatoInicio: number | null; mandatoFim: number | null; atual: boolean;
+  resumo: string | null; historia: string | null; email: string | null; telefone: string | null;
+}
+export interface PrefeitosPayload {
+  prefeito: Prefeito | null;
+  vice: Prefeito | null;
+  anteriores: Prefeito[];
+}
+
+export async function getPrefeitos(): Promise<PrefeitosPayload | null> {
+  try {
+    const res = await fetch(tenantUrl('/api/prefeitos'), {
+      headers: tenantHeaders(),
+      next: { revalidate: REVALIDATE, tags: ['prefeitos'] },
+    });
+    if (!res.ok) return null;
+    return res.json();
+  } catch {
+    return null;
+  }
+}
+
 export async function getSecretariaBySlug(slug: string): Promise<Secretaria | null> {
   try {
     const res = await fetch(tenantUrl(`/api/secretarias/${encodeURIComponent(slug)}`), {

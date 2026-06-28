@@ -295,6 +295,7 @@ export class MenusService {
           { label: 'Diário Oficial', href: '/diario' },
           { label: 'Notícias', href: '/noticias' },
           { label: 'Secretarias', href: '/secretarias' },
+          { label: 'O Prefeito / A Prefeita', href: '/institucional/prefeito' },
           { label: 'Estrutura organizacional', href: '/institucional/estrutura' },
           { label: 'Galeria', href: '/galeria' },
           { label: 'Ouvidoria', href: '/ouvidoria' },
@@ -398,6 +399,44 @@ export class MenusService {
       where: { refTipo, refId },
       data: { href },
     });
+  }
+
+  /**
+   * Upsert do item de menu da página do Prefeito sob o grupo "A Prefeitura".
+   * Auto-curativo: acha o grupo por refTipo OU label (e fixa o refTipo se faltar),
+   * cria o grupo se não existir, e cria/atualiza o item singleton
+   * (refTipo='prefeito_page'). O `label` vem com o gênero do titular atual
+   * ("O Prefeito" / "A Prefeita"). Usa prisma.db (RLS do tenant ativo).
+   */
+  async sincronizarPrefeito(label: string, href = '/institucional/prefeito'): Promise<void> {
+    const tenantId = TenantContext.tenantId()!;
+    let grupo = await this.prisma.db.menuItem.findFirst({
+      where: { local: 'cabecalho', tipo: 'grupo', OR: [{ refTipo: 'a_prefeitura_root' }, { label: 'A Prefeitura' }] },
+      select: { id: true, refTipo: true },
+    });
+    if (!grupo) {
+      grupo = await this.prisma.db.menuItem.create({
+        data: { tenantId, local: 'cabecalho', label: 'A Prefeitura', tipo: 'grupo', ordem: 1, ativo: true, refTipo: 'a_prefeitura_root' },
+        select: { id: true, refTipo: true },
+      });
+    } else if (!grupo.refTipo) {
+      await this.prisma.db.menuItem.update({ where: { id: grupo.id }, data: { refTipo: 'a_prefeitura_root' } });
+    }
+
+    const item = await this.prisma.db.menuItem.findFirst({
+      where: { local: 'cabecalho', refTipo: 'prefeito_page' },
+      select: { id: true },
+    });
+    if (item) {
+      await this.prisma.db.menuItem.update({
+        where: { id: item.id },
+        data: { label, href, parentId: grupo.id, ativo: true },
+      });
+    } else {
+      await this.prisma.db.menuItem.create({
+        data: { tenantId, local: 'cabecalho', parentId: grupo.id, label, tipo: 'interno', href, icone: 'user', ordem: 0, ativo: true, refTipo: 'prefeito_page' },
+      });
+    }
   }
 
   /**
@@ -528,16 +567,17 @@ export class MenusService {
     const aPrefeitura = await db.menuItem.create({
       data: {
         tenantId, local: 'cabecalho', label: 'A Prefeitura', tipo: 'grupo',
-        ordem: 1, ativo: true,
+        ordem: 1, ativo: true, refTipo: 'a_prefeitura_root',
       },
     });
 
     // Filhos de "A Prefeitura"
     await db.menuItem.createMany({
       data: [
-        { tenantId, local: 'cabecalho', parentId: aPrefeitura.id, label: 'Estrutura Organizacional', tipo: 'interno', href: '/institucional/estrutura', ordem: 0, ativo: true },
-        { tenantId, local: 'cabecalho', parentId: aPrefeitura.id, label: 'Contatos', tipo: 'interno', href: '/institucional/contatos', ordem: 1, ativo: true },
-        { tenantId, local: 'cabecalho', parentId: aPrefeitura.id, label: 'Perguntas Frequentes', tipo: 'interno', href: '/institucional/faq', ordem: 2, ativo: true },
+        { tenantId, local: 'cabecalho', parentId: aPrefeitura.id, label: 'O Prefeito(a)', tipo: 'interno', href: '/institucional/prefeito', icone: 'user', ordem: 0, ativo: true, refTipo: 'prefeito_page' },
+        { tenantId, local: 'cabecalho', parentId: aPrefeitura.id, label: 'Estrutura Organizacional', tipo: 'interno', href: '/institucional/estrutura', ordem: 1, ativo: true },
+        { tenantId, local: 'cabecalho', parentId: aPrefeitura.id, label: 'Contatos', tipo: 'interno', href: '/institucional/contatos', ordem: 2, ativo: true },
+        { tenantId, local: 'cabecalho', parentId: aPrefeitura.id, label: 'Perguntas Frequentes', tipo: 'interno', href: '/institucional/faq', ordem: 3, ativo: true },
       ],
     });
 

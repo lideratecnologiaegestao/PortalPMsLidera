@@ -1651,6 +1651,29 @@ model GabineteAutoridade {
   @@map("gabinete_autoridades")
 }
 
+model Prefeito {
+  id            String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId      String    @map("tenant_id") @db.Uuid
+  tipo          String    @default("prefeito")
+  nome          String
+  genero        String    @default("masculino")
+  partido       String?
+  fotoUrl       String?   @map("foto_url")
+  mandatoInicio Int?      @map("mandato_inicio")
+  mandatoFim    Int?      @map("mandato_fim")
+  atual         Boolean   @default(false)
+  resumo        String?
+  historia      String?
+  email         String?
+  telefone      String?
+  ordem         Int       @default(0)
+  ativo         Boolean   @default(true)
+  criadoEm      DateTime  @default(now()) @map("criado_em") @db.Timestamptz(6)
+  atualizadoEm  DateTime  @default(now()) @map("atualizado_em") @db.Timestamptz(6)
+  @@index([tenantId, tipo, atual, mandatoInicio])
+  @@map("prefeitos")
+}
+
 model GaleriaItem {
   id           String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   tenantId     String      @map("tenant_id") @db.Uuid

@@ -30,6 +30,7 @@ import { BackupModule } from './modules/backup/backup.module';
 import { BannersModule } from './modules/banners/banners.module';
 import { NoticiasModule } from './modules/noticias/noticias.module';
 import { SecretariasModule } from './modules/secretarias/secretarias.module';
+import { PrefeitoModule } from './modules/prefeito/prefeito.module';
 import { GaleriaModule } from './modules/galeria/galeria.module';
 import { HomeModule } from './modules/home/home.module';
 import { EnquetesModule } from './modules/enquetes/enquetes.module';
@@ -101,6 +102,7 @@ import { CampanhasModule } from './modules/campanhas/campanhas.module';
     BannersModule, // banners/carrossel da home
     NoticiasModule, // notícias/imprensa da home
     SecretariasModule, // secretarias municipais
+    PrefeitoModule,    // cadastro do Prefeito(a)/Vice + galeria de ex-prefeitos
     GaleriaModule,     // galeria de fotos e vídeos compartilhada (mp4 + YouTube)
     HomeModule,        // layout configurável da home (Acesso Rápido + slider)
     EnquetesModule,    // enquetes (poll) — voto anônimo + shortcode no slider
