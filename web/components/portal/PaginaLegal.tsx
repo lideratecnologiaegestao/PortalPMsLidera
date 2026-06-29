@@ -7,7 +7,7 @@ import ConteudoRico from './ConteudoRico';
 export default async function PaginaLegal({
   tipo, tituloPadrao, extra,
 }: {
-  tipo: 'acessibilidade' | 'privacidade' | 'cookies';
+  tipo: 'acessibilidade' | 'privacidade' | 'cookies' | 'termos';
   tituloPadrao: string;
   extra?: React.ReactNode;
 }) {

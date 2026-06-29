@@ -15,11 +15,12 @@ import { AdminHeader, Aviso, Modal, ui } from '../_components/ui';
 import EditorRico from '../_components/EditorRico';
 import ConteudoRico from '../../../components/portal/ConteudoRico';
 
-type Tipo = 'acessibilidade' | 'privacidade' | 'cookies';
+type Tipo = 'acessibilidade' | 'privacidade' | 'cookies' | 'termos';
 const TABS: { v: Tipo; l: string; href: string }[] = [
   { v: 'acessibilidade', l: 'Acessibilidade', href: '/acessibilidade' },
   { v: 'privacidade', l: 'Privacidade (LGPD)', href: '/privacidade' },
   { v: 'cookies', l: 'Aviso de Cookies', href: '/cookies' },
+  { v: 'termos', l: 'Termos de Uso', href: '/termos' },
 ];
 
 interface Doc { titulo: string | null; conteudo: string; formato: string; versao: number }

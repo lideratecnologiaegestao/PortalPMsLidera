@@ -515,7 +515,7 @@ export class BuscaSyncService {
       where: { tipo: refId }, select: { titulo: true, conteudo: true, atualizadoEm: true },
     });
     if (!row || !row.conteudo?.trim()) { await this.remover('politica', refId); return 0; }
-    const padrao = refId === 'acessibilidade' ? 'Política de Acessibilidade' : refId === 'privacidade' ? 'Privacidade (LGPD)' : 'Aviso de Cookies';
+    const padrao = refId === 'acessibilidade' ? 'Política de Acessibilidade' : refId === 'privacidade' ? 'Privacidade (LGPD)' : refId === 'termos' ? 'Termos de Uso' : 'Aviso de Cookies';
     await this.indexar({
       tipo: 'politica', refId,
       titulo: row.titulo?.trim() || padrao,

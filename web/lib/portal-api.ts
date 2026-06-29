@@ -277,7 +277,7 @@ export interface DocumentoLegal {
   atualizadoEm: string | null;
 }
 
-export async function getPolitica(tipo: 'acessibilidade' | 'privacidade' | 'cookies'): Promise<DocumentoLegal | null> {
+export async function getPolitica(tipo: 'acessibilidade' | 'privacidade' | 'cookies' | 'termos'): Promise<DocumentoLegal | null> {
   try {
     const res = await fetch(tenantUrl(`/api/politicas/${tipo}`), {
       headers: tenantHeaders(),

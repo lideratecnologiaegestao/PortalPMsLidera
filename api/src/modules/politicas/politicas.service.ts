@@ -4,7 +4,7 @@ import { TenantContext } from '../../common/tenant/tenant.context';
 import { BuscaSyncService } from '../busca/busca-sync.service';
 import { SalvarPoliticaDto } from './politicas.dto';
 
-export const TIPOS_POLITICA = ['acessibilidade', 'privacidade', 'cookies'] as const;
+export const TIPOS_POLITICA = ['acessibilidade', 'privacidade', 'cookies', 'termos'] as const;
 export type TipoPolitica = (typeof TIPOS_POLITICA)[number];
 
 function validarTipo(tipo: string): TipoPolitica {

@@ -267,6 +267,12 @@ export default async function SiteFooterPortal({ tokens, portal, updatedAt, item
                 Aviso de Cookies
               </a>
               <a
+                href="/termos"
+                className="hover:underline focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary-fg rounded"
+              >
+                Termos de Uso
+              </a>
+              <a
                 href="/transparencia/dados-abertos"
                 className="hover:underline focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary-fg rounded"
               >

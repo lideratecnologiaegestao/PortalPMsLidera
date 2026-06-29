@@ -454,8 +454,8 @@ export class IaIndexadorService {
   private async carregarPoliticas(): Promise<ItemFonte[]> {
     const rows = await this.prisma.db.$queryRaw<{ tipo: string; titulo: string | null; conteudo: string }[]>`
       SELECT tipo, titulo, conteudo FROM documentos_legais WHERE conteudo <> ''`;
-    const urls: Record<string, string> = { acessibilidade: '/acessibilidade', privacidade: '/privacidade', cookies: '/cookies' };
-    const nomes: Record<string, string> = { acessibilidade: 'Política de Acessibilidade', privacidade: 'Privacidade (LGPD)', cookies: 'Aviso de Cookies' };
+    const urls: Record<string, string> = { acessibilidade: '/acessibilidade', privacidade: '/privacidade', cookies: '/cookies', termos: '/termos' };
+    const nomes: Record<string, string> = { acessibilidade: 'Política de Acessibilidade', privacidade: 'Privacidade (LGPD)', cookies: 'Aviso de Cookies', termos: 'Termos de Uso' };
     return rows
       .filter((r) => limparHtml(r.conteudo))
       .map((r) => ({
