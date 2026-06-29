@@ -2,6 +2,7 @@ import { BadRequestException, Injectable, Logger, NotFoundException } from '@nes
 import { PrismaService } from '../../prisma/prisma.service';
 import { TenantContext } from '../../common/tenant/tenant.context';
 import { MenusService } from '../menus/menus.service';
+import { BuscaSyncService } from '../busca/busca-sync.service';
 import { CriarPrefeitoDto, AtualizarPrefeitoDto } from './prefeito.dto';
 
 /** Rótulo do menu/página conforme o gênero do titular atual. */
@@ -23,6 +24,7 @@ export class PrefeitoService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly menus: MenusService,
+    private readonly busca: BuscaSyncService,
   ) {}
 
   // ---------------------------------------------------------------- público
@@ -72,6 +74,7 @@ export class PrefeitoService {
     });
     await this.auditar('PREFEITO_CRIADO', p.id, { nome: p.nome, tipo: p.tipo }, atorId);
     await this.sincronizarMenu();
+    this.busca.enqueue('prefeito', p.id).catch(() => undefined);
     return p;
   }
 
@@ -99,6 +102,7 @@ export class PrefeitoService {
     const p = await this.prisma.db.prefeito.update({ where: { id }, data });
     await this.auditar('PREFEITO_ATUALIZADO', id, { campos: Object.keys(data) }, atorId);
     await this.sincronizarMenu();
+    this.busca.enqueue('prefeito', id).catch(() => undefined);
     return p;
   }
 
@@ -107,6 +111,7 @@ export class PrefeitoService {
     await this.prisma.db.prefeito.delete({ where: { id } });
     await this.auditar('PREFEITO_EXCLUIDO', id, { nome: p.nome, tipo: p.tipo }, atorId);
     await this.sincronizarMenu();
+    this.busca.enqueue('prefeito', id).catch(() => undefined);
     return { excluido: true };
   }
 

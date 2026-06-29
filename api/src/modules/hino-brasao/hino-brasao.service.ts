@@ -2,6 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { TenantContext } from '../../common/tenant/tenant.context';
 import { MenusService } from '../menus/menus.service';
+import { BuscaSyncService } from '../busca/busca-sync.service';
 import { SalvarHinoBrasaoDto } from './hino-brasao.dto';
 
 /** Normaliza a lista de brasões: só itens com URL, no formato {url, titulo}. */
@@ -19,6 +20,7 @@ export class HinoBrasaoService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly menus: MenusService,
+    private readonly busca: BuscaSyncService,
   ) {}
 
   /** Conteúdo público (null se nada cadastrado). */
@@ -61,6 +63,7 @@ export class HinoBrasaoService {
     try { await this.menus.sincronizarHinoBrasao(); }
     catch (err) { this.logger.warn(`Falha ao sincronizar menu de hino/brasão: ${(err as Error).message}`); }
 
+    this.busca.enqueue('hino_brasao', tenantId).catch(() => undefined);
     return h;
   }
 }

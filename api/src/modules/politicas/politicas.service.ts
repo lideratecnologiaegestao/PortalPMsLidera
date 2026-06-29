@@ -1,6 +1,7 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { TenantContext } from '../../common/tenant/tenant.context';
+import { BuscaSyncService } from '../busca/busca-sync.service';
 import { SalvarPoliticaDto } from './politicas.dto';
 
 export const TIPOS_POLITICA = ['acessibilidade', 'privacidade', 'cookies'] as const;
@@ -15,7 +16,10 @@ function validarTipo(tipo: string): TipoPolitica {
 
 @Injectable()
 export class PoliticasService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly busca: BuscaSyncService,
+  ) {}
 
   /** Conteúdo público (null se vazio/inexistente). */
   async obterPublico(tipoRaw: string) {
@@ -54,6 +58,7 @@ export class PoliticasService {
     });
 
     await this.audit('POLITICA_SALVA', tipo, { versao }, atorId);
+    this.busca.enqueue('politica', tipo).catch(() => undefined);
     return doc;
   }
 

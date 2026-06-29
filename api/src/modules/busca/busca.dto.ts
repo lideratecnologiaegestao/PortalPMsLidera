@@ -14,6 +14,10 @@ export const TIPOS_BUSCA = [
   'convenio',
   'conselho',
   'concurso',
+  'prefeito',
+  'historia',
+  'hino_brasao',
+  'politica',
 ] as const;
 
 export type TipoBusca = (typeof TIPOS_BUSCA)[number];

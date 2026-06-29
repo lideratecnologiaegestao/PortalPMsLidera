@@ -437,10 +437,33 @@ export class IaService {
         WHERE ativo = true
         ORDER BY ordem ASC, nome ASC`;
 
+      // Chefia do Executivo atual (prefeito/vice/primeira-dama)
+      const lideres = await this.prisma.db.$queryRaw<{
+        tipo: string; nome: string; genero: string; partido: string | null;
+        mandato_inicio: number | null; mandato_fim: number | null;
+      }[]>`
+        SELECT tipo, nome, genero, partido, mandato_inicio, mandato_fim
+        FROM prefeitos
+        WHERE atual = true AND ativo = true AND tipo IN ('prefeito','vice','primeira_dama')
+        ORDER BY CASE tipo WHEN 'prefeito' THEN 0 WHEN 'vice' THEN 1 ELSE 2 END`;
+
       const linhas: string[] = [
         `Esta é a Prefeitura de ${tenant.nome} (${tenant.uf}).`,
         '',
       ];
+
+      if (lideres.length > 0) {
+        linhas.push('CHEFIA DO EXECUTIVO (atual):');
+        for (const l of lideres) {
+          const cargo = l.tipo === 'vice' ? (l.genero === 'feminino' ? 'Vice-Prefeita' : 'Vice-Prefeito')
+            : l.tipo === 'primeira_dama' ? (l.genero === 'feminino' ? 'Primeira-dama' : 'Primeiro-cavalheiro')
+            : (l.genero === 'feminino' ? 'Prefeita' : 'Prefeito');
+          const mandato = [l.mandato_inicio, l.mandato_fim].filter(Boolean).join('–');
+          const extra = [l.partido, mandato ? `mandato ${mandato}` : ''].filter(Boolean).join(', ');
+          linhas.push(`  ${cargo}: ${l.nome}${extra ? ` (${extra})` : ''}`);
+        }
+        linhas.push('');
+      }
 
       if (tenant.dpoNome || tenant.dpoEmail) {
         linhas.push('ENCARREGADO DE DADOS (DPO/LGPD):');

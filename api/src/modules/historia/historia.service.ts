@@ -2,6 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { TenantContext } from '../../common/tenant/tenant.context';
 import { MenusService } from '../menus/menus.service';
+import { BuscaSyncService } from '../busca/busca-sync.service';
 import { SalvarHistoriaDto } from './historia.dto';
 
 @Injectable()
@@ -11,6 +12,7 @@ export class HistoriaService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly menus: MenusService,
+    private readonly busca: BuscaSyncService,
   ) {}
 
   /** Conteúdo público (ou null se nunca cadastrado / vazio). */
@@ -48,6 +50,7 @@ export class HistoriaService {
     try { await this.menus.sincronizarHistoria(); }
     catch (err) { this.logger.warn(`Falha ao sincronizar menu da história: ${(err as Error).message}`); }
 
+    this.busca.enqueue('historia', tenantId).catch(() => undefined);
     return h;
   }
 }

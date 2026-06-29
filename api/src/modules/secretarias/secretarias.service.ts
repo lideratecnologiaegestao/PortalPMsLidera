@@ -382,10 +382,14 @@ export class SecretariasService {
       where: { orgaoId }, orderBy: [{ ordem: 'asc' }, { nome: 'asc' }],
     });
   }
+  /** Reindexa a secretaria no buscador (engloba unidades e eventos). */
+  private reindexarSecretaria(orgaoId: string) {
+    this.buscaSync.enqueue('secretaria', orgaoId).catch(() => undefined);
+  }
   async adicionarUnidade(orgaoId: string, dto: DadosUnidade) {
     const tenantId = TenantContext.tenantId()!;
     if (!dto.nome?.trim()) throw new BadRequestException('Informe o nome da unidade.');
-    return this.prisma.db.orgaoUnidade.create({
+    const u = await this.prisma.db.orgaoUnidade.create({
       data: {
         tenantId, orgaoId, nome: dto.nome.trim(), sigla: dto.sigla?.trim() || null,
         responsavel: dto.responsavel?.trim() || null, cargo: dto.cargo?.trim() || null,
@@ -396,6 +400,8 @@ export class SecretariasService {
         ordem: dto.ordem ?? 0, ativo: dto.ativo ?? true,
       },
     });
+    this.reindexarSecretaria(orgaoId);
+    return u;
   }
   async atualizarUnidade(id: string, dto: DadosUnidade) {
     const u = await this.prisma.db.orgaoUnidade.findUnique({ where: { id } });
@@ -415,10 +421,15 @@ export class SecretariasService {
     if (dto.longitude !== undefined) data.longitude = coordOuNull(dto.longitude, 180);
     if (dto.ordem !== undefined) data.ordem = dto.ordem ?? 0;
     if (dto.ativo !== undefined) data.ativo = dto.ativo;
-    return this.prisma.db.orgaoUnidade.update({ where: { id }, data });
+    const atualizada = await this.prisma.db.orgaoUnidade.update({ where: { id }, data });
+    this.reindexarSecretaria(u.orgaoId);
+    return atualizada;
   }
-  excluirUnidade(id: string) {
-    return this.prisma.db.orgaoUnidade.delete({ where: { id } }).then(() => ({ excluido: true }));
+  async excluirUnidade(id: string) {
+    const u = await this.prisma.db.orgaoUnidade.findUnique({ where: { id }, select: { orgaoId: true } });
+    await this.prisma.db.orgaoUnidade.delete({ where: { id } });
+    if (u) this.reindexarSecretaria(u.orgaoId);
+    return { excluido: true };
   }
 
   // ------------------------------------------------ autoridades (gabinete)
@@ -490,7 +501,7 @@ export class SecretariasService {
     if (!dto.titulo?.trim()) throw new BadRequestException('Informe o título do evento.');
     const { tz, inicio, fim } = this.montarDatasEvento(dto);
     const unidadeIds = await this.unidadesDaSecretaria(secretariaId, dto.unidadeIds);
-    return this.prisma.db.secretariaEvento.create({
+    const ev = await this.prisma.db.secretariaEvento.create({
       data: {
         tenantId, secretariaId, titulo: dto.titulo.trim(),
         descricao: dto.descricao?.trim() || null, local: dto.local?.trim() || null,
@@ -500,6 +511,8 @@ export class SecretariasService {
         unidades: { create: unidadeIds.map((uid) => ({ tenantId, unidadeId: uid })) },
       },
     });
+    this.reindexarSecretaria(secretariaId);
+    return ev;
   }
 
   async atualizarEvento(id: string, dto: DadosEventoDto) {
@@ -526,11 +539,16 @@ export class SecretariasService {
       const unidadeIds = await this.unidadesDaSecretaria(ev.secretariaId, dto.unidadeIds);
       data.unidades = { deleteMany: {}, create: unidadeIds.map((uid) => ({ tenantId, unidadeId: uid })) };
     }
-    return this.prisma.db.secretariaEvento.update({ where: { id }, data });
+    const atualizado = await this.prisma.db.secretariaEvento.update({ where: { id }, data });
+    this.reindexarSecretaria(ev.secretariaId);
+    return atualizado;
   }
 
-  excluirEvento(id: string) {
-    return this.prisma.db.secretariaEvento.delete({ where: { id } }).then(() => ({ excluido: true }));
+  async excluirEvento(id: string) {
+    const ev = await this.prisma.db.secretariaEvento.findUnique({ where: { id }, select: { secretariaId: true } });
+    await this.prisma.db.secretariaEvento.delete({ where: { id } });
+    if (ev) this.reindexarSecretaria(ev.secretariaId);
+    return { excluido: true };
   }
 
   /** Gera o arquivo .ics (Apple/iPhone, Outlook desktop, etc.) de um evento. */

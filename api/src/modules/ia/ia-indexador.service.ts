@@ -126,6 +126,10 @@ export class IaIndexadorService {
         () => this.carregarDocumentos(),
         () => this.carregarConhecimento(),
         () => this.carregarConteudos(),
+        () => this.carregarPrefeitos(),
+        () => this.carregarHistoria(),
+        () => this.carregarHinoBrasao(),
+        () => this.carregarPoliticas(),
       ];
 
       for (const carregarFonte of fontes) {
@@ -346,7 +350,7 @@ export class IaIndexadorService {
     }));
   }
 
-  /** Secretarias ativas. */
+  /** Secretarias ativas, com suas unidades (endereços) e eventos da agenda. */
   private async carregarSecretarias(): Promise<ItemFonte[]> {
     const rows = await this.prisma.db.$queryRaw<
       {
@@ -360,13 +364,20 @@ export class IaIndexadorService {
         horario: string | null;
         telefone: string | null;
         email: string | null;
+        endereco: string | null;
+        unidades: string | null;
+        eventos: string | null;
       }[]
     >`
-      SELECT id::text, slug, nome,
-             descricao, sobre, competencias,
-             responsavel, horario, telefone, email
-      FROM secretarias
-      WHERE ativo = true`;
+      SELECT s.id::text, s.slug, s.nome,
+             s.descricao, s.sobre, s.competencias,
+             s.responsavel, s.horario, s.telefone, s.email, s.endereco,
+             (SELECT string_agg(concat_ws(' ', u.nome, u.endereco, u.responsavel, u.horario), ' | ')
+                FROM orgao_unidades u WHERE u.orgao_id = s.id AND u.ativo = true) AS unidades,
+             (SELECT string_agg(concat_ws(' ', e.titulo, e.descricao, e.local), ' | ')
+                FROM secretaria_eventos e WHERE e.secretaria_id = s.id AND e.ativo = true) AS eventos
+      FROM secretarias s
+      WHERE s.ativo = true`;
 
     return rows.map((r) => ({
       fonte: 'secretarias',
@@ -375,17 +386,82 @@ export class IaIndexadorService {
       url: r.slug ? `/secretarias/${r.slug}` : '/secretarias',
       textoCompleto: [
         r.nome,
-        r.descricao ?? '',
-        r.sobre ?? '',
-        r.competencias ?? '',
+        limparHtml(r.descricao),
+        limparHtml(r.sobre),
+        limparHtml(r.competencias),
         r.responsavel ? `Responsável: ${r.responsavel}` : '',
         r.horario ? `Horário: ${r.horario}` : '',
         r.telefone ? `Telefone: ${r.telefone}` : '',
         r.email ? `E-mail: ${r.email}` : '',
+        r.endereco ? `Endereço: ${r.endereco}` : '',
+        r.unidades ? `Unidades: ${limparHtml(r.unidades)}` : '',
+        r.eventos ? `Eventos/agenda: ${limparHtml(r.eventos)}` : '',
       ]
         .filter(Boolean)
         .join('\n'),
     }));
+  }
+
+  /** Prefeito, vice, primeira-dama e ex-prefeitos (módulo Prefeito). */
+  private async carregarPrefeitos(): Promise<ItemFonte[]> {
+    const rows = await this.prisma.db.$queryRaw<
+      { id: string; tipo: string; nome: string; genero: string; partido: string | null; atual: boolean; resumo: string | null; historia: string | null; mandato_inicio: number | null; mandato_fim: number | null }[]
+    >`
+      SELECT id::text, tipo, nome, genero, partido, atual, resumo, historia, mandato_inicio, mandato_fim
+      FROM prefeitos WHERE ativo = true`;
+    return rows.map((r) => {
+      const cargo = r.tipo === 'vice' ? (r.genero === 'feminino' ? 'Vice-Prefeita' : 'Vice-Prefeito')
+        : r.tipo === 'primeira_dama' ? (r.genero === 'feminino' ? 'Primeira-dama' : 'Primeiro-cavalheiro')
+        : (r.genero === 'feminino' ? 'Prefeita' : 'Prefeito');
+      const url = r.tipo === 'vice' ? '/institucional/vice-prefeito'
+        : (r.tipo === 'prefeito' && !r.atual) ? '/institucional/ex-prefeitos'
+        : '/institucional/prefeito';
+      const mandato = [r.mandato_inicio, r.mandato_fim].filter(Boolean).join('–');
+      return {
+        fonte: 'prefeito', refId: r.id, titulo: `${r.nome} — ${cargo}`, url,
+        textoCompleto: [
+          `${cargo}${r.atual ? ' atual' : ''}: ${r.nome}`,
+          r.partido ? `Partido: ${r.partido}` : '',
+          mandato ? `Mandato: ${mandato}` : '',
+          limparHtml(r.resumo), limparHtml(r.historia),
+        ].filter(Boolean).join('\n'),
+      };
+    });
+  }
+
+  /** História do Município (singleton). */
+  private async carregarHistoria(): Promise<ItemFonte[]> {
+    const rows = await this.prisma.db.$queryRaw<{ titulo: string | null; conteudo: string }[]>`
+      SELECT titulo, conteudo FROM historia_municipio WHERE conteudo <> '' LIMIT 1`;
+    const r = rows[0];
+    const texto = limparHtml(r?.conteudo);
+    if (!texto) return [];
+    return [{ fonte: 'historia', refId: 'historia', titulo: r.titulo?.trim() || 'História do Município', url: '/institucional/historia', textoCompleto: `${r.titulo ?? 'História do Município'}\n\n${texto}` }];
+  }
+
+  /** Hino e Brasão (singleton). */
+  private async carregarHinoBrasao(): Promise<ItemFonte[]> {
+    const rows = await this.prisma.db.$queryRaw<{ hino_texto: string | null; brasao_historia: string | null }[]>`
+      SELECT hino_texto, brasao_historia FROM hino_brasao LIMIT 1`;
+    const r = rows[0];
+    if (!r) return [];
+    const texto = [r.hino_texto, limparHtml(r.brasao_historia)].filter((s) => s && s.trim()).join('\n\n');
+    if (!texto.trim()) return [];
+    return [{ fonte: 'hino_brasao', refId: 'hino_brasao', titulo: 'Hino e Brasão', url: '/institucional/hino-brasao', textoCompleto: `Hino e Brasão do Município\n\n${texto}` }];
+  }
+
+  /** Documentos legais (acessibilidade, privacidade, cookies). */
+  private async carregarPoliticas(): Promise<ItemFonte[]> {
+    const rows = await this.prisma.db.$queryRaw<{ tipo: string; titulo: string | null; conteudo: string }[]>`
+      SELECT tipo, titulo, conteudo FROM documentos_legais WHERE conteudo <> ''`;
+    const urls: Record<string, string> = { acessibilidade: '/acessibilidade', privacidade: '/privacidade', cookies: '/cookies' };
+    const nomes: Record<string, string> = { acessibilidade: 'Política de Acessibilidade', privacidade: 'Privacidade (LGPD)', cookies: 'Aviso de Cookies' };
+    return rows
+      .filter((r) => limparHtml(r.conteudo))
+      .map((r) => ({
+        fonte: 'politica', refId: r.tipo, titulo: r.titulo?.trim() || nomes[r.tipo] || r.tipo,
+        url: urls[r.tipo] ?? '/', textoCompleto: `${r.titulo ?? nomes[r.tipo] ?? r.tipo}\n\n${limparHtml(r.conteudo)}`,
+      }));
   }
 
   /** Documentos ativos (ementa + conteúdo extraído pelo OCR/FTS worker). */
@@ -526,6 +602,12 @@ export class IaIndexadorService {
 }
 
 // ================================================================ UTILITÁRIO
+
+/** Remove tags HTML e normaliza espaços (para conteúdo rico HTML/MD). */
+function limparHtml(s: string | null | undefined): string {
+  if (!s) return '';
+  return s.replace(/<[^>]+>/g, ' ').replace(/&nbsp;/g, ' ').replace(/\s+/g, ' ').trim();
+}
 
 /**
  * Divide um texto em chunks com overlap.
