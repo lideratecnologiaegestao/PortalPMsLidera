@@ -268,6 +268,29 @@ export async function getHinoBrasao(): Promise<HinoBrasao | null> {
   }
 }
 
+export interface DocumentoLegal {
+  tipo: string;
+  titulo: string | null;
+  conteudo: string;
+  formato: string; // 'html' | 'md'
+  versao: number;
+  atualizadoEm: string | null;
+}
+
+export async function getPolitica(tipo: 'acessibilidade' | 'privacidade' | 'cookies'): Promise<DocumentoLegal | null> {
+  try {
+    const res = await fetch(tenantUrl(`/api/politicas/${tipo}`), {
+      headers: tenantHeaders(),
+      cache: 'no-store',
+    });
+    if (!res.ok) return null;
+    const txt = await res.text();
+    return txt ? (JSON.parse(txt) as DocumentoLegal) : null;
+  } catch {
+    return null;
+  }
+}
+
 export async function getSecretariaBySlug(slug: string): Promise<Secretaria | null> {
   try {
     const res = await fetch(tenantUrl(`/api/secretarias/${encodeURIComponent(slug)}`), {

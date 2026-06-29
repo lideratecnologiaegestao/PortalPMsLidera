@@ -1610,6 +1610,32 @@ model HistoriaMunicipio {
   @@map("historia_municipio")
 }
 
+model DocumentoLegal {
+  tenantId     String   @map("tenant_id") @db.Uuid
+  tipo         String
+  titulo       String?
+  conteudo     String   @default("")
+  formato      String   @default("html")
+  versao       Int      @default(1)
+  atualizadoEm DateTime @default(now()) @map("atualizado_em") @db.Timestamptz(6)
+  @@id([tenantId, tipo])
+  @@map("documentos_legais")
+}
+
+model DocumentoLegalVersao {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId  String   @map("tenant_id") @db.Uuid
+  tipo      String
+  versao    Int
+  titulo    String?
+  conteudo  String   @default("")
+  formato   String   @default("html")
+  criadoPor String?  @map("criado_por") @db.Uuid
+  criadoEm  DateTime @default(now()) @map("criado_em") @db.Timestamptz(6)
+  @@index([tenantId, tipo, versao(sort: Desc)])
+  @@map("documentos_legais_versoes")
+}
+
 model HinoBrasao {
   tenantId       String   @id @map("tenant_id") @db.Uuid
   hinoTexto      String?  @map("hino_texto")

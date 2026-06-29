@@ -614,7 +614,7 @@ export class MenusService {
         { tenantId, local: 'cabecalho', parentId: aPrefeitura.id, label: 'Galeria de Ex-Prefeitos', tipo: 'interno', href: '/institucional/ex-prefeitos', icone: 'photo', ordem: 2, ativo: true, refTipo: 'ex_prefeitos_page' },
         { tenantId, local: 'cabecalho', parentId: aPrefeitura.id, label: 'História do Município', tipo: 'interno', href: '/institucional/historia', icone: 'pages', ordem: 3, ativo: true, refTipo: 'historia_page' },
         { tenantId, local: 'cabecalho', parentId: aPrefeitura.id, label: 'Hino e Brasão', tipo: 'interno', href: '/institucional/hino-brasao', icone: 'pages', ordem: 4, ativo: true, refTipo: 'hino_brasao_page' },
-        { tenantId, local: 'cabecalho', parentId: aPrefeitura.id, label: 'Estrutura Organizacional', tipo: 'interno', href: '/institucional/estrutura', ordem: 5, ativo: true },
+        { tenantId, local: 'cabecalho', parentId: aPrefeitura.id, label: 'Estrutura Organizacional', tipo: 'interno', href: '/institucional/estrutura', icone: 'building', ordem: 5, ativo: true, refTipo: 'estrutura_page' },
         { tenantId, local: 'cabecalho', parentId: aPrefeitura.id, label: 'Contatos', tipo: 'interno', href: '/institucional/contatos', ordem: 6, ativo: true },
         { tenantId, local: 'cabecalho', parentId: aPrefeitura.id, label: 'Perguntas Frequentes', tipo: 'interno', href: '/institucional/faq', ordem: 7, ativo: true },
       ],
