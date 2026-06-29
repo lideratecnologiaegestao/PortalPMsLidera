@@ -260,7 +260,9 @@ export async function getHinoBrasao(): Promise<HinoBrasao | null> {
       cache: 'no-store',
     });
     if (!res.ok) return null;
-    return res.json();
+    // Corpo vazio quando nada cadastrado (API devolve null) → não tenta parsear.
+    const txt = await res.text();
+    return txt ? (JSON.parse(txt) as HinoBrasao) : null;
   } catch {
     return null;
   }
