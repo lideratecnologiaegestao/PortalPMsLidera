@@ -261,6 +261,7 @@ const MENU_GROUPS: MenuGroup[] = [
       { href: '/admin/historia', label: 'História do Município', icon: <IconPages /> },
       { href: '/admin/hino-brasao', label: 'Hino e Brasão', icon: <IconPages /> },
       { href: '/admin/galeria', label: 'Galeria', icon: <IconPhoto /> },
+      { href: '/admin/icones', label: 'Ícones e Emojis', icon: <IconPalette /> },
       { href: '/admin/midia', label: 'Mídia', icon: <IconPhoto /> },
       { href: '/admin/paginas', label: 'Páginas', icon: <IconPages /> },
       { href: '/admin/diario', label: 'Diário Oficial', icon: <IconNewspaper /> },

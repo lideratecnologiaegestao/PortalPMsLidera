@@ -17,7 +17,7 @@ import {
   adminPut,
 } from '../../../lib/admin-api';
 import { AdminHeader, Aviso, Modal, ui } from '../_components/ui';
-import { ICON_NAMES } from '../../../components/portal/MenuIcon';
+import { CampoIcone } from '../_components/IconeEmojiPicker';
 import type { MenuItemAdmin, RotaGrupo } from '../../../lib/portal-types';
 
 // ── Tipos ─────────────────────────────────────────────────────────────────────
@@ -314,24 +314,7 @@ function ModalMenu({
         </div>
 
         {/* Ícone */}
-        <div>
-          <label htmlFor={`${idBase}-icone`} className={ui.label}>
-            Ícone
-          </label>
-          <select
-            id={`${idBase}-icone`}
-            className={`${ui.input} mt-1`}
-            value={form.icone}
-            onChange={(e) => campo('icone', e.target.value)}
-          >
-            <option value="">Nenhum</option>
-            {ICON_NAMES.map((n) => (
-              <option key={n} value={n}>
-                {n}
-              </option>
-            ))}
-          </select>
-        </div>
+        <CampoIcone label="Ícone" valor={form.icone} onChange={(v) => campo('icone', v)} modo="icone" />
 
         {/* Ordem + Ativo */}
         <div className="grid grid-cols-2 gap-3">
