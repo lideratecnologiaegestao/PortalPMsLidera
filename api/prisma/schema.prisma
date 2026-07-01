@@ -1411,10 +1411,30 @@ model MediaCategory {
   nome      String
   slug      String
   descricao String?
+  ativo     Boolean    @default(true)
   criadoEm  DateTime   @default(now()) @map("criado_em") @db.Timestamptz(6)
   assets    MediaAsset[]
   @@unique([tenantId, tipo, slug])
   @@map("media_categories")
+}
+
+// Taxonomia editável de "tipos de mídia" (rótulo opcional na mídia; NÃO altera
+// preview/MIME/storage, que seguem pelo enum MediaTipo). Migration 101.
+model MediaTipoMidia {
+  id           String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId     String       @map("tenant_id") @db.Uuid
+  nome         String
+  slug         String
+  descricao    String?
+  icone        String?
+  cor          String?
+  ordem        Int          @default(0)
+  ativo        Boolean      @default(true)
+  criadoEm     DateTime     @default(now()) @map("criado_em") @db.Timestamptz(6)
+  atualizadoEm DateTime     @updatedAt @map("atualizado_em") @db.Timestamptz(6)
+  assets       MediaAsset[]
+  @@unique([tenantId, slug])
+  @@map("media_tipos")
 }
 
 model MediaAsset {
@@ -1422,6 +1442,7 @@ model MediaAsset {
   tenantId     String            @map("tenant_id") @db.Uuid
   tipo         MediaTipo
   categoriaId  String            @map("categoria_id") @db.Uuid
+  tipoMidiaId  String?           @map("tipo_midia_id") @db.Uuid
   visibilidade MediaVisibilidade @default(restrito)
   nomeOriginal String            @map("nome_original")
   hash         String
@@ -1436,6 +1457,7 @@ model MediaAsset {
   uploadedBy   String?           @map("uploaded_by") @db.Uuid
   criadoEm     DateTime          @default(now()) @map("criado_em") @db.Timestamptz(6)
   categoria    MediaCategory     @relation(fields: [categoriaId], references: [id])
+  tipoMidia    MediaTipoMidia?   @relation(fields: [tipoMidiaId], references: [id])
   @@unique([tenantId, hash])
   @@unique([tenantId, tipo, categoriaId, hash])
   @@map("media_assets")

@@ -6,18 +6,20 @@
  */
 
 import { useId, useRef, useState } from 'react';
-import { uploadMidia, type MediaAsset, type MediaCategoria, type MediaVisibilidade } from '../../../lib/media';
+import { uploadMidia, type MediaAsset, type MediaCategoria, type MediaTipoMidia, type MediaVisibilidade } from '../../../lib/media';
 import { Aviso, ui } from './ui';
 
 interface Props {
   categorias: MediaCategoria[];
+  /** Tipos de mídia (rótulo opcional). Vazio/omitido → seletor não aparece. */
+  tipos?: MediaTipoMidia[];
   tipoFixo?: string;
   onSucesso: (asset: MediaAsset) => void;
 }
 
 const IMAGEM_MIMES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml', 'image/bmp'];
 
-export default function MediaUploadForm({ categorias, tipoFixo, onSucesso }: Props) {
+export default function MediaUploadForm({ categorias, tipos, tipoFixo, onSucesso }: Props) {
   const inputRef = useRef<HTMLInputElement>(null);
   // id único por instância — evita colisão se houver mais de um formulário montado
   const fileId = useId();
@@ -25,6 +27,7 @@ export default function MediaUploadForm({ categorias, tipoFixo, onSucesso }: Pro
   const [arquivo, setArquivo] = useState<File | null>(null);
   const [arrastando, setArrastando] = useState(false);
   const [categoriaId, setCategoriaId] = useState('');
+  const [tipoMidiaId, setTipoMidiaId] = useState('');
   const [visibilidade, setVisibilidade] = useState<MediaVisibilidade>('publico');
   const [altText, setAltText] = useState('');
 
@@ -65,6 +68,7 @@ export default function MediaUploadForm({ categorias, tipoFixo, onSucesso }: Pro
         categoriaId,
         visibilidade,
         altText: altText.trim() || undefined,
+        tipoMidiaId: tipoMidiaId || undefined,
       });
       setOk(`"${asset.nomeOriginal}" enviado com sucesso.`);
       setArquivo(null);
@@ -145,13 +149,36 @@ export default function MediaUploadForm({ categorias, tipoFixo, onSucesso }: Pro
           onChange={(e) => setCategoriaId(e.target.value)}
         >
           <option value="">Selecione uma categoria…</option>
-          {categorias.map((c) => (
+          {/* Categoria desativada não deve aparecer para novo upload. */}
+          {categorias.filter((c) => c.ativo !== false).map((c) => (
             <option key={c.id} value={c.id}>
               {c.nome}
             </option>
           ))}
         </select>
       </div>
+
+      {/* Tipo de mídia — rótulo opcional (taxonomia editável) */}
+      {tipos && tipos.length > 0 && (
+        <div>
+          <label htmlFor="upload-tipo-midia" className={ui.label}>
+            Tipo de mídia <span className="text-fg/50">(opcional)</span>
+          </label>
+          <select
+            id="upload-tipo-midia"
+            className={`mt-1 ${ui.input}`}
+            value={tipoMidiaId}
+            onChange={(e) => setTipoMidiaId(e.target.value)}
+          >
+            <option value="">Sem tipo</option>
+            {tipos.map((t) => (
+              <option key={t.id} value={t.id}>
+                {t.nome}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
 
       {/* Visibilidade */}
       <fieldset>

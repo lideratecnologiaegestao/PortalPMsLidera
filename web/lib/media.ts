@@ -18,6 +18,19 @@ export interface MediaCategoria {
   nome: string;
   slug: string;
   descricao?: string | null;
+  ativo?: boolean;
+}
+
+/** Taxonomia editável de "tipos de mídia" (rótulo opcional). */
+export interface MediaTipoMidia {
+  id: string;
+  nome: string;
+  slug: string;
+  descricao?: string | null;
+  icone?: string | null;
+  cor?: string | null;
+  ordem?: number;
+  ativo?: boolean;
 }
 
 export interface MediaAsset {
@@ -34,6 +47,9 @@ export interface MediaAsset {
   altura?: number | null;
   altText?: string | null;
   criadoEm: string;
+  /** rótulo opcional (taxonomia editável) — null quando não vinculado */
+  tipoMidiaId?: string | null;
+  tipoMidia?: { id: string; nome: string; slug: string } | null;
   /** URL publica mascarada — null quando restrito */
   urlPublica: string | null;
 }
@@ -54,6 +70,8 @@ export interface ListaMidiaResposta {
 export interface AtualizarMidiaDto {
   altText?: string;
   categoriaId?: string;
+  /** null remove o rótulo; string vincula; undefined não altera */
+  tipoMidiaId?: string | null;
 }
 
 // ─── Helpers de listagem/detalhe ─────────────────────────────────────────────
@@ -77,6 +95,11 @@ export function listarCategorias(tipo?: MediaTipo | ''): Promise<MediaCategoria[
   return adminGet<MediaCategoria[]>(path);
 }
 
+/** Tipos de mídia ATIVOS para o seletor de upload/edição (rótulo opcional). */
+export function listarTiposMidia(): Promise<MediaTipoMidia[]> {
+  return adminGet<MediaTipoMidia[]>('/api/midia/tipos');
+}
+
 export function atualizarMidia(id: string, dto: AtualizarMidiaDto): Promise<MediaAsset> {
   return adminPut<MediaAsset>(`/api/midia/${id}`, dto);
 }
@@ -91,6 +114,8 @@ export interface UploadMidiaDados {
   categoriaId: string;
   visibilidade: MediaVisibilidade;
   altText?: string;
+  /** rótulo opcional (taxonomia editável) */
+  tipoMidiaId?: string;
 }
 
 export async function uploadMidia(
@@ -102,6 +127,7 @@ export async function uploadMidia(
   form.append('categoriaId', dados.categoriaId);
   form.append('visibilidade', dados.visibilidade);
   if (dados.altText) form.append('altText', dados.altText);
+  if (dados.tipoMidiaId) form.append('tipoMidiaId', dados.tipoMidiaId);
 
   const res = await fetch(`${apiBase}/api/midia`, {
     method: 'POST',

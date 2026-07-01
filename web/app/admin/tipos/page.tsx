@@ -4,7 +4,13 @@ import { useCallback, useEffect, useState } from 'react';
 import { adminGet, adminPost, adminPut, adminDelete, AdminApiError } from '../../../lib/admin-api';
 import { AdminHeader, Aviso, ui } from '../_components/ui';
 
-interface CampoExtra { key: string; label: string; tipo: 'bool' | 'text' }
+interface CampoExtra {
+  key: string;
+  label: string;
+  tipo: 'bool' | 'text' | 'select';
+  /** opções quando tipo === 'select' */
+  options?: { value: string; label: string }[];
+}
 interface TaxConfig {
   id: string;
   grupo: string;
@@ -20,6 +26,48 @@ const CAMPOS_MOD: CampoExtra[] = [
   { key: 'lei8666', label: 'Lei 8.666', tipo: 'bool' },
   { key: 'lei14133', label: 'Lei 14.133', tipo: 'bool' },
 ];
+
+/** Formatos fixos do sistema (enum media_tipo) — dimensão das categorias de mídia. */
+const FORMATOS_MIDIA: { value: string; label: string }[] = [
+  { value: 'imagem', label: 'Imagem' },
+  { value: 'documento', label: 'Documento' },
+  { value: 'video', label: 'Vídeo' },
+  { value: 'audio', label: 'Áudio' },
+  { value: 'outro', label: 'Outro' },
+];
+
+/** Cadastros de mídia (Biblioteca) exibidos no hub de taxonomias. */
+const CONFIGS_MIDIA: TaxConfig[] = [
+  {
+    id: 'midia-cat', grupo: 'Biblioteca', nome: 'Categorias de mídia',
+    campos: [{ key: 'tipo', label: 'Formato', tipo: 'select', options: FORMATOS_MIDIA }],
+    list: '/api/admin/midia/categorias/todas',
+    create: '/api/admin/midia/categorias',
+    item: (id) => `/api/admin/midia/categorias/${id}`,
+  },
+  {
+    id: 'midia-tipo', grupo: 'Biblioteca', nome: 'Tipos de mídia',
+    campos: [
+      { key: 'descricao', label: 'Descrição', tipo: 'text' },
+      { key: 'icone', label: 'Ícone', tipo: 'text' },
+      { key: 'cor', label: 'Cor (hex)', tipo: 'text' },
+    ],
+    list: '/api/admin/midia/tipos/todas',
+    create: '/api/admin/midia/tipos',
+    item: (id) => `/api/admin/midia/tipos/${id}`,
+  },
+];
+
+/** Form inicial de um cadastro: nome vazio + defaults dos campos extras. */
+function formInicial(cfg?: TaxConfig): Record<string, unknown> {
+  const f: Record<string, unknown> = { nome: '' };
+  cfg?.campos.forEach((c) => {
+    if (c.tipo === 'select') f[c.key] = c.options?.[0]?.value ?? '';
+    else if (c.tipo === 'bool') f[c.key] = false;
+    else f[c.key] = '';
+  });
+  return f;
+}
 
 export default function TiposAdminPage() {
   const [configs, setConfigs] = useState<TaxConfig[]>([]);
@@ -55,6 +103,7 @@ export default function TiposAdminPage() {
         { id: 'conc-tipo', grupo: 'Concursos', nome: 'Tipos de certame', campos: [], list: '/api/admin/concursos/tipos/todas', create: '/api/admin/concursos/tipos', item: (id) => `/api/admin/concursos/tipos/${id}` },
         { id: 'conc-doc', grupo: 'Concursos', nome: 'Tipos de documento', campos: [{ key: 'situacao', label: 'Fase/Situação', tipo: 'text' }, { key: 'obrigatorio', label: 'Publicação obrigatória', tipo: 'bool' }], list: '/api/admin/concursos/doc-tipos/todas', create: '/api/admin/concursos/doc-tipos', item: (id) => `/api/admin/concursos/doc-tipos/${id}` },
       );
+      base.push(...CONFIGS_MIDIA);
       setConfigs(base);
       if (base[0]) setSel(base[0].id);
     })();
@@ -69,7 +118,7 @@ export default function TiposAdminPage() {
     catch (e) { setErro(e instanceof AdminApiError ? e.message : 'Falha ao carregar.'); setItens([]); }
     finally { setCarregando(false); }
   }, [cfg]);
-  useEffect(() => { setEditId(null); setForm({ nome: '' }); carregar(); }, [carregar]);
+  useEffect(() => { setEditId(null); setForm(formInicial(cfg)); carregar(); }, [carregar]);
 
   function editar(it: Item) {
     const f: Record<string, unknown> = { nome: it.nome };
@@ -82,7 +131,7 @@ export default function TiposAdminPage() {
     try {
       if (editId) await adminPut(cfg.item(editId), form);
       else await adminPost(cfg.create, form);
-      setForm({ nome: '' }); setEditId(null);
+      setForm(formInicial(cfg)); setEditId(null);
       await carregar();
     } catch (e) { setErro(e instanceof AdminApiError ? e.message : 'Falha ao salvar.'); }
     finally { setSalvando(false); }
@@ -139,13 +188,19 @@ export default function TiposAdminPage() {
                     <select className={ui.input} value={form[c.key] ? '1' : '0'} onChange={(e) => setForm({ ...form, [c.key]: e.target.value === '1' })}>
                       <option value="0">Não</option><option value="1">Sim</option>
                     </select>
+                  ) : c.tipo === 'select' ? (
+                    <select className={ui.input} value={String(form[c.key] ?? '')} onChange={(e) => setForm({ ...form, [c.key]: e.target.value })}>
+                      {c.options?.map((o) => (
+                        <option key={o.value} value={o.value}>{o.label}</option>
+                      ))}
+                    </select>
                   ) : (
                     <input className={ui.input} value={String(form[c.key] ?? '')} onChange={(e) => setForm({ ...form, [c.key]: e.target.value })} />
                   )}
                 </div>
               ))}
               <button className={ui.btn} disabled={salvando} onClick={salvar}>{salvando ? 'Salvando…' : (editId ? 'Salvar' : 'Adicionar')}</button>
-              {editId && <button className={ui.btnGhost} onClick={() => { setEditId(null); setForm({ nome: '' }); }}>Cancelar</button>}
+              {editId && <button className={ui.btnGhost} onClick={() => { setEditId(null); setForm(formInicial(cfg)); }}>Cancelar</button>}
             </div>
           </div>
 
@@ -165,7 +220,13 @@ export default function TiposAdminPage() {
                   <tr key={it.id} className={it.ativo ? '' : 'opacity-50'}>
                     <td className={ui.td}>{it.nome}</td>
                     {cfg?.campos.map((c) => (
-                      <td key={c.key} className={ui.td}>{c.tipo === 'bool' ? (it[c.key] ? 'Sim' : 'Não') : (String(it[c.key] ?? '') || '—')}</td>
+                      <td key={c.key} className={ui.td}>
+                        {c.tipo === 'bool'
+                          ? (it[c.key] ? 'Sim' : 'Não')
+                          : c.tipo === 'select'
+                            ? (c.options?.find((o) => o.value === it[c.key])?.label ?? (String(it[c.key] ?? '') || '—'))
+                            : (String(it[c.key] ?? '') || '—')}
+                      </td>
                     ))}
                     <td className={ui.td}>
                       <button className="text-sm hover:underline" onClick={() => alternarAtivo(it)}>{it.ativo ? '✓ ativo' : 'inativo'}</button>
@@ -178,7 +239,7 @@ export default function TiposAdminPage() {
                     </td>
                   </tr>
                 ))}
-                {!carregando && itens.length === 0 && <tr><td className={ui.td} colSpan={4}>Nenhum tipo cadastrado.</td></tr>}
+                {!carregando && itens.length === 0 && <tr><td className={ui.td} colSpan={3 + (cfg?.campos.length ?? 0)}>Nenhum tipo cadastrado.</td></tr>}
               </tbody>
             </table>
           </div>

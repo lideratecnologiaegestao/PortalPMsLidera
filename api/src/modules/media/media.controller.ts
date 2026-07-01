@@ -38,9 +38,18 @@ export class MediaController {
   @UseGuards(RolesGuard)
   @Roles(Role.ADMIN_PREFEITURA, Role.GESTOR)
   criarCategoria(
-    @Body() dto: { tipo: string; nome: string; slug: string; descricao?: string },
+    @Body() dto: { tipo: string; nome: string; slug?: string; descricao?: string },
   ) {
     return this.service.criarCategoria(dto);
+  }
+
+  // ---------------- tipos de mídia — seletor (rótulo opcional) ----------------
+  /** Tipos ATIVOS para o seletor de upload/edição (mesmo papel de categorias). */
+  @Get('tipos')
+  @UseGuards(RolesGuard)
+  @Roles(Role.ADMIN_PREFEITURA, Role.GESTOR, Role.SERVIDOR)
+  listarTipos() {
+    return this.service.listarTipos();
   }
 
   // ---------------- upload admin ----------------
@@ -50,7 +59,13 @@ export class MediaController {
   @UseInterceptors(FileInterceptor('file'))
   upload(
     @UploadedFile() file: any,
-    @Body() dto: { categoriaId: string; visibilidade?: 'publico' | 'restrito'; altText?: string },
+    @Body()
+    dto: {
+      categoriaId: string;
+      visibilidade?: 'publico' | 'restrito';
+      altText?: string;
+      tipoMidiaId?: string;
+    },
     @CurrentUser() user?: AuthUser,
   ) {
     return this.service.upload(file, dto, user?.sub);
@@ -91,10 +106,11 @@ export class MediaController {
   list(
     @Query('tipo') tipo?: string,
     @Query('categoria') categoria?: string,
+    @Query('tipoMidia') tipoMidia?: string,
     @Query('q') q?: string,
     @Query('page') page?: string,
   ) {
-    return this.service.list({ tipo, categoria, q, page: page ? Number(page) : 1 });
+    return this.service.list({ tipo, categoria, tipoMidia, q, page: page ? Number(page) : 1 });
   }
 
   // ---------------- editor de cores SVG ----------------
@@ -140,7 +156,7 @@ export class MediaController {
   @Roles(Role.ADMIN_PREFEITURA, Role.GESTOR, Role.SERVIDOR)
   update(
     @Param('id') id: string,
-    @Body() dto: { altText?: string; categoriaId?: string },
+    @Body() dto: { altText?: string; categoriaId?: string; tipoMidiaId?: string | null },
     @CurrentUser() user?: AuthUser,
   ) {
     return this.service.update(id, dto, user?.sub);

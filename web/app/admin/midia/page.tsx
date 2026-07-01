@@ -11,13 +11,19 @@
  *  - Modal de upload (aba separada)
  */
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { AdminHeader, Aviso, Modal, ui } from '../_components/ui';
 import MediaGrid, { ExtIconGrande, MediaFiltros, Paginacao } from '../_components/MediaGrid';
 import MediaUploadForm from '../_components/MediaUploadForm';
 import SvgEditorCores from '../_components/SvgEditorCores';
 import { useMediaLibrary } from '../_components/useMediaLibrary';
-import { formatarBytes, type MediaAsset, type MediaCategoria } from '../../../lib/media';
+import {
+  formatarBytes,
+  listarTiposMidia,
+  type MediaAsset,
+  type MediaCategoria,
+  type MediaTipoMidia,
+} from '../../../lib/media';
 import { AdminApiError } from '../../../lib/admin-api';
 import { dataCurta } from '../../../lib/format';
 
@@ -26,8 +32,12 @@ import { dataCurta } from '../../../lib/format';
 interface ModalDetalheProps {
   asset: MediaAsset;
   categorias: MediaCategoria[];
+  tipos: MediaTipoMidia[];
   onClose: () => void;
-  onAtualizar: (id: string, dto: { altText?: string; categoriaId?: string }) => Promise<MediaAsset>;
+  onAtualizar: (
+    id: string,
+    dto: { altText?: string; categoriaId?: string; tipoMidiaId?: string | null },
+  ) => Promise<MediaAsset>;
   onExcluir: (id: string) => Promise<void>;
   onAlterado: () => void;
   /** Abre o editor de cores SVG para este asset. */
@@ -37,6 +47,7 @@ interface ModalDetalheProps {
 function ModalDetalhe({
   asset,
   categorias,
+  tipos,
   onClose,
   onAtualizar,
   onExcluir,
@@ -48,6 +59,7 @@ function ModalDetalhe({
   const [catEdit, setCatEdit] = useState(
     categorias.find((c) => c.slug === asset.categoria)?.id ?? '',
   );
+  const [tipoEdit, setTipoEdit] = useState(asset.tipoMidiaId ?? '');
   const [salvando, setSalvando] = useState(false);
   const [excluindo, setExcluindo] = useState(false);
   const [confirmarExclusao, setConfirmarExclusao] = useState(false);
@@ -55,6 +67,21 @@ function ModalDetalhe({
   const [copiado, setCopiado] = useState(false);
 
   const ehImagem = asset.tipo === 'imagem' && asset.urlPublica;
+
+  // O seletor de tipos só traz os ATIVOS. Se o tipo vinculado a esta mídia foi
+  // desativado, injeta-o como opção (marcado "inativo") para o dropdown não
+  // mentir/perder o rótulo ao editar. Dado já vem no DTO (asset.tipoMidia).
+  const tiposParaSelect: MediaTipoMidia[] =
+    asset.tipoMidia && !tipos.some((t) => t.id === asset.tipoMidia!.id)
+      ? [
+          ...tipos,
+          {
+            id: asset.tipoMidia.id,
+            nome: `${asset.tipoMidia.nome} (inativo)`,
+            slug: asset.tipoMidia.slug,
+          },
+        ]
+      : tipos;
 
   async function salvar() {
     setErro('');
@@ -67,6 +94,8 @@ function ModalDetalhe({
       await onAtualizar(asset.id, {
         altText: altEdit.trim() || undefined,
         categoriaId: catEdit || undefined,
+        // '' → null remove o rótulo; id vincula
+        tipoMidiaId: tipoEdit || null,
       });
       onAlterado();
       onClose();
@@ -146,6 +175,9 @@ function ModalDetalhe({
                 { label: 'Nome original', value: asset.nomeOriginal },
                 { label: 'Tipo', value: asset.tipo },
                 { label: 'Categoria', value: asset.categoria },
+                ...(asset.tipoMidia
+                  ? [{ label: 'Tipo de midia', value: asset.tipoMidia.nome }]
+                  : []),
                 { label: 'Visibilidade', value: asset.visibilidade },
                 { label: 'MIME', value: asset.mime },
                 { label: 'Tamanho', value: formatarBytes(asset.tamanhoBytes) },
@@ -281,6 +313,27 @@ function ModalDetalhe({
             </select>
           </div>
 
+          {tiposParaSelect.length > 0 && (
+            <div>
+              <label htmlFor="edit-tipo-midia" className={ui.label}>
+                Tipo de midia <span className="text-fg/50">(opcional)</span>
+              </label>
+              <select
+                id="edit-tipo-midia"
+                className={`mt-1 ${ui.input}`}
+                value={tipoEdit}
+                onChange={(e) => setTipoEdit(e.target.value)}
+              >
+                <option value="">Sem tipo</option>
+                {tiposParaSelect.map((t) => (
+                  <option key={t.id} value={t.id}>
+                    {t.nome}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+
           <div className="flex gap-2 justify-end">
             <button
               type="button"
@@ -308,15 +361,17 @@ function ModalDetalhe({
 
 interface ModalUploadProps {
   categorias: MediaCategoria[];
+  tipos: MediaTipoMidia[];
   onClose: () => void;
   onSucesso: () => void;
 }
 
-function ModalUpload({ categorias, onClose, onSucesso }: ModalUploadProps) {
+function ModalUpload({ categorias, tipos, onClose, onSucesso }: ModalUploadProps) {
   return (
     <Modal open onClose={onClose} title="Enviar midia">
       <MediaUploadForm
         categorias={categorias}
+        tipos={tipos}
         onSucesso={() => {
           onSucesso();
           onClose();
@@ -333,6 +388,14 @@ export default function BibliotecaMidiaPage() {
   const [assetAberto, setAssetAberto] = useState<MediaAsset | null>(null);
   const [uploadAberto, setUploadAberto] = useState(false);
   const [svgEditorAsset, setSvgEditorAsset] = useState<MediaAsset | null>(null);
+  const [tipos, setTipos] = useState<MediaTipoMidia[]>([]);
+
+  // Tipos de mídia (rótulo opcional) para os seletores de upload/edição.
+  useEffect(() => {
+    listarTiposMidia()
+      .then(setTipos)
+      .catch(() => setTipos([]));
+  }, []);
 
   const fecharDetalhe = useCallback(() => setAssetAberto(null), []);
 
@@ -407,6 +470,7 @@ export default function BibliotecaMidiaPage() {
         <ModalDetalhe
           asset={assetAberto}
           categorias={lib.categorias}
+          tipos={tipos}
           onClose={fecharDetalhe}
           onAtualizar={lib.atualizarMidia}
           onExcluir={lib.excluirMidia}
@@ -419,6 +483,7 @@ export default function BibliotecaMidiaPage() {
       {uploadAberto && (
         <ModalUpload
           categorias={lib.categorias}
+          tipos={tipos}
           onClose={() => setUploadAberto(false)}
           onSucesso={lib.recarregar}
         />
