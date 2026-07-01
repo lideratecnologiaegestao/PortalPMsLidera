@@ -126,6 +126,10 @@ export class TenantProvisioningService {
     //     Cada seeder é idempotente; isolado em try/catch para não quebrar o onboarding.
     await this.semeiarCadastrosDocumentos(tenantId);
 
+    // 6d. Semear feriados nacionais na Agenda (recorrência anual). A migração
+    //     104 só cobre tenants existentes na época; novos tenants recebem aqui.
+    await this.semeiarFeriados(tenantId);
+
     // 7. Aplicar tema padrão (sao-mateus-do-sul) para a home já nascer com visual
     await this.themeService.aplicarModeloParaTenant(tenantId, 'sao-mateus-do-sul');
 
@@ -351,6 +355,50 @@ export class TenantProvisioningService {
    * Datasets tabulares (1 registro placeholder cada) + sync_log.
    * A equipe da prefeitura substitui pelos dados reais via ETL.
    */
+  /**
+   * Feriados nacionais fixos como itens de agenda recorrentes-anuais. Espelha o
+   * seed da migração 104 (ano-base 2026, meia-noite de Cuiabá = UTC-4). O
+   * serviço expande a recorrência p/ os demais anos. Idempotente.
+   */
+  private async semeiarFeriados(tenantId: string): Promise<void> {
+    try {
+      const db = this.prisma.platform();
+      const jaTem = await db.agendaItem.findFirst({
+        where: { tenantId, tipo: 'feriado', recorrencia: 'anual' },
+        select: { id: true },
+      });
+      if (jaTem) return;
+      const feriados: [number, number, string][] = [
+        [1, 1, 'Confraternização Universal'],
+        [4, 21, 'Tiradentes'],
+        [5, 1, 'Dia do Trabalho'],
+        [9, 7, 'Independência do Brasil'],
+        [10, 12, 'Nossa Senhora Aparecida'],
+        [11, 2, 'Finados'],
+        [11, 15, 'Proclamação da República'],
+        [11, 20, 'Consciência Negra'],
+        [12, 25, 'Natal'],
+      ];
+      await db.agendaItem.createMany({
+        data: feriados.map(([mes, dia, titulo]) => ({
+          tenantId,
+          tipo: 'feriado',
+          titulo,
+          // 00:00 em America/Cuiaba (UTC-4, sem horário de verão) = 04:00Z.
+          inicio: new Date(Date.UTC(2026, mes - 1, dia, 4, 0, 0)),
+          diaInteiro: true,
+          recorrencia: 'anual',
+          publico: true,
+          cor: '#dc3545',
+        })),
+      });
+    } catch (e) {
+      this.logger.error(
+        `Falha ao semear feriados do tenant ${tenantId}: ${e instanceof Error ? e.message : e}`,
+      );
+    }
+  }
+
   private async semeiarDatasets(tenantId: string): Promise<void> {
     const db = this.prisma.platform();
     const ano = new Date().getFullYear();

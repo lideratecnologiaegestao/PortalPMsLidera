@@ -208,6 +208,13 @@ function IconBook() {
     </svg>
   );
 }
+function IconCalendar() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" fill="currentColor">
+      <path d="M19 3h-1V1h-2v2H8V1H6v2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2zm0 16H5V9h14v10zM5 7V5h14v2H5zm2 4h5v5H7z"/>
+    </svg>
+  );
+}
 function IconPhone() {
   return (
     <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" fill="currentColor">
@@ -264,6 +271,7 @@ const MENU_GROUPS: MenuGroup[] = [
       { href: '/admin/icones', label: 'Ícones e Emojis', icon: <IconPalette /> },
       { href: '/admin/midia', label: 'Mídia', icon: <IconPhoto /> },
       { href: '/admin/escola', label: 'Escola Cidadã', icon: <IconBook /> },
+      { href: '/admin/agenda', label: 'Agenda Administrativa', icon: <IconCalendar /> },
       { href: '/admin/paginas', label: 'Páginas', icon: <IconPages /> },
       { href: '/admin/diario', label: 'Diário Oficial', icon: <IconNewspaper /> },
       { href: '/admin/servicos', label: 'Serviços', icon: <IconList /> },
