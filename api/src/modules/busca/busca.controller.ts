@@ -1,6 +1,11 @@
-import { Controller, Get, Query } from '@nestjs/common';
+import { Controller, Get, Post, Query, UseGuards } from '@nestjs/common';
+import { Roles } from '../../common/rbac/roles.decorator';
+import { Role } from '../../common/rbac/roles.enum';
+import { RolesGuard } from '../../common/rbac/roles.guard';
+import { TenantContext } from '../../common/tenant/tenant.context';
 import { BuscaQueryDto } from './busca.dto';
 import { BuscaService } from './busca.service';
+import { BuscaSyncService } from './busca-sync.service';
 
 /**
  * Buscador unificado do portal — acesso PÚBLICO.
@@ -29,5 +34,21 @@ export class BuscaController {
       page,
       pageSize,
     });
+  }
+}
+
+/** Reindexação do buscador (admin). RBAC: GESTOR, ADMIN_PREFEITURA. */
+@Controller('admin/busca')
+@UseGuards(RolesGuard)
+@Roles(Role.GESTOR, Role.ADMIN_PREFEITURA)
+export class BuscaAdminController {
+  constructor(private readonly sync: BuscaSyncService) {}
+
+  /** Enfileira a reindexação completa do índice de busca do tenant. */
+  @Post('reindexar')
+  async reindexar() {
+    const tenantId = TenantContext.tenantId()!;
+    await this.sync.reindexarTenant(tenantId);
+    return { enfileirado: true };
   }
 }

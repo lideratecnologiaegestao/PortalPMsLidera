@@ -26,6 +26,10 @@ const PESOS: Record<TipoBusca, number> = {
   conselho: 0.9,
   concurso: 0.9,
   transparencia: 0.8,
+  prefeito: 1.0,
+  historia: 0.9,
+  hino_brasao: 0.9,
+  politica: 0.7,
 };
 
 /** Remove tags HTML e limita tamanho do texto para snippet_src. */
@@ -65,6 +69,16 @@ function urlCanonica(tipo: TipoBusca, refId: string, extra?: Record<string, stri
       return `/conselhos/${refId}`;
     case 'concurso':
       return `/concursos/${refId}`;
+    case 'historia':
+      return `/institucional/historia`;
+    case 'hino_brasao':
+      return `/institucional/hino-brasao`;
+    case 'politica':
+      // refId é o tipo do documento: acessibilidade | privacidade | cookies
+      return `/${refId}`;
+    case 'prefeito':
+      // URL real vem em extra.url (varia por tipo/atual do registro)
+      return extra?.url ?? `/institucional/prefeito`;
     default:
       return `/${tipo}/${refId}`;
   }
@@ -270,6 +284,14 @@ export class BuscaSyncService {
         return this.processarConcurso(refId);
       case 'transparencia':
         return this.processarTransparencia(refId);
+      case 'prefeito':
+        return this.processarPrefeito(refId);
+      case 'historia':
+        return this.processarHistoria(refId);
+      case 'hino_brasao':
+        return this.processarHinoBrasao(refId);
+      case 'politica':
+        return this.processarPolitica(refId);
       default:
         return 0;
     }
@@ -387,23 +409,121 @@ export class BuscaSyncService {
   private async processarSecretaria(id: string): Promise<number> {
     const row = await this.prisma.db.secretaria.findUnique({
       where: { id },
-      select: { id: true, slug: true, nome: true, descricao: true, tipo: true, ativo: true, criadoEm: true },
+      select: {
+        id: true, slug: true, nome: true, descricao: true, tipo: true, ativo: true, criadoEm: true,
+        sobre: true, competencias: true, responsavel: true, horario: true, endereco: true,
+      },
     });
     if (!row || !row.ativo) {
       await this.remover('secretaria', id);
       return 0;
     }
+    // Inclui sub-conteúdo no corpo: unidades (com endereço) e eventos da agenda,
+    // para que buscas por local/campanha caiam na página da secretaria.
+    const [unidades, eventos] = await Promise.all([
+      this.prisma.db.orgaoUnidade.findMany({
+        where: { orgaoId: id, ativo: true },
+        select: { nome: true, endereco: true, responsavel: true, horario: true },
+      }),
+      this.prisma.db.secretariaEvento.findMany({
+        where: { secretariaId: id, ativo: true },
+        select: { titulo: true, descricao: true, local: true },
+      }),
+    ]);
+    const corpo = [
+      stripHtml(row.descricao), stripHtml(row.sobre), stripHtml(row.competencias),
+      row.responsavel, row.horario, row.endereco,
+      ...unidades.map((u) => [u.nome, u.endereco, u.responsavel, u.horario].filter(Boolean).join(' ')),
+      ...eventos.map((e) => [e.titulo, stripHtml(e.descricao), e.local].filter(Boolean).join(' ')),
+    ].filter(Boolean).join(' \n ');
     const slug = row.slug ?? row.id;
     await this.indexar({
       tipo: 'secretaria',
       refId: id,
       titulo: row.nome,
       subtitulo: row.tipo ?? null,
-      corpo: stripHtml(row.descricao),
+      corpo,
       url: urlCanonica('secretaria', slug),
-      snippetSrc: stripHtml(row.descricao),
+      snippetSrc: stripHtml(row.descricao) || row.nome,
       peso: PESOS.secretaria,
       publicadoEm: row.criadoEm,
+    });
+    return 1;
+  }
+
+  // ── novos tipos institucionais ────────────────────────────────────
+
+  private async processarPrefeito(id: string): Promise<number> {
+    const row = await this.prisma.db.prefeito.findUnique({
+      where: { id },
+      select: { id: true, tipo: true, nome: true, genero: true, partido: true, atual: true, ativo: true, resumo: true, historia: true, mandatoInicio: true, mandatoFim: true, criadoEm: true },
+    });
+    if (!row || !row.ativo) { await this.remover('prefeito', id); return 0; }
+    const cargo = row.tipo === 'vice' ? (row.genero === 'feminino' ? 'Vice-Prefeita' : 'Vice-Prefeito')
+      : row.tipo === 'primeira_dama' ? (row.genero === 'feminino' ? 'Primeira-dama' : 'Primeiro-cavalheiro')
+      : (row.genero === 'feminino' ? 'Prefeita' : 'Prefeito');
+    const url = row.tipo === 'vice' ? '/institucional/vice-prefeito'
+      : (row.tipo === 'prefeito' && !row.atual) ? '/institucional/ex-prefeitos'
+      : '/institucional/prefeito';
+    const mandato = [row.mandatoInicio, row.mandatoFim].filter(Boolean).join('–');
+    await this.indexar({
+      tipo: 'prefeito', refId: id,
+      titulo: `${row.nome} — ${cargo}`,
+      subtitulo: [row.partido, mandato].filter(Boolean).join(' · ') || null,
+      corpo: [cargo, row.partido, mandato, stripHtml(row.resumo), stripHtml(row.historia)].filter(Boolean).join(' '),
+      url: urlCanonica('prefeito', id, { url }),
+      snippetSrc: stripHtml(row.resumo) || `${cargo} ${row.nome}`,
+      peso: PESOS.prefeito, publicadoEm: row.criadoEm,
+    });
+    return 1;
+  }
+
+  private async processarHistoria(refId: string): Promise<number> {
+    const row = await this.prisma.db.historiaMunicipio.findFirst({ select: { titulo: true, conteudo: true } });
+    if (!row || !row.conteudo?.trim()) { await this.remover('historia', refId); return 0; }
+    await this.indexar({
+      tipo: 'historia', refId,
+      titulo: row.titulo?.trim() || 'História do Município',
+      subtitulo: 'Institucional',
+      corpo: stripHtml(row.conteudo, 6000),
+      url: urlCanonica('historia', refId),
+      snippetSrc: stripHtml(row.conteudo),
+      peso: PESOS.historia, publicadoEm: null,
+    });
+    return 1;
+  }
+
+  private async processarHinoBrasao(refId: string): Promise<number> {
+    const row = await this.prisma.db.hinoBrasao.findFirst({ select: { hinoTexto: true, brasaoHistoria: true } });
+    const texto = [row?.hinoTexto, stripHtml(row?.brasaoHistoria)].filter((s) => s && s.trim()).join(' \n ');
+    if (!texto.trim()) { await this.remover('hino_brasao', refId); return 0; }
+    await this.indexar({
+      tipo: 'hino_brasao', refId,
+      titulo: 'Hino e Brasão',
+      subtitulo: 'Institucional',
+      corpo: texto.slice(0, 6000),
+      url: urlCanonica('hino_brasao', refId),
+      snippetSrc: texto,
+      peso: PESOS.hino_brasao, publicadoEm: null,
+    });
+    return 1;
+  }
+
+  private async processarPolitica(refId: string): Promise<number> {
+    // refId = tipo do documento (acessibilidade | privacidade | cookies)
+    const row = await this.prisma.db.documentoLegal.findFirst({
+      where: { tipo: refId }, select: { titulo: true, conteudo: true, atualizadoEm: true },
+    });
+    if (!row || !row.conteudo?.trim()) { await this.remover('politica', refId); return 0; }
+    const padrao = refId === 'acessibilidade' ? 'Política de Acessibilidade' : refId === 'privacidade' ? 'Privacidade (LGPD)' : refId === 'termos' ? 'Termos de Uso' : 'Aviso de Cookies';
+    await this.indexar({
+      tipo: 'politica', refId,
+      titulo: row.titulo?.trim() || padrao,
+      subtitulo: 'Documento legal',
+      corpo: stripHtml(row.conteudo, 6000),
+      url: urlCanonica('politica', refId),
+      snippetSrc: stripHtml(row.conteudo),
+      peso: PESOS.politica, publicadoEm: row.atualizadoEm,
     });
     return 1;
   }
@@ -595,6 +715,10 @@ export class BuscaSyncService {
     total += await this.reindexarFonte('convenio');
     total += await this.reindexarFonte('conselho');
     total += await this.reindexarFonte('concurso');
+    total += await this.reindexarFonte('prefeito');
+    total += await this.reindexarFonte('historia');
+    total += await this.reindexarFonte('hino_brasao');
+    total += await this.reindexarFonte('politica');
     return total;
   }
 
@@ -668,6 +792,22 @@ export class BuscaSyncService {
       case 'concurso': {
         const rows = await this.prisma.db.concurso.findMany({ where: { ativo: true }, select: { id: true } });
         return rows.map((r) => r.id);
+      }
+      case 'prefeito': {
+        const rows = await this.prisma.db.prefeito.findMany({ where: { ativo: true }, select: { id: true } });
+        return rows.map((r) => r.id);
+      }
+      case 'historia': {
+        const rows = await this.prisma.db.historiaMunicipio.findMany({ select: { tenantId: true } });
+        return rows.map((r) => r.tenantId);
+      }
+      case 'hino_brasao': {
+        const rows = await this.prisma.db.hinoBrasao.findMany({ select: { tenantId: true } });
+        return rows.map((r) => r.tenantId);
+      }
+      case 'politica': {
+        const rows = await this.prisma.db.documentoLegal.findMany({ select: { tipo: true } });
+        return rows.map((r) => r.tipo);
       }
       default:
         return [];

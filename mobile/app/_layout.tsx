@@ -79,6 +79,7 @@ function Navegacao() {
         <Stack.Screen name="mapa" options={{ title: 'Selecionar no mapa' }} />
         <Stack.Screen name="acompanhar" options={{ title: 'Acompanhar protocolo' }} />
         <Stack.Screen name="servicos" options={{ title: 'Serviços' }} />
+        <Stack.Screen name="unidades-proximas" options={{ title: 'Unidades perto de mim' }} />
         <Stack.Screen name="navegador" options={{ title: 'Portal' }} />
         <Stack.Screen name="noticia/[slug]" options={{ title: 'Notícia' }} />
         <Stack.Screen name="galeria" options={{ title: 'Galeria' }} />

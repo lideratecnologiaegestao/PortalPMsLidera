@@ -49,7 +49,10 @@ export default function CookieConsent() {
             <p className="font-semibold mb-1">Este portal usa cookies</p>
             <p className="opacity-80">
               Usamos cookies essenciais para o funcionamento do portal e cookies opcionais
-              para melhorar a sua experiência. Consulte nossa{' '}
+              para melhorar a sua experiência. Consulte o{' '}
+              <a href="/cookies" className="underline hover:no-underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded">
+                Aviso de Cookies
+              </a>{' '}e a{' '}
               <a href="/privacidade" className="underline hover:no-underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded">
                 Política de Privacidade (LGPD)
               </a>.

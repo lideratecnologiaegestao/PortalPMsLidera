@@ -1,7 +1,8 @@
 import type { Metadata } from 'next';
-import { getEstrutura, type EstruturaOrgao, type EstruturaAutoridade } from '../../../lib/portal-api';
+import { getEstrutura, type EstruturaOrgao, type EstruturaAutoridade, type EstruturaUnidade } from '../../../lib/portal-api';
 import PageContainer from '../../../components/portal/PageContainer';
 import SecaoTitulo from '../../../components/portal/SecaoTitulo';
+import { googleMapsLink, wazeLink, temLocalizacao } from '../../../lib/geo-links';
 
 export const revalidate = 120;
 
@@ -70,6 +71,12 @@ export default async function EstruturaPage() {
   return (
     <PageContainer>
       <SecaoTitulo>Estrutura Organizacional</SecaoTitulo>
+
+      <div className="mb-8">
+        <a href="/secretarias/perto" className="inline-flex items-center gap-2 rounded-lg border border-primary bg-primary/5 px-4 py-2 text-sm font-semibold text-primary hover:bg-primary/10">
+          📍 Encontrar unidades perto de mim
+        </a>
+      </div>
 
       {/* Liderança / Gabinete */}
       {(gab || autoridades.length > 0) && (
@@ -161,16 +168,31 @@ function OrgaoCard({ o }: { o: EstruturaOrgao }) {
         <div className="mt-4 border-t border-border pt-3">
           <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-fg/50">Unidades</p>
           <ul className="grid gap-2 sm:grid-cols-2">
-            {o.unidades.map((u) => (
-              <li key={u.id} className="rounded border border-border bg-muted/30 px-3 py-2 text-sm">
-                <span className="font-medium text-fg">{u.nome}</span>
-                {u.sigla && <span className="text-fg/50"> ({u.sigla})</span>}
-                {u.responsavel && <span className="block text-xs text-fg/60">{u.responsavel}{u.cargo ? ` — ${u.cargo}` : ''}</span>}
-              </li>
-            ))}
+            {o.unidades.map((u) => <UnidadeCard key={u.id} u={u} />)}
           </ul>
         </div>
       )}
     </article>
+  );
+}
+
+function UnidadeCard({ u }: { u: EstruturaUnidade }) {
+  const gLink = googleMapsLink(u);
+  const wLink = wazeLink(u);
+  return (
+    <li className="rounded border border-border bg-muted/30 px-3 py-2 text-sm">
+      <span className="font-medium text-fg">{u.nome}</span>
+      {u.sigla && <span className="text-fg/50"> ({u.sigla})</span>}
+      {u.responsavel && <span className="block text-xs text-fg/60">{u.responsavel}{u.cargo ? ` — ${u.cargo}` : ''}</span>}
+      {u.endereco && <span className="mt-1 block text-xs text-fg/70">{u.endereco}{u.cep ? ` — CEP ${u.cep}` : ''}</span>}
+      {u.horario && <span className="block text-xs text-fg/60">🕒 {u.horario}</span>}
+      {u.telefone && <span className="block text-xs text-fg/60">📞 {u.telefone}</span>}
+      {temLocalizacao(u) && (
+        <span className="mt-2 flex flex-wrap gap-2">
+          {gLink && <a href={gLink} target="_blank" rel="noreferrer" className="rounded bg-primary/10 px-2 py-1 text-xs font-semibold text-primary hover:bg-primary/20">Google Maps ↗</a>}
+          {wLink && <a href={wLink} target="_blank" rel="noreferrer" className="rounded bg-primary/10 px-2 py-1 text-xs font-semibold text-primary hover:bg-primary/20">Waze ↗</a>}
+        </span>
+      )}
+    </li>
   );
 }

@@ -1411,10 +1411,30 @@ model MediaCategory {
   nome      String
   slug      String
   descricao String?
+  ativo     Boolean    @default(true)
   criadoEm  DateTime   @default(now()) @map("criado_em") @db.Timestamptz(6)
   assets    MediaAsset[]
   @@unique([tenantId, tipo, slug])
   @@map("media_categories")
+}
+
+// Taxonomia editável de "tipos de mídia" (rótulo opcional na mídia; NÃO altera
+// preview/MIME/storage, que seguem pelo enum MediaTipo). Migration 101.
+model MediaTipoMidia {
+  id           String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId     String       @map("tenant_id") @db.Uuid
+  nome         String
+  slug         String
+  descricao    String?
+  icone        String?
+  cor          String?
+  ordem        Int          @default(0)
+  ativo        Boolean      @default(true)
+  criadoEm     DateTime     @default(now()) @map("criado_em") @db.Timestamptz(6)
+  atualizadoEm DateTime     @updatedAt @map("atualizado_em") @db.Timestamptz(6)
+  assets       MediaAsset[]
+  @@unique([tenantId, slug])
+  @@map("media_tipos")
 }
 
 model MediaAsset {
@@ -1422,6 +1442,7 @@ model MediaAsset {
   tenantId     String            @map("tenant_id") @db.Uuid
   tipo         MediaTipo
   categoriaId  String            @map("categoria_id") @db.Uuid
+  tipoMidiaId  String?           @map("tipo_midia_id") @db.Uuid
   visibilidade MediaVisibilidade @default(restrito)
   nomeOriginal String            @map("nome_original")
   hash         String
@@ -1436,6 +1457,7 @@ model MediaAsset {
   uploadedBy   String?           @map("uploaded_by") @db.Uuid
   criadoEm     DateTime          @default(now()) @map("criado_em") @db.Timestamptz(6)
   categoria    MediaCategory     @relation(fields: [categoriaId], references: [id])
+  tipoMidia    MediaTipoMidia?   @relation(fields: [tipoMidiaId], references: [id])
   @@unique([tenantId, hash])
   @@unique([tenantId, tipo, categoriaId, hash])
   @@map("media_assets")
@@ -1567,6 +1589,7 @@ model Secretaria {
   diarioMaterias  DiarioMateria[]
   unidades        OrgaoUnidade[]
   autoridades     GabineteAutoridade[]
+  eventos         SecretariaEvento[]
   elevationRequests ElevationRequest[]
   formularios       Formulario[]
   iaConteudos       IaConteudo[]
@@ -1584,12 +1607,100 @@ model OrgaoUnidade {
   cargo       String?
   telefone    String?
   email       String?
+  endereco    String?
+  cep         String?
+  horario     String?
+  fotoUrl     String?    @map("foto_url")
+  latitude    Float?
+  longitude   Float?
   ordem       Int        @default(0)
   ativo       Boolean    @default(true)
   criadoEm    DateTime   @default(now()) @map("criado_em") @db.Timestamptz(6)
   orgao       Secretaria @relation(fields: [orgaoId], references: [id], onDelete: Cascade)
+  eventos     SecretariaEventoUnidade[]
   @@index([tenantId, orgaoId, ordem])
   @@map("orgao_unidades")
+}
+
+model HistoriaMunicipio {
+  tenantId     String   @id @map("tenant_id") @db.Uuid
+  titulo       String?
+  conteudo     String   @default("")
+  formato      String   @default("html")
+  imagemUrl    String?  @map("imagem_url")
+  atualizadoEm DateTime @default(now()) @map("atualizado_em") @db.Timestamptz(6)
+  @@map("historia_municipio")
+}
+
+model DocumentoLegal {
+  tenantId     String   @map("tenant_id") @db.Uuid
+  tipo         String
+  titulo       String?
+  conteudo     String   @default("")
+  formato      String   @default("html")
+  versao       Int      @default(1)
+  atualizadoEm DateTime @default(now()) @map("atualizado_em") @db.Timestamptz(6)
+  @@id([tenantId, tipo])
+  @@map("documentos_legais")
+}
+
+model DocumentoLegalVersao {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId  String   @map("tenant_id") @db.Uuid
+  tipo      String
+  versao    Int
+  titulo    String?
+  conteudo  String   @default("")
+  formato   String   @default("html")
+  criadoPor String?  @map("criado_por") @db.Uuid
+  criadoEm  DateTime @default(now()) @map("criado_em") @db.Timestamptz(6)
+  @@index([tenantId, tipo, versao(sort: Desc)])
+  @@map("documentos_legais_versoes")
+}
+
+model HinoBrasao {
+  tenantId       String   @id @map("tenant_id") @db.Uuid
+  hinoTexto      String?  @map("hino_texto")
+  hinoMidiaTipo  String?  @map("hino_midia_tipo")
+  hinoMidiaUrl   String?  @map("hino_midia_url")
+  brasaoHistoria String?  @map("brasao_historia")
+  brasoes        Json     @default("[]")
+  atualizadoEm   DateTime @default(now()) @map("atualizado_em") @db.Timestamptz(6)
+  @@map("hino_brasao")
+}
+
+model SecretariaEvento {
+  id            String                    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId      String                    @map("tenant_id") @db.Uuid
+  secretariaId  String                    @map("secretaria_id") @db.Uuid
+  titulo        String
+  descricao     String?
+  local         String?
+  imagemUrl     String?                   @map("imagem_url")
+  inicio        DateTime                  @db.Timestamptz(6)
+  fim           DateTime?                 @db.Timestamptz(6)
+  diaInteiro    Boolean                   @default(false) @map("dia_inteiro")
+  timezone      String                    @default("America/Cuiaba")
+  ativo         Boolean                   @default(true)
+  ordem         Int                       @default(0)
+  criadoEm      DateTime                  @default(now()) @map("criado_em") @db.Timestamptz(6)
+  atualizadoEm  DateTime                  @default(now()) @map("atualizado_em") @db.Timestamptz(6)
+  secretaria    Secretaria                @relation(fields: [secretariaId], references: [id], onDelete: Cascade)
+  unidades      SecretariaEventoUnidade[]
+  @@index([tenantId, secretariaId, inicio])
+  @@index([tenantId, inicio])
+  @@map("secretaria_eventos")
+}
+
+model SecretariaEventoUnidade {
+  eventoId  String           @map("evento_id") @db.Uuid
+  unidadeId String           @map("unidade_id") @db.Uuid
+  tenantId  String           @map("tenant_id") @db.Uuid
+  evento    SecretariaEvento @relation(fields: [eventoId], references: [id], onDelete: Cascade)
+  unidade   OrgaoUnidade     @relation(fields: [unidadeId], references: [id], onDelete: Cascade)
+  @@id([eventoId, unidadeId])
+  @@index([unidadeId])
+  @@map("secretaria_evento_unidades")
 }
 
 model GabineteAutoridade {
@@ -1607,6 +1718,29 @@ model GabineteAutoridade {
   orgao     Secretaria @relation(fields: [orgaoId], references: [id], onDelete: Cascade)
   @@index([tenantId, orgaoId, ordem])
   @@map("gabinete_autoridades")
+}
+
+model Prefeito {
+  id            String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId      String    @map("tenant_id") @db.Uuid
+  tipo          String    @default("prefeito")
+  nome          String
+  genero        String    @default("masculino")
+  partido       String?
+  fotoUrl       String?   @map("foto_url")
+  mandatoInicio Int?      @map("mandato_inicio")
+  mandatoFim    Int?      @map("mandato_fim")
+  atual         Boolean   @default(false)
+  resumo        String?
+  historia      String?
+  email         String?
+  telefone      String?
+  ordem         Int       @default(0)
+  ativo         Boolean   @default(true)
+  criadoEm      DateTime  @default(now()) @map("criado_em") @db.Timestamptz(6)
+  atualizadoEm  DateTime  @default(now()) @map("atualizado_em") @db.Timestamptz(6)
+  @@index([tenantId, tipo, atual, mandatoInicio])
+  @@map("prefeitos")
 }
 
 model GaleriaItem {

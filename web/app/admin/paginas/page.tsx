@@ -12,6 +12,7 @@ import {
   qs,
 } from '../../../lib/admin-api';
 import { AdminHeader, Aviso, Modal, ui } from '../_components/ui';
+import { CampoIcone } from '../_components/IconeEmojiPicker';
 import { sanitizeHtml } from '../../../lib/sanitize-html';
 
 // ---------------------------------------------------------------------------
@@ -508,13 +509,7 @@ function FormCards({
                 ✕
               </button>
             </div>
-            <input
-              className={ui.input}
-              placeholder="Ícone (emoji ou texto, opcional)"
-              value={String(card.icone ?? '')}
-              onChange={(e) => setCard(idx, 'icone', e.target.value)}
-              aria-label={`Card ${idx + 1} — ícone`}
-            />
+            <CampoIcone valor={String(card.icone ?? '')} onChange={(v) => setCard(idx, 'icone', v)} modo="ambos" label="Ícone ou emoji (opcional)" />
             <input
               className={ui.input}
               placeholder="Título do card"

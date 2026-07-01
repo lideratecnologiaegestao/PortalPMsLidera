@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { adminGet, adminPost, adminPut, adminDelete, AdminApiError } from '../../../lib/admin-api';
 import { AdminHeader, Aviso, Modal, ui } from '../_components/ui';
 import MediaPicker from '../_components/MediaPicker';
-import { ICONES_ATALHO } from '../../../components/portal/AtalhoIcone';
+import { CampoIcone } from '../_components/IconeEmojiPicker';
 
 interface Config {
   arColunas: number; arCardsLinha: number; arLadoCards: string;
@@ -258,10 +258,8 @@ function AtalhosManager({ atalhos, onChange, setErro }: { atalhos: Atalho[]; onC
           <input className={ui.input} value={form.href} onChange={(e) => set('href', e.target.value)} placeholder="Link (/transparencia ou https://…) *" />
         </div>
         <input className={ui.input} value={form.descricao} onChange={(e) => set('descricao', e.target.value)} placeholder="Descrição (opcional)" />
-        <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
-          <select className={ui.input} value={form.icone} onChange={(e) => set('icone', e.target.value)} aria-label="Ícone">
-            {ICONES_ATALHO.map((k) => <option key={k} value={k}>{k}</option>)}
-          </select>
+        <div className="grid grid-cols-1 items-end gap-2 sm:grid-cols-3">
+          <CampoIcone label="Ícone" valor={form.icone} onChange={(v) => set('icone', v || 'link')} modo="icone" />
           <input className={ui.input} type="number" value={form.ordem} onChange={(e) => set('ordem', Number(e.target.value))} placeholder="Ordem" aria-label="Ordem" />
           <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={form.ativo} onChange={(e) => set('ativo', e.target.checked)} /> Ativo</label>
         </div>

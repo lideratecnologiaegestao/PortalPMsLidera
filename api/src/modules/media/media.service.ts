@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ConflictException,
   ForbiddenException,
   Injectable,
   NotFoundException,
@@ -49,9 +50,38 @@ interface UploadDto {
   categoriaId: string;
   visibilidade?: MediaVisibilidade;
   altText?: string;
+  /** Rótulo opcional (taxonomia editável media_tipos); não afeta preview/MIME. */
+  tipoMidiaId?: string;
+}
+
+/** Normaliza um texto em slug URL-safe (minúsculo, sem acento, hífens). */
+function slugify(texto: string): string {
+  return (
+    (texto || '')
+      .normalize('NFD')
+      .replace(/\p{Diacritic}/gu, '') // remove acentos sem caracteres combinantes literais
+      .toLowerCase()
+      .trim()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '')
+      .slice(0, 80) || 'item'
+  );
 }
 
 const TAMANHO_MAX = Number(process.env.MEDIA_MAX_BYTES ?? 25 * 1024 * 1024); // 25MB
+
+/** Formatos fixos do sistema (enum media_tipo) — controlam preview/MIME/storage. */
+const MEDIA_TIPOS_SISTEMA = ['imagem', 'documento', 'video', 'audio', 'outro'];
+
+/** Valida cor hex (#rgb ou #rrggbb); '' → null. Mesma regra de recolorir/corBase. */
+function validarCorHex(cor?: string): string | null {
+  const c = (cor ?? '').trim();
+  if (!c) return null;
+  if (!/^#[0-9a-fA-F]{3}([0-9a-fA-F]{3})?$/.test(c)) {
+    throw new BadRequestException('Cor inválida (use hex, ex.: #1a2b3c).');
+  }
+  return c;
+}
 
 /**
  * Corrige mojibake em nomes de arquivo enviados via multipart.
@@ -146,14 +176,18 @@ export class MediaService {
     const categoria = await this.prisma.db.mediaCategory.findUnique({
       where: { id: dto.categoriaId },
     });
-    if (!categoria || categoria.tipo !== tipo) {
-      throw new BadRequestException('Categoria inválida para o tipo do arquivo');
+    if (!categoria || categoria.tipo !== tipo || (categoria as any).ativo === false) {
+      throw new BadRequestException('Categoria inválida ou desativada para o tipo do arquivo');
     }
 
     const visibilidade: MediaVisibilidade = dto.visibilidade ?? 'restrito';
     if (tipo === 'imagem' && visibilidade === 'publico' && !dto.altText?.trim()) {
       throw new BadRequestException('Imagem pública exige texto alternativo (alt)');
     }
+
+    // Rótulo opcional (taxonomia editável). RLS garante que só um tipo do próprio
+    // tenant é aceito; id inexistente/de outro tenant → rejeita.
+    const tipoMidiaId = await this.validarTipoMidia(dto.tipoMidiaId);
 
     const checksum = createHash('sha256').update(buffer).digest('hex');
     const tenantId = this.tenantId();
@@ -193,6 +227,7 @@ export class MediaService {
         altText: dto.altText,
         storageKey,
         uploadedBy: userId,
+        tipoMidiaId,
       } as any,
     });
 
@@ -201,7 +236,13 @@ export class MediaService {
   }
 
   // -------------------------------------------------------------- listagem
-  async list(filtros: { tipo?: string; categoria?: string; q?: string; page?: number }) {
+  async list(filtros: {
+    tipo?: string;
+    categoria?: string;
+    tipoMidia?: string;
+    q?: string;
+    page?: number;
+  }) {
     const page = Math.max(1, filtros.page ?? 1);
     const take = 40;
     // A galeria/picker do admin lista APENAS o acervo do portal (publico).
@@ -212,10 +253,12 @@ export class MediaService {
     if (filtros.categoria) where.categoria = { slug: filtros.categoria };
     if (filtros.q) where.nomeOriginal = { contains: filtros.q, mode: 'insensitive' };
 
+    if (filtros.tipoMidia) where.tipoMidia = { slug: filtros.tipoMidia };
+
     const [items, total] = await Promise.all([
       this.prisma.db.mediaAsset.findMany({
         where,
-        include: { categoria: true },
+        include: { categoria: true, tipoMidia: true },
         orderBy: { criadoEm: 'desc' },
         skip: (page - 1) * take,
         take,
@@ -232,17 +275,35 @@ export class MediaService {
   async getMetadata(id: string) {
     const a = await this.prisma.db.mediaAsset.findUnique({
       where: { id },
-      include: { categoria: true },
+      include: { categoria: true, tipoMidia: true },
     });
     if (!a) throw new NotFoundException();
     return this.toDto(a as any, (a as any).categoria.slug);
   }
 
-  async update(id: string, dto: { altText?: string; categoriaId?: string }, userId?: string) {
+  async update(
+    id: string,
+    dto: { altText?: string; categoriaId?: string; tipoMidiaId?: string | null },
+    userId?: string,
+  ) {
+    // Pré-checa existência (RLS-scoped): id inexistente/de outro tenant → 404,
+    // não 500 (P2025). Consistente com remove()/getMetadata().
+    const existe = await this.prisma.db.mediaAsset.findUnique({
+      where: { id },
+      select: { id: true },
+    });
+    if (!existe) throw new NotFoundException();
+
+    const data: any = { altText: dto.altText, categoriaId: dto.categoriaId };
+    // Só mexe no rótulo quando a chave veio no corpo (undefined = não alterar;
+    // null/'' = remover rótulo; id = valida e vincula).
+    if ('tipoMidiaId' in dto) {
+      data.tipoMidiaId = await this.validarTipoMidia(dto.tipoMidiaId);
+    }
     const a = await this.prisma.db.mediaAsset.update({
       where: { id },
-      data: { altText: dto.altText, categoriaId: dto.categoriaId } as any,
-      include: { categoria: true },
+      data,
+      include: { categoria: true, tipoMidia: true },
     });
     await this.audit('media.update', id, userId, dto);
     return this.toDto(a as any, (a as any).categoria.slug);
@@ -356,8 +417,8 @@ export class MediaService {
     const categoria = await this.prisma.db.mediaCategory.findUnique({
       where: { id: dto.categoriaId },
     });
-    if (!categoria || categoria.tipo !== 'imagem') {
-      throw new BadRequestException('Categoria inválida para imagem SVG');
+    if (!categoria || categoria.tipo !== 'imagem' || (categoria as any).ativo === false) {
+      throw new BadRequestException('Categoria inválida ou desativada para imagem SVG');
     }
 
     // Imagem pública exige altText
@@ -503,6 +564,7 @@ export class MediaService {
   }
 
   // ------------------------------------------------------------- categorias
+  /** Seletor (upload/filtro): categorias, opcionalmente por formato. */
   listarCategorias(tipo?: string) {
     return this.prisma.db.mediaCategory.findMany({
       where: tipo ? { tipo: tipo as any } : {},
@@ -510,10 +572,208 @@ export class MediaService {
     });
   }
 
-  async criarCategoria(dto: { tipo: string; nome: string; slug: string; descricao?: string }) {
-    return this.prisma.db.mediaCategory.create({
-      data: { tenantId: this.tenantId(), ...dto } as any,
+  /** Hub de taxonomias: todas as categorias (inclui inativas) com `ativo`. */
+  listarCategoriasTodas() {
+    return this.prisma.db.mediaCategory.findMany({
+      orderBy: [{ tipo: 'asc' }, { nome: 'asc' }],
     });
+  }
+
+  async criarCategoria(dto: {
+    tipo: string;
+    nome: string;
+    slug?: string;
+    descricao?: string;
+    ativo?: boolean;
+  }) {
+    const nome = (dto.nome ?? '').trim();
+    if (!nome) throw new BadRequestException('Informe o nome.');
+    const tipo = dto.tipo as any;
+    if (!MEDIA_TIPOS_SISTEMA.includes(dto.tipo)) {
+      throw new BadRequestException('Formato inválido.');
+    }
+    const tenantId = this.tenantId();
+    const slug = await this.slugUnicoCategoria(slugify(dto.slug || nome), tenantId, tipo);
+    const cat = await this.prisma.db.mediaCategory.create({
+      data: {
+        tenantId,
+        tipo,
+        nome,
+        slug,
+        descricao: dto.descricao?.trim() || null,
+        ativo: dto.ativo ?? true,
+      } as any,
+    });
+    await this.audit('media.categoria_criada', cat.id, undefined, { nome, tipo }, 'media_category');
+    return cat;
+  }
+
+  async atualizarCategoria(
+    id: string,
+    dto: { nome?: string; tipo?: string; descricao?: string; ativo?: boolean },
+  ) {
+    const atual = await this.prisma.db.mediaCategory.findUnique({ where: { id } });
+    if (!atual) throw new NotFoundException('Categoria não encontrada.');
+    if (dto.tipo !== undefined && !MEDIA_TIPOS_SISTEMA.includes(dto.tipo)) {
+      throw new BadRequestException('Formato inválido.');
+    }
+    const data: any = {};
+    if (dto.nome !== undefined) {
+      const nome = dto.nome.trim();
+      if (!nome) throw new BadRequestException('Informe o nome.');
+      data.nome = nome;
+    }
+    if (dto.tipo !== undefined) data.tipo = dto.tipo as any;
+    if (dto.descricao !== undefined) data.descricao = dto.descricao.trim() || null;
+    if (dto.ativo !== undefined) data.ativo = dto.ativo;
+    // slug é imutável (URLs públicas dependem dele). Se o formato mudou, garante
+    // que o slug atual não colide sob o novo formato.
+    const tipoFinal = (data.tipo ?? (atual as any).tipo) as any;
+    if (data.tipo && tipoFinal !== (atual as any).tipo) {
+      const colide = await this.prisma.db.mediaCategory.findFirst({
+        where: { tipo: tipoFinal, slug: (atual as any).slug, id: { not: id } },
+      });
+      if (colide) {
+        throw new ConflictException('Já existe uma categoria com este nome neste formato.');
+      }
+    }
+    const cat = await this.prisma.db.mediaCategory.update({ where: { id }, data });
+    await this.audit('media.categoria_atualizada', id, undefined, dto, 'media_category');
+    return cat;
+  }
+
+  async excluirCategoria(id: string) {
+    const cat = await this.prisma.db.mediaCategory.findUnique({ where: { id } });
+    if (!cat) throw new NotFoundException('Categoria não encontrada.');
+    // FK RESTRICT em media_assets.categoria_id: não exclui categoria em uso.
+    const emUso = await this.prisma.db.mediaAsset.count({ where: { categoriaId: id } });
+    if (emUso > 0) {
+      throw new ConflictException(
+        `Categoria em uso por ${emUso} mídia(s). Desative-a em vez de excluir.`,
+      );
+    }
+    await this.prisma.db.mediaCategory.delete({ where: { id } });
+    await this.audit('media.categoria_excluida', id, undefined, { nome: (cat as any).nome }, 'media_category');
+    return { removido: true };
+  }
+
+  // -------------------------------------------------- tipos de mídia (rótulos)
+  /** Seletor (upload/edição): tipos ATIVOS. */
+  listarTipos() {
+    return this.prisma.db.mediaTipoMidia.findMany({
+      where: { ativo: true },
+      orderBy: [{ ordem: 'asc' }, { nome: 'asc' }],
+    });
+  }
+
+  /** Hub de taxonomias: todos os tipos (inclui inativos). */
+  listarTiposTodas() {
+    return this.prisma.db.mediaTipoMidia.findMany({
+      orderBy: [{ ordem: 'asc' }, { nome: 'asc' }],
+    });
+  }
+
+  async criarTipo(dto: {
+    nome: string;
+    descricao?: string;
+    icone?: string;
+    cor?: string;
+    ordem?: number;
+    ativo?: boolean;
+  }) {
+    const nome = (dto.nome ?? '').trim();
+    if (!nome) throw new BadRequestException('Informe o nome.');
+    const tenantId = this.tenantId();
+    const slug = await this.slugUnicoTipo(slugify(nome), tenantId);
+    const t = await this.prisma.db.mediaTipoMidia.create({
+      data: {
+        tenantId,
+        nome,
+        slug,
+        descricao: dto.descricao?.trim() || null,
+        icone: dto.icone?.trim() || null,
+        cor: validarCorHex(dto.cor),
+        ordem: Number.isFinite(dto.ordem as number) ? Number(dto.ordem) : 0,
+        ativo: dto.ativo ?? true,
+      } as any,
+    });
+    await this.audit('media.tipo_criado', t.id, undefined, { nome }, 'media_tipo');
+    return t;
+  }
+
+  async atualizarTipo(
+    id: string,
+    dto: {
+      nome?: string;
+      descricao?: string;
+      icone?: string;
+      cor?: string;
+      ordem?: number;
+      ativo?: boolean;
+    },
+  ) {
+    const atual = await this.prisma.db.mediaTipoMidia.findUnique({ where: { id } });
+    if (!atual) throw new NotFoundException('Tipo não encontrado.');
+    const data: any = {};
+    if (dto.nome !== undefined) {
+      const nome = dto.nome.trim();
+      if (!nome) throw new BadRequestException('Informe o nome.');
+      data.nome = nome;
+    }
+    if (dto.descricao !== undefined) data.descricao = dto.descricao.trim() || null;
+    if (dto.icone !== undefined) data.icone = dto.icone.trim() || null;
+    if (dto.cor !== undefined) data.cor = validarCorHex(dto.cor);
+    if (dto.ordem !== undefined && Number.isFinite(Number(dto.ordem))) data.ordem = Number(dto.ordem);
+    if (dto.ativo !== undefined) data.ativo = dto.ativo;
+    const t = await this.prisma.db.mediaTipoMidia.update({ where: { id }, data });
+    await this.audit('media.tipo_atualizado', id, undefined, dto, 'media_tipo');
+    return t;
+  }
+
+  async excluirTipo(id: string) {
+    const t = await this.prisma.db.mediaTipoMidia.findUnique({ where: { id } });
+    if (!t) throw new NotFoundException('Tipo não encontrado.');
+    // ON DELETE SET NULL: excluir apenas remove o rótulo das mídias vinculadas.
+    await this.prisma.db.mediaTipoMidia.delete({ where: { id } });
+    await this.audit('media.tipo_excluido', id, undefined, { nome: (t as any).nome }, 'media_tipo');
+    return { removido: true };
+  }
+
+  // -------------------------------------------------- helpers de taxonomia
+  /** Valida um rótulo opcional; null quando ausente. Erro se id não existir. */
+  private async validarTipoMidia(tipoMidiaId?: string | null): Promise<string | null> {
+    const id = (tipoMidiaId ?? '').trim();
+    if (!id) return null;
+    const t = await this.prisma.db.mediaTipoMidia.findUnique({ where: { id } });
+    if (!t) throw new BadRequestException('Tipo de mídia inválido.');
+    return id;
+  }
+
+  private async slugUnicoCategoria(
+    base: string,
+    tenantId: string,
+    tipo: any,
+  ): Promise<string> {
+    let slug = base;
+    let n = 1;
+    // UNIQUE (tenant_id, tipo, slug): garante unicidade dentro do formato.
+    while (
+      await this.prisma.db.mediaCategory.findFirst({ where: { tenantId, tipo, slug } })
+    ) {
+      n += 1;
+      slug = `${base}-${n}`;
+    }
+    return slug;
+  }
+
+  private async slugUnicoTipo(base: string, tenantId: string): Promise<string> {
+    let slug = base;
+    let n = 1;
+    while (await this.prisma.db.mediaTipoMidia.findFirst({ where: { tenantId, slug } })) {
+      n += 1;
+      slug = `${base}-${n}`;
+    }
+    return slug;
   }
 
   // --------------------------------------------------------------- helpers
@@ -523,6 +783,11 @@ export class MediaService {
       id: a.id,
       tipo: a.tipo,
       categoria: categoriaSlug,
+      // rótulo opcional (taxonomia editável); null quando não vinculado/carregado
+      tipoMidiaId: a.tipoMidiaId ?? null,
+      tipoMidia: a.tipoMidia
+        ? { id: a.tipoMidia.id, nome: a.tipoMidia.nome, slug: a.tipoMidia.slug }
+        : null,
       visibilidade: a.visibilidade,
       nomeOriginal: a.nomeOriginal,
       mime: a.mime,
@@ -556,13 +821,19 @@ export class MediaService {
     return ft?.mime ?? file.mimetype;
   }
 
-  private audit(acao: string, entidadeId: string, atorId?: string, dados: any = {}) {
+  private audit(
+    acao: string,
+    entidadeId: string,
+    atorId?: string,
+    dados: any = {},
+    entidade = 'media_asset',
+  ) {
     return this.prisma.db.auditLog.create({
       data: {
         tenantId: TenantContext.get().tenantId ?? null,
         atorId,
         acao,
-        entidade: 'media_asset',
+        entidade,
         entidadeId,
         dados,
       } as any,

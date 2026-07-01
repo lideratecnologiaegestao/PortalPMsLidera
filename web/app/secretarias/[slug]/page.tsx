@@ -6,6 +6,9 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { getSecretariaBySlug } from '../../../lib/portal-api';
+import { googleMapsLink, wazeLink, temLocalizacao, enderecoBusca } from '../../../lib/geo-links';
+import { formatarPeriodo, googleCalUrl, outlookCalUrl, icsUrl } from '../../../lib/calendar';
+import CopiarTexto from '../../../components/portal/CopiarTexto';
 
 export const revalidate = 60;
 
@@ -13,12 +16,25 @@ interface NoticiaRef { slug: string; titulo: string; resumo: string | null; imag
 interface GaleriaItem { id: string; tipo: string; fonte: string; titulo: string | null; url: string | null; youtubeId: string | null }
 interface Trabalho { id: string; titulo: string; descricao: string | null; imagemUrl: string | null; data: string | null }
 interface DocRef { id: string; titulo: string; numero: string | null; ano: number | null; downloads: number; arquivoUrl: string | null; tipo: { nome: string } | null }
+interface Unidade {
+  id: string; nome: string; sigla: string | null; responsavel: string | null; cargo: string | null;
+  telefone: string | null; email: string | null; endereco: string | null; cep: string | null;
+  horario: string | null; fotoUrl: string | null; latitude: number | null; longitude: number | null;
+}
+interface EventoUnidadeRef {
+  id: string; nome: string; sigla: string | null; endereco: string | null; cep: string | null;
+  horario: string | null; telefone: string | null; fotoUrl: string | null; latitude: number | null; longitude: number | null;
+}
+interface Evento {
+  id: string; titulo: string; descricao: string | null; local: string | null; imagemUrl: string | null;
+  inicio: string; fim: string | null; diaInteiro: boolean; timezone: string; unidades: EventoUnidadeRef[];
+}
 interface Secretaria {
   id: string; nome: string; sigla: string | null; responsavel: string | null; fotoUrl: string | null;
   descricao: string | null; sobre: string | null; competencias: string | null; secretarioBio: string | null;
   secretarioCargo: string | null; endereco: string | null; cep: string | null; horario: string | null;
   email: string | null; telefone: string | null; slug: string;
-  noticias: NoticiaRef[]; galeria: GaleriaItem[]; trabalhos: Trabalho[]; documentos: DocRef[];
+  noticias: NoticiaRef[]; galeria: GaleriaItem[]; trabalhos: Trabalho[]; documentos: DocRef[]; unidades: Unidade[]; eventos: Evento[];
 }
 
 export async function generateMetadata({ params }: { params: { slug: string } }): Promise<Metadata> {
@@ -40,6 +56,89 @@ function Secao({ titulo, children, link }: { titulo: string; children: React.Rea
       </div>
       {children}
     </section>
+  );
+}
+
+function UnidadeBloco({ u }: { u: Unidade }) {
+  const gLink = googleMapsLink(u);
+  const wLink = wazeLink(u);
+  const copiavel = enderecoBusca(u);
+  return (
+    <article className="overflow-hidden rounded-lg border border-border bg-bg shadow-sm">
+      {u.fotoUrl && (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={u.fotoUrl} alt={`Fachada da unidade ${u.nome}`} className="h-40 w-full object-cover" loading="lazy" />
+      )}
+      <div className="p-4">
+        <h3 className="font-heading text-base font-bold text-fg">{u.nome}{u.sigla ? <span className="font-normal text-fg/50"> ({u.sigla})</span> : null}</h3>
+        {u.responsavel && <p className="text-sm text-fg/70">{u.responsavel}{u.cargo ? ` — ${u.cargo}` : ''}</p>}
+        <dl className="mt-2 space-y-1 text-sm">
+          {u.endereco && <div><dt className="sr-only">Endereço</dt><dd className="text-fg/80">📍 {u.endereco}{u.cep ? ` — CEP ${u.cep}` : ''}</dd></div>}
+          {u.horario && <div><dt className="sr-only">Horário</dt><dd className="text-fg/70">🕒 {u.horario}</dd></div>}
+          {u.telefone && <div><dt className="sr-only">Telefone</dt><dd><a href={`tel:${u.telefone}`} className="text-primary hover:underline">📞 {u.telefone}</a></dd></div>}
+          {u.email && <div><dt className="sr-only">E-mail</dt><dd><a href={`mailto:${u.email}`} className="break-all text-primary hover:underline">✉ {u.email}</a></dd></div>}
+        </dl>
+        {temLocalizacao(u) && (
+          <div className="mt-3 flex flex-wrap gap-2">
+            {gLink && <a href={gLink} target="_blank" rel="noreferrer" className="rounded bg-primary px-3 py-1.5 text-xs font-semibold text-primary-fg hover:opacity-90">Abrir no Google Maps</a>}
+            {wLink && <a href={wLink} target="_blank" rel="noreferrer" className="rounded border border-primary px-3 py-1.5 text-xs font-semibold text-primary hover:bg-primary/10">Abrir no Waze</a>}
+            {copiavel && <CopiarTexto texto={copiavel} rotulo="Copiar endereço" />}
+          </div>
+        )}
+      </div>
+    </article>
+  );
+}
+
+function EventoBloco({ ev }: { ev: Evento }) {
+  return (
+    <article className="overflow-hidden rounded-lg border border-border bg-bg shadow-sm">
+      {ev.imagemUrl && (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={ev.imagemUrl} alt="" className="h-44 w-full object-cover" loading="lazy" />
+      )}
+      <div className="p-4">
+        <h3 className="font-heading text-lg font-bold text-fg">{ev.titulo}</h3>
+        <p className="mt-1 inline-flex items-center gap-1.5 rounded bg-primary/10 px-2.5 py-1 text-sm font-semibold text-primary">
+          🗓️ {formatarPeriodo(ev)}
+        </p>
+        {ev.descricao && <div className="prose-portal mt-3 max-w-none text-sm text-fg/85" dangerouslySetInnerHTML={{ __html: ev.descricao }} />}
+
+        {ev.unidades.length > 0 && (
+          <div className="mt-3 space-y-2">
+            <p className="text-xs font-semibold uppercase tracking-wide text-fg/55">Onde</p>
+            {ev.unidades.map((u) => {
+              const g = googleMapsLink(u); const w = wazeLink(u); const copiavel = enderecoBusca(u);
+              return (
+                <div key={u.id} className="rounded border border-border bg-muted/20 p-2.5 text-sm">
+                  <p className="font-medium text-fg">{u.nome}{u.sigla ? <span className="font-normal text-fg/50"> ({u.sigla})</span> : null}</p>
+                  {u.endereco && <p className="text-fg/75">📍 {u.endereco}{u.cep ? ` — CEP ${u.cep}` : ''}</p>}
+                  {u.horario && <p className="text-fg/65">🕒 {u.horario}</p>}
+                  {temLocalizacao(u) && (
+                    <p className="mt-1.5 flex flex-wrap gap-2">
+                      {g && <a href={g} target="_blank" rel="noreferrer" className="rounded bg-primary/10 px-2 py-1 text-xs font-semibold text-primary hover:bg-primary/20">Google Maps ↗</a>}
+                      {w && <a href={w} target="_blank" rel="noreferrer" className="rounded bg-primary/10 px-2 py-1 text-xs font-semibold text-primary hover:bg-primary/20">Waze ↗</a>}
+                      {copiavel && <CopiarTexto texto={copiavel} rotulo="Copiar endereço" />}
+                    </p>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
+        {ev.unidades.length === 0 && ev.local && <p className="mt-3 text-sm text-fg/75">📍 {ev.local}</p>}
+
+        {/* Adicionar à agenda */}
+        <div className="mt-4 border-t border-border pt-3">
+          <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-fg/55">Adicionar à agenda</p>
+          <div className="flex flex-wrap gap-2">
+            <a href={googleCalUrl(ev)} target="_blank" rel="noreferrer" className="rounded border border-border px-3 py-1.5 text-xs font-semibold text-fg hover:bg-muted">Google Agenda</a>
+            <a href={outlookCalUrl(ev)} target="_blank" rel="noreferrer" className="rounded border border-border px-3 py-1.5 text-xs font-semibold text-fg hover:bg-muted">Outlook</a>
+            <a href={icsUrl(ev.id)} className="rounded border border-border px-3 py-1.5 text-xs font-semibold text-fg hover:bg-muted">Apple / iPhone (.ics)</a>
+          </div>
+        </div>
+      </div>
+    </article>
   );
 }
 
@@ -98,6 +197,15 @@ export default async function SecretariaDetalhePage({ params }: { params: { slug
         </div>
       </div>
 
+      {/* Agenda / Eventos */}
+      {sec.eventos.length > 0 && (
+        <Secao titulo="Agenda de eventos">
+          <div className="grid gap-4 sm:grid-cols-2">
+            {sec.eventos.map((ev) => <EventoBloco key={ev.id} ev={ev} />)}
+          </div>
+        </Secao>
+      )}
+
       {/* Sobre */}
       {sec.sobre && (
         <Secao titulo="Sobre a secretaria">
@@ -109,6 +217,15 @@ export default async function SecretariaDetalhePage({ params }: { params: { slug
       {sec.competencias && (
         <Secao titulo="Competências">
           <div className="prose-portal max-w-none text-fg/85" dangerouslySetInnerHTML={{ __html: sec.competencias }} />
+        </Secao>
+      )}
+
+      {/* Unidades / locais de atendimento */}
+      {sec.unidades.length > 0 && (
+        <Secao titulo="Unidades e locais de atendimento">
+          <div className="grid gap-4 sm:grid-cols-2">
+            {sec.unidades.map((u) => <UnidadeBloco key={u.id} u={u} />)}
+          </div>
         </Secao>
       )}
 

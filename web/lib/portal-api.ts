@@ -164,7 +164,11 @@ export async function getMenus(local: 'cabecalho' | 'rodape'): Promise<MenuItem[
   }
 }
 
-export interface EstruturaUnidade { id: string; nome: string; sigla?: string | null; responsavel?: string | null; cargo?: string | null; telefone?: string | null; email?: string | null }
+export interface EstruturaUnidade {
+  id: string; nome: string; sigla?: string | null; responsavel?: string | null; cargo?: string | null;
+  telefone?: string | null; email?: string | null; endereco?: string | null; cep?: string | null;
+  horario?: string | null; fotoUrl?: string | null; latitude?: number | null; longitude?: number | null;
+}
 export interface EstruturaOrgao {
   id: string; nome: string; tipo: string; sigla?: string | null; slug?: string | null;
   responsavel?: string | null; secretarioCargo?: string | null; fotoUrl?: string | null;
@@ -185,6 +189,103 @@ export async function getEstrutura(): Promise<Estrutura | null> {
     });
     if (!res.ok) return null;
     return res.json();
+  } catch {
+    return null;
+  }
+}
+
+export interface Prefeito {
+  id: string; tipo: string; nome: string; genero: string; partido: string | null; fotoUrl: string | null;
+  mandatoInicio: number | null; mandatoFim: number | null; atual: boolean;
+  resumo: string | null; historia: string | null; email: string | null; telefone: string | null;
+}
+export interface PrefeitosPayload {
+  prefeito: Prefeito | null;
+  vice: Prefeito | null;
+  primeiraDama: Prefeito | null;
+  anteriores: Prefeito[];
+}
+
+export async function getPrefeitos(): Promise<PrefeitosPayload | null> {
+  try {
+    // Conteúdo institucional que precisa estar SEMPRE correto (titular/vice) —
+    // sem cache: a página reflete o banco na hora, sem janela de defasagem.
+    const res = await fetch(tenantUrl('/api/prefeitos'), {
+      headers: tenantHeaders(),
+      cache: 'no-store',
+    });
+    if (!res.ok) return null;
+    return res.json();
+  } catch {
+    return null;
+  }
+}
+
+export interface HistoriaMunicipio {
+  titulo: string | null;
+  conteudo: string;
+  formato: string; // 'html' | 'md'
+  imagemUrl: string | null;
+  atualizadoEm: string | null;
+}
+
+export async function getHistoriaMunicipio(): Promise<HistoriaMunicipio | null> {
+  try {
+    // Sempre ao vivo: conteúdo institucional que precisa refletir o banco na hora.
+    const res = await fetch(tenantUrl('/api/historia-municipio'), {
+      headers: tenantHeaders(),
+      cache: 'no-store',
+    });
+    if (!res.ok) return null;
+    const data = await res.json();
+    return data && data.conteudo ? data : null;
+  } catch {
+    return null;
+  }
+}
+
+export interface BrasaoItem { url: string; titulo: string | null }
+export interface HinoBrasao {
+  hinoTexto: string | null;
+  hinoMidiaTipo: string | null; // 'audio' | 'video' | 'youtube'
+  hinoMidiaUrl: string | null;
+  brasaoHistoria: string | null;
+  brasoes: BrasaoItem[];
+}
+
+export async function getHinoBrasao(): Promise<HinoBrasao | null> {
+  try {
+    const res = await fetch(tenantUrl('/api/hino-brasao'), {
+      headers: tenantHeaders(),
+      cache: 'no-store',
+    });
+    if (!res.ok) return null;
+    // Corpo vazio quando nada cadastrado (API devolve null) → não tenta parsear.
+    const txt = await res.text();
+    return txt ? (JSON.parse(txt) as HinoBrasao) : null;
+  } catch {
+    return null;
+  }
+}
+
+export interface DocumentoLegal {
+  tipo: string;
+  titulo: string | null;
+  conteudo: string;
+  formato: string; // 'html' | 'md'
+  versao: number;
+  atualizadoEm: string | null;
+}
+
+export async function getPolitica(tipo: 'acessibilidade' | 'privacidade' | 'cookies' | 'termos'): Promise<DocumentoLegal | null> {
+  try {
+    const res = await fetch(tenantUrl(`/api/politicas/${tipo}`), {
+      headers: tenantHeaders(),
+      cache: 'no-store',
+    });
+    if (!res.ok) return null;
+    const txt = await res.text();
+    return txt ? (JSON.parse(txt) as DocumentoLegal) : null;
   } catch {
     return null;
   }

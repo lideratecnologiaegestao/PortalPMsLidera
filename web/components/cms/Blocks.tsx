@@ -1,4 +1,5 @@
 import { Bloco } from '../../lib/cms';
+import { Icone, resolverIcone } from '../../lib/icones';
 import SliderBloco from './SliderBloco';
 
 /**
@@ -184,9 +185,11 @@ function Cards({ c }: { c: Record<string, unknown> }) {
           const card = (
             <div className="flex flex-col gap-2 rounded border border-border bg-bg p-4 transition-shadow hover:shadow-md">
               {item.icone ? (
-                <span className="text-2xl" aria-hidden="true">
-                  {String(item.icone)}
-                </span>
+                resolverIcone(String(item.icone)) ? (
+                  <Icone nome={String(item.icone)} size={28} className="text-primary" />
+                ) : (
+                  <span className="text-2xl" aria-hidden="true">{String(item.icone)}</span>
+                )
               ) : null}
               {item.titulo ? (
                 <h3 className="font-heading text-base font-semibold text-fg">

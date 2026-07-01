@@ -21,6 +21,8 @@ import {
 } from '../../../lib/admin-api';
 import { AdminHeader, Aviso, Modal, ui } from '../_components/ui';
 import MediaPicker from '../_components/MediaPicker';
+import { googleMapsLink, wazeLink } from '../../../lib/geo-links';
+import { toInputValue } from '../../../lib/calendar';
 
 // ─── Tipo ────────────────────────────────────────────────────────────────────
 
@@ -403,8 +405,14 @@ function ModalSecretaria({
           </div>
         )}
 
-        {/* Unidades do órgão (modo edição) */}
-        {editando && <UnidadesManager orgaoId={editando.id} />}
+        {/* Unidades do órgão: agora em modal próprio, acionado por botão na lista. */}
+        {editando && (
+          <p className="rounded border border-dashed border-border bg-muted/20 p-3 text-xs text-fg/60">
+            As <strong>unidades do órgão</strong> (com endereço, GPS, horário e foto da
+            fachada) são gerenciadas em um cadastro próprio: feche e use o botão{' '}
+            <strong>“Unidades”</strong> na linha desta secretaria.
+          </p>
+        )}
 
         {/* Autoridades — só no Gabinete */}
         {editando && form.tipo === 'gabinete' && <AutoridadesManager orgaoId={editando.id} />}
@@ -442,15 +450,36 @@ function ModalSecretaria({
   );
 }
 
-// ─── Gestor de Unidades ───────────────────────────────────────────────────────
+// ─── Gestor de Unidades (modal próprio) ───────────────────────────────────────
 
-interface Unidade { id: string; nome: string; sigla?: string | null; responsavel?: string | null; cargo?: string | null; telefone?: string | null; email?: string | null; ordem: number }
-const unidadeVazia = { id: '' as string, nome: '', sigla: '', responsavel: '', cargo: '', telefone: '', email: '', ordem: 0 };
+interface Unidade {
+  id: string; nome: string; sigla?: string | null; responsavel?: string | null; cargo?: string | null;
+  telefone?: string | null; email?: string | null; endereco?: string | null; cep?: string | null;
+  horario?: string | null; fotoUrl?: string | null; latitude?: number | null; longitude?: number | null; ordem: number;
+}
+const unidadeVazia = {
+  id: '' as string, nome: '', sigla: '', responsavel: '', cargo: '', telefone: '', email: '',
+  endereco: '', cep: '', horario: '', fotoUrl: '', latitude: '', longitude: '', ordem: 0,
+};
+
+/** Modal dedicado: lista + cadastro completo das unidades de um órgão. */
+function ModalUnidades({ orgao, onClose }: { orgao: Secretaria | null; onClose: () => void }) {
+  return (
+    <Modal open={!!orgao} onClose={onClose} title={orgao ? `Unidades — ${orgao.nome}` : 'Unidades do órgão'}>
+      {orgao && <UnidadesManager orgaoId={orgao.id} />}
+      <div className="flex justify-end pt-3">
+        <button type="button" className={ui.btn} onClick={onClose}>Concluir</button>
+      </div>
+    </Modal>
+  );
+}
 
 function UnidadesManager({ orgaoId }: { orgaoId: string }) {
   const [lista, setLista] = useState<Unidade[]>([]);
   const [form, setForm] = useState({ ...unidadeVazia });
   const [erro, setErro] = useState('');
+  const [picker, setPicker] = useState(false);
+  const [gpsMsg, setGpsMsg] = useState('');
 
   const carregar = useCallback(() => {
     adminGet<Unidade[]>(`/api/admin/secretarias/${orgaoId}/unidades`).then(setLista).catch(() => setLista([]));
@@ -458,16 +487,55 @@ function UnidadesManager({ orgaoId }: { orgaoId: string }) {
   useEffect(() => { carregar(); }, [carregar]);
 
   function s<K extends keyof typeof unidadeVazia>(k: K, v: (typeof unidadeVazia)[K]) { setForm((p) => ({ ...p, [k]: v })); }
-  function editar(u: Unidade) { setForm({ id: u.id, nome: u.nome, sigla: u.sigla ?? '', responsavel: u.responsavel ?? '', cargo: u.cargo ?? '', telefone: u.telefone ?? '', email: u.email ?? '', ordem: u.ordem ?? 0 }); }
+  function editar(u: Unidade) {
+    setGpsMsg('');
+    setForm({
+      id: u.id, nome: u.nome, sigla: u.sigla ?? '', responsavel: u.responsavel ?? '', cargo: u.cargo ?? '',
+      telefone: u.telefone ?? '', email: u.email ?? '', endereco: u.endereco ?? '', cep: u.cep ?? '',
+      horario: u.horario ?? '', fotoUrl: u.fotoUrl ?? '',
+      latitude: u.latitude != null ? String(u.latitude) : '', longitude: u.longitude != null ? String(u.longitude) : '',
+      ordem: u.ordem ?? 0,
+    });
+  }
+
+  /** Usa o GPS do dispositivo para preencher lat/lng (útil em visita à unidade). */
+  function capturarGps() {
+    setGpsMsg('');
+    if (typeof navigator === 'undefined' || !navigator.geolocation) { setErro('Geolocalização não suportada neste navegador.'); return; }
+    setGpsMsg('Obtendo localização…');
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setForm((p) => ({ ...p, latitude: pos.coords.latitude.toFixed(6), longitude: pos.coords.longitude.toFixed(6) }));
+        setGpsMsg('Coordenadas capturadas do dispositivo.');
+      },
+      () => { setGpsMsg(''); setErro('Não foi possível obter a localização (permissão negada?).'); },
+      { enableHighAccuracy: true, timeout: 10000 },
+    );
+  }
+
+  /** Aceita colar "lat, lng" (formato que o Google Maps copia) em qualquer dos campos. */
+  function colarCoord(e: React.ClipboardEvent<HTMLInputElement>) {
+    const txt = e.clipboardData.getData('text');
+    const m = txt.match(/^\s*(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)\s*$/);
+    if (m) { e.preventDefault(); setForm((p) => ({ ...p, latitude: m[1], longitude: m[2] })); setGpsMsg('Coordenadas coladas do mapa.'); }
+  }
 
   async function salvar() {
     if (!form.nome.trim()) { setErro('Informe o nome da unidade.'); return; }
     setErro('');
-    const body = { nome: form.nome, sigla: form.sigla || undefined, responsavel: form.responsavel || undefined, cargo: form.cargo || undefined, telefone: form.telefone || undefined, email: form.email || undefined, ordem: Number(form.ordem) || 0 };
+    const body = {
+      nome: form.nome, sigla: form.sigla || undefined, responsavel: form.responsavel || undefined,
+      cargo: form.cargo || undefined, telefone: form.telefone || undefined, email: form.email || undefined,
+      endereco: form.endereco || undefined, cep: form.cep || undefined, horario: form.horario || undefined,
+      fotoUrl: form.fotoUrl || undefined,
+      latitude: form.latitude.trim() === '' ? null : Number(form.latitude),
+      longitude: form.longitude.trim() === '' ? null : Number(form.longitude),
+      ordem: Number(form.ordem) || 0,
+    };
     try {
       if (form.id) await adminPut(`/api/admin/secretarias/unidades/${form.id}`, body);
       else await adminPost(`/api/admin/secretarias/${orgaoId}/unidades`, body);
-      setForm({ ...unidadeVazia }); carregar();
+      setForm({ ...unidadeVazia }); setGpsMsg(''); carregar();
     } catch (e) { setErro(e instanceof AdminApiError ? e.message : 'Falha ao salvar unidade.'); }
   }
   async function remover(id: string) {
@@ -475,15 +543,27 @@ function UnidadesManager({ orgaoId }: { orgaoId: string }) {
     catch (e) { setErro(e instanceof AdminApiError ? e.message : 'Falha ao remover.'); }
   }
 
+  const latNum = form.latitude.trim() === '' ? null : Number(form.latitude);
+  const lngNum = form.longitude.trim() === '' ? null : Number(form.longitude);
+  const ponto = { latitude: latNum, longitude: lngNum, endereco: form.endereco, cep: form.cep };
+  const gLink = googleMapsLink(ponto);
+  const wLink = wazeLink(ponto);
+
   return (
-    <div className="rounded border border-border p-3">
-      <h3 className="mb-2 text-sm font-semibold">Unidades do órgão</h3>
+    <div className="space-y-3">
+      <p className="text-xs text-fg/60">
+        Cadastre os locais de atendimento da secretaria. Com endereço e/ou coordenadas, o cidadão
+        abre direto no Google Maps ou no Waze a partir da página pública.
+      </p>
       {erro && <Aviso tipo="erro">{erro}</Aviso>}
       {lista.length > 0 && (
-        <ul className="mb-3 space-y-1">
+        <ul className="space-y-1">
           {lista.map((u) => (
             <li key={u.id} className="flex items-center justify-between rounded bg-muted/40 px-3 py-1.5 text-sm">
-              <span><span className="font-semibold">{u.nome}</span>{u.responsavel ? ` — ${u.responsavel}` : ''}</span>
+              <span>
+                <span className="font-semibold">{u.nome}</span>{u.responsavel ? ` — ${u.responsavel}` : ''}
+                {(u.latitude != null && u.longitude != null) ? ' 📍' : u.endereco ? ' 🗺️' : ''}
+              </span>
               <span className="flex gap-2">
                 <button type="button" className="text-primary hover:underline" onClick={() => editar(u)}>editar</button>
                 <button type="button" className="text-danger hover:underline" onClick={() => remover(u.id)}>remover</button>
@@ -492,19 +572,60 @@ function UnidadesManager({ orgaoId }: { orgaoId: string }) {
           ))}
         </ul>
       )}
-      <div className="grid grid-cols-2 gap-2">
-        <div className="col-span-2"><label className={ui.label}>Nome da unidade *</label><input className={ui.input} value={form.nome} onChange={(e) => s('nome', e.target.value)} placeholder="ex.: Departamento de Vigilância Sanitária" /></div>
-        <div><label className={ui.label}>Sigla</label><input className={ui.input} value={form.sigla} onChange={(e) => s('sigla', e.target.value)} /></div>
-        <div><label className={ui.label}>Ordem</label><input type="number" className={ui.input} value={form.ordem} onChange={(e) => s('ordem', Number(e.target.value))} /></div>
-        <div><label className={ui.label}>Responsável</label><input className={ui.input} value={form.responsavel} onChange={(e) => s('responsavel', e.target.value)} /></div>
-        <div><label className={ui.label}>Cargo</label><input className={ui.input} value={form.cargo} onChange={(e) => s('cargo', e.target.value)} placeholder="ex.: Diretor(a)" /></div>
-        <div><label className={ui.label}>Telefone</label><input className={ui.input} value={form.telefone} onChange={(e) => s('telefone', e.target.value)} /></div>
-        <div><label className={ui.label}>E-mail</label><input className={ui.input} value={form.email} onChange={(e) => s('email', e.target.value)} /></div>
-        <div className="col-span-2 flex justify-end gap-2">
-          {form.id && <button type="button" className={ui.btnGhost} onClick={() => setForm({ ...unidadeVazia })}>Cancelar edição</button>}
-          <button type="button" className={ui.btn} onClick={salvar}>{form.id ? 'Salvar unidade' : 'Adicionar unidade'}</button>
+
+      <div className="rounded border border-border p-3">
+        <h3 className="mb-2 text-sm font-semibold">{form.id ? 'Editar unidade' : 'Nova unidade'}</h3>
+        <div className="grid grid-cols-2 gap-2">
+          <div className="col-span-2"><label className={ui.label}>Nome da unidade *</label><input className={ui.input} value={form.nome} onChange={(e) => s('nome', e.target.value)} placeholder="ex.: Departamento de Vigilância Sanitária" /></div>
+          <div><label className={ui.label}>Sigla</label><input className={ui.input} value={form.sigla} onChange={(e) => s('sigla', e.target.value)} /></div>
+          <div><label className={ui.label}>Ordem</label><input type="number" className={ui.input} value={form.ordem} onChange={(e) => s('ordem', Number(e.target.value))} /></div>
+          <div><label className={ui.label}>Responsável</label><input className={ui.input} value={form.responsavel} onChange={(e) => s('responsavel', e.target.value)} /></div>
+          <div><label className={ui.label}>Cargo</label><input className={ui.input} value={form.cargo} onChange={(e) => s('cargo', e.target.value)} placeholder="ex.: Diretor(a)" /></div>
+          <div><label className={ui.label}>Telefone</label><input className={ui.input} value={form.telefone} onChange={(e) => s('telefone', e.target.value)} /></div>
+          <div><label className={ui.label}>E-mail</label><input className={ui.input} value={form.email} onChange={(e) => s('email', e.target.value)} /></div>
+
+          {/* Localização */}
+          <div className="col-span-2"><label className={ui.label}>Endereço</label><input className={ui.input} value={form.endereco} onChange={(e) => s('endereco', e.target.value)} placeholder="Rua, nº, bairro, cidade — UF" /></div>
+          <div><label className={ui.label}>CEP</label><input className={ui.input} value={form.cep} onChange={(e) => s('cep', e.target.value)} placeholder="00000-000" /></div>
+          <div><label className={ui.label}>Horário de atendimento</label><input className={ui.input} value={form.horario} onChange={(e) => s('horario', e.target.value)} placeholder="Seg a sex, 7h-13h" /></div>
+
+          {/* Coordenadas (GPS) */}
+          <div><label className={ui.label}>Latitude</label><input className={ui.input} value={form.latitude} onChange={(e) => s('latitude', e.target.value)} onPaste={colarCoord} inputMode="decimal" placeholder="-15.601" /></div>
+          <div><label className={ui.label}>Longitude</label><input className={ui.input} value={form.longitude} onChange={(e) => s('longitude', e.target.value)} onPaste={colarCoord} inputMode="decimal" placeholder="-56.097" /></div>
+          <div className="col-span-2 flex flex-wrap items-center gap-2">
+            <button type="button" className={ui.btnGhost} onClick={capturarGps}>📍 Usar localização atual</button>
+            {(latNum != null && lngNum != null) && (
+              <button type="button" className="text-xs text-danger hover:underline" onClick={() => setForm((p) => ({ ...p, latitude: '', longitude: '' }))}>limpar coordenadas</button>
+            )}
+            {gLink && <a href={gLink} target="_blank" rel="noreferrer" className="text-xs text-primary hover:underline">conferir no Google Maps ↗</a>}
+            {wLink && <a href={wLink} target="_blank" rel="noreferrer" className="text-xs text-primary hover:underline">conferir no Waze ↗</a>}
+          </div>
+          <p className="col-span-2 text-xs text-fg/55">
+            Dica: no Google Maps, toque e segure no local, copie as coordenadas e cole no campo Latitude
+            (ele divide automaticamente). {gpsMsg && <span className="text-success">{gpsMsg}</span>}
+          </p>
+
+          {/* Foto da fachada */}
+          <div className="col-span-2">
+            <label className={ui.label}>Foto da fachada</label>
+            <div className="mt-1 flex gap-2">
+              <input type="url" className={`flex-1 ${ui.input}`} value={form.fotoUrl} onChange={(e) => s('fotoUrl', e.target.value)} placeholder="https://..." />
+              <button type="button" className={ui.btnGhost} onClick={() => setPicker(true)} aria-label="Escolher foto da fachada na biblioteca">Escolher imagem</button>
+            </div>
+            {form.fotoUrl && (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={form.fotoUrl} alt="Fachada da unidade" className="mt-2 h-24 w-40 rounded border border-border object-cover" onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }} />
+            )}
+          </div>
+
+          <div className="col-span-2 flex justify-end gap-2">
+            {form.id && <button type="button" className={ui.btnGhost} onClick={() => { setForm({ ...unidadeVazia }); setGpsMsg(''); }}>Cancelar edição</button>}
+            <button type="button" className={ui.btn} onClick={salvar}>{form.id ? 'Salvar unidade' : 'Adicionar unidade'}</button>
+          </div>
         </div>
       </div>
+
+      <MediaPicker open={picker} onClose={() => setPicker(false)} tipo="imagem" onSelect={(a) => { if (a.urlPublica) s('fotoUrl', a.urlPublica); setPicker(false); }} />
     </div>
   );
 }
@@ -512,6 +633,7 @@ function UnidadesManager({ orgaoId }: { orgaoId: string }) {
 // ─── Gestor de Autoridades (Gabinete) ─────────────────────────────────────────
 
 interface Autoridade { id: string; cargo: string; nome: string; fotoUrl?: string | null; email?: string | null; telefone?: string | null; bio?: string | null; ordem: number }
+// Rótulos para exibição (inclui cargos antigos que possam existir no banco).
 const CARGOS_AUTORIDADE = [
   { v: 'prefeito', l: 'Prefeito(a)' },
   { v: 'vice_prefeito', l: 'Vice-prefeito(a)' },
@@ -519,7 +641,10 @@ const CARGOS_AUTORIDADE = [
   { v: 'chefe_gabinete', l: 'Chefe de Gabinete' },
   { v: 'outro', l: 'Outro' },
 ];
-const autoridadeVazia = { id: '' as string, cargo: 'prefeito', nome: '', fotoUrl: '', email: '', telefone: '', bio: '', ordem: 0 };
+// Cargos oferecidos no cadastro do Gabinete: só o Chefe de Gabinete.
+// Prefeito, Vice e Primeira-dama agora são cadastrados em /admin/prefeito.
+const CARGOS_GABINETE = [{ v: 'chefe_gabinete', l: 'Chefe de Gabinete' }];
+const autoridadeVazia = { id: '' as string, cargo: 'chefe_gabinete', nome: '', fotoUrl: '', email: '', telefone: '', bio: '', ordem: 0 };
 
 function AutoridadesManager({ orgaoId }: { orgaoId: string }) {
   const [lista, setLista] = useState<Autoridade[]>([]);
@@ -553,8 +678,8 @@ function AutoridadesManager({ orgaoId }: { orgaoId: string }) {
 
   return (
     <div className="rounded border border-primary/40 bg-primary/5 p-3">
-      <h3 className="mb-2 text-sm font-semibold">Autoridades do Gabinete</h3>
-      <p className="mb-2 text-xs text-fg/60">Prefeito, vice, primeira-dama e chefe de gabinete — aparecem em destaque no topo da Estrutura.</p>
+      <h3 className="mb-2 text-sm font-semibold">Gabinete — Chefe de Gabinete</h3>
+      <p className="mb-2 text-xs text-fg/60">Cadastre o <strong>Chefe de Gabinete</strong> (e equipe). O <strong>Prefeito, Vice e Primeira-dama</strong> agora são cadastrados em <a href="/admin/prefeito" className="text-primary hover:underline">Prefeito / Prefeita</a> e aparecem no topo da Estrutura automaticamente.</p>
       {erro && <Aviso tipo="erro">{erro}</Aviso>}
       {lista.length > 0 && (
         <ul className="mb-3 space-y-1">
@@ -572,7 +697,7 @@ function AutoridadesManager({ orgaoId }: { orgaoId: string }) {
       <div className="grid grid-cols-2 gap-2">
         <div><label className={ui.label}>Cargo</label>
           <select className={ui.input} value={form.cargo} onChange={(e) => s('cargo', e.target.value)}>
-            {CARGOS_AUTORIDADE.map((c) => <option key={c.v} value={c.v}>{c.l}</option>)}
+            {CARGOS_GABINETE.map((c) => <option key={c.v} value={c.v}>{c.l}</option>)}
           </select>
         </div>
         <div><label className={ui.label}>Nome *</label><input className={ui.input} value={form.nome} onChange={(e) => s('nome', e.target.value)} /></div>
@@ -595,6 +720,205 @@ function AutoridadesManager({ orgaoId }: { orgaoId: string }) {
   );
 }
 
+// ─── Gestor de Eventos (modal próprio) ────────────────────────────────────────
+
+interface Evento {
+  id: string; titulo: string; descricao?: string | null; local?: string | null; imagemUrl?: string | null;
+  inicio: string; fim?: string | null; diaInteiro: boolean; timezone: string; ativo: boolean; unidadeIds: string[];
+}
+const FUSOS = [
+  { v: 'America/Cuiaba', l: 'Cuiabá / MT (−04)' },
+  { v: 'America/Sao_Paulo', l: 'Brasília / SP (−03)' },
+  { v: 'America/Manaus', l: 'Manaus / AM (−04)' },
+  { v: 'America/Campo_Grande', l: 'Campo Grande / MS (−04)' },
+  { v: 'America/Rio_Branco', l: 'Rio Branco / AC (−05)' },
+  { v: 'America/Belem', l: 'Belém / PA (−03)' },
+  { v: 'America/Fortaleza', l: 'Fortaleza / NE (−03)' },
+  { v: 'America/Recife', l: 'Recife / PE (−03)' },
+  { v: 'America/Noronha', l: 'Fernando de Noronha (−02)' },
+];
+const eventoVazio = {
+  id: '' as string, titulo: '', descricao: '', local: '', imagemUrl: '',
+  inicio: '', fim: '', diaInteiro: false, timezone: 'America/Cuiaba', ativo: true, unidadeIds: [] as string[],
+};
+
+function ModalEventos({ orgao, onClose }: { orgao: Secretaria | null; onClose: () => void }) {
+  return (
+    <Modal open={!!orgao} onClose={onClose} title={orgao ? `Eventos — ${orgao.nome}` : 'Eventos da secretaria'}>
+      {orgao && <EventosManager orgaoId={orgao.id} />}
+      <div className="flex justify-end pt-3">
+        <button type="button" className={ui.btn} onClick={onClose}>Concluir</button>
+      </div>
+    </Modal>
+  );
+}
+
+function EventosManager({ orgaoId }: { orgaoId: string }) {
+  const [lista, setLista] = useState<Evento[]>([]);
+  const [unidades, setUnidades] = useState<Unidade[]>([]);
+  const [form, setForm] = useState({ ...eventoVazio });
+  const [erro, setErro] = useState('');
+  const [picker, setPicker] = useState(false);
+
+  const carregar = useCallback(() => {
+    adminGet<Evento[]>(`/api/admin/secretarias/${orgaoId}/eventos`).then(setLista).catch(() => setLista([]));
+    adminGet<Unidade[]>(`/api/admin/secretarias/${orgaoId}/unidades`).then(setUnidades).catch(() => setUnidades([]));
+  }, [orgaoId]);
+  useEffect(() => { carregar(); }, [carregar]);
+
+  function s<K extends keyof typeof eventoVazio>(k: K, v: (typeof eventoVazio)[K]) { setForm((p) => ({ ...p, [k]: v })); }
+
+  function editar(e: Evento) {
+    setErro('');
+    setForm({
+      id: e.id, titulo: e.titulo, descricao: e.descricao ?? '', local: e.local ?? '', imagemUrl: e.imagemUrl ?? '',
+      diaInteiro: e.diaInteiro, timezone: e.timezone || 'America/Cuiaba', ativo: e.ativo,
+      inicio: toInputValue(e.inicio, e.timezone || 'America/Cuiaba', e.diaInteiro),
+      fim: e.fim ? toInputValue(e.fim, e.timezone || 'America/Cuiaba', e.diaInteiro) : '',
+      unidadeIds: e.unidadeIds ?? [],
+    });
+  }
+
+  // Ao alternar "dia inteiro" ajusta o formato dos campos de data (date ↔ datetime-local).
+  function toggleDiaInteiro(v: boolean) {
+    setForm((p) => ({
+      ...p, diaInteiro: v,
+      inicio: ajustarData(p.inicio, v),
+      fim: ajustarData(p.fim, v),
+    }));
+  }
+  function ajustarData(valor: string, diaInteiro: boolean): string {
+    if (!valor) return '';
+    if (diaInteiro) return valor.slice(0, 10);
+    return valor.length === 10 ? `${valor}T08:00` : valor;
+  }
+
+  function toggleUnidade(id: string) {
+    setForm((p) => ({ ...p, unidadeIds: p.unidadeIds.includes(id) ? p.unidadeIds.filter((x) => x !== id) : [...p.unidadeIds, id] }));
+  }
+
+  async function salvar() {
+    if (!form.titulo.trim()) { setErro('Informe o título do evento.'); return; }
+    if (!form.inicio) { setErro('Informe a data de início.'); return; }
+    setErro('');
+    const body = {
+      titulo: form.titulo, descricao: form.descricao || undefined, local: form.local || undefined,
+      imagemUrl: form.imagemUrl || undefined, inicio: form.inicio, fim: form.fim || undefined,
+      diaInteiro: form.diaInteiro, timezone: form.timezone, ativo: form.ativo, unidadeIds: form.unidadeIds,
+    };
+    try {
+      if (form.id) await adminPut(`/api/admin/secretarias/eventos/${form.id}`, body);
+      else await adminPost(`/api/admin/secretarias/${orgaoId}/eventos`, body);
+      setForm({ ...eventoVazio }); carregar();
+    } catch (e) { setErro(e instanceof AdminApiError ? e.message : 'Falha ao salvar o evento.'); }
+  }
+  async function remover(id: string) {
+    try { await adminDelete(`/api/admin/secretarias/eventos/${id}`); carregar(); }
+    catch (e) { setErro(e instanceof AdminApiError ? e.message : 'Falha ao remover.'); }
+  }
+
+  const tzLabel = FUSOS.find((f) => f.v === form.timezone)?.l ?? form.timezone;
+
+  return (
+    <div className="space-y-3">
+      <p className="text-xs text-fg/60">
+        Cadastre eventos da secretaria (ex.: campanha de vacinação). Eles aparecem na página pública com botões
+        para adicionar ao Google Agenda, Outlook e iPhone.
+      </p>
+      {erro && <Aviso tipo="erro">{erro}</Aviso>}
+
+      {lista.length > 0 && (
+        <ul className="space-y-1">
+          {lista.map((e) => (
+            <li key={e.id} className="flex items-center justify-between rounded bg-muted/40 px-3 py-1.5 text-sm">
+              <span>
+                <span className="font-semibold">{e.titulo}</span>
+                <span className="text-fg/55"> — {toInputValue(e.inicio, e.timezone || 'America/Cuiaba', true).split('-').reverse().join('/')}</span>
+                {!e.ativo && <span className="ml-1 text-xs text-fg/40">(inativo)</span>}
+              </span>
+              <span className="flex gap-2">
+                <button type="button" className="text-primary hover:underline" onClick={() => editar(e)}>editar</button>
+                <button type="button" className="text-danger hover:underline" onClick={() => remover(e.id)}>remover</button>
+              </span>
+            </li>
+          ))}
+        </ul>
+      )}
+
+      <div className="rounded border border-border p-3">
+        <h3 className="mb-2 text-sm font-semibold">{form.id ? 'Editar evento' : 'Novo evento'}</h3>
+        <div className="grid grid-cols-2 gap-2">
+          <div className="col-span-2"><label className={ui.label}>Título *</label><input className={ui.input} value={form.titulo} onChange={(e) => s('titulo', e.target.value)} placeholder="ex.: Campanha de Vacinação contra a Gripe" /></div>
+          <div className="col-span-2"><label className={ui.label}>Descrição</label><textarea rows={3} className={ui.input} value={form.descricao} onChange={(e) => s('descricao', e.target.value)} placeholder="Orientações ao cidadão (público-alvo, documentos…)" /></div>
+
+          <div className="col-span-2 flex items-center gap-2">
+            <input id="ev-dia" type="checkbox" checked={form.diaInteiro} onChange={(e) => toggleDiaInteiro(e.target.checked)} className="h-4 w-4 rounded border-border accent-primary" />
+            <label htmlFor="ev-dia" className="text-sm font-semibold">Dia inteiro (sem horário)</label>
+          </div>
+
+          <div>
+            <label className={ui.label}>Início *</label>
+            <input type={form.diaInteiro ? 'date' : 'datetime-local'} className={ui.input} value={form.inicio} onChange={(e) => s('inicio', e.target.value)} />
+          </div>
+          <div>
+            <label className={ui.label}>Término</label>
+            <input type={form.diaInteiro ? 'date' : 'datetime-local'} className={ui.input} value={form.fim} onChange={(e) => s('fim', e.target.value)} />
+          </div>
+
+          <div className="col-span-2">
+            <label className={ui.label}>Fuso horário <span className="text-fg/50">({tzLabel})</span></label>
+            <select className={ui.input} value={form.timezone} onChange={(e) => s('timezone', e.target.value)}>
+              {FUSOS.map((f) => <option key={f.v} value={f.v}>{f.l}</option>)}
+            </select>
+          </div>
+
+          <div className="col-span-2">
+            <label className={ui.label}>Unidades onde acontece</label>
+            {unidades.length === 0 ? (
+              <p className="text-xs text-fg/60">Nenhuma unidade cadastrada. Use o botão “Unidades” para cadastrar os locais.</p>
+            ) : (
+              <fieldset className="max-h-36 space-y-1 overflow-y-auto rounded border border-border p-2">
+                <legend className="sr-only">Unidades do evento</legend>
+                {unidades.map((u) => {
+                  const inputId = `ev-un-${u.id}`;
+                  return (
+                    <div key={u.id} className="flex items-center gap-2">
+                      <input id={inputId} type="checkbox" className="h-4 w-4 rounded border-border accent-primary" checked={form.unidadeIds.includes(u.id)} onChange={() => toggleUnidade(u.id)} />
+                      <label htmlFor={inputId} className="cursor-pointer select-none text-sm">{u.nome}{u.sigla ? ` (${u.sigla})` : ''}</label>
+                    </div>
+                  );
+                })}
+              </fieldset>
+            )}
+          </div>
+
+          <div className="col-span-2"><label className={ui.label}>Local (texto livre, opcional)</label><input className={ui.input} value={form.local} onChange={(e) => s('local', e.target.value)} placeholder="Use quando o local não for uma unidade cadastrada" /></div>
+
+          <div className="col-span-2">
+            <label className={ui.label}>Imagem do evento (opcional)</label>
+            <div className="mt-1 flex gap-2">
+              <input type="url" className={`flex-1 ${ui.input}`} value={form.imagemUrl} onChange={(e) => s('imagemUrl', e.target.value)} placeholder="https://..." />
+              <button type="button" className={ui.btnGhost} onClick={() => setPicker(true)}>Escolher imagem</button>
+            </div>
+          </div>
+
+          <div className="col-span-2 flex items-center gap-2">
+            <input id="ev-ativo" type="checkbox" checked={form.ativo} onChange={(e) => s('ativo', e.target.checked)} className="h-4 w-4 rounded border-border accent-primary" />
+            <label htmlFor="ev-ativo" className="text-sm font-semibold">Evento ativo (visível no site)</label>
+          </div>
+
+          <div className="col-span-2 flex justify-end gap-2">
+            {form.id && <button type="button" className={ui.btnGhost} onClick={() => setForm({ ...eventoVazio })}>Cancelar edição</button>}
+            <button type="button" className={ui.btn} onClick={salvar}>{form.id ? 'Salvar evento' : 'Adicionar evento'}</button>
+          </div>
+        </div>
+      </div>
+
+      <MediaPicker open={picker} onClose={() => setPicker(false)} tipo="imagem" onSelect={(a) => { if (a.urlPublica) s('imagemUrl', a.urlPublica); setPicker(false); }} />
+    </div>
+  );
+}
+
 // ─── Página principal ─────────────────────────────────────────────────────────
 
 const PAGE_SIZE = 20;
@@ -609,6 +933,8 @@ export default function SecretariasAdminPage() {
 
   const [modalAberto, setModalAberto] = useState(false);
   const [editando, setEditando] = useState<Secretaria | null>(null);
+  const [unidadesDe, setUnidadesDe] = useState<Secretaria | null>(null);
+  const [eventosDe, setEventosDe] = useState<Secretaria | null>(null);
 
   const [confirmandoId, setConfirmandoId] = useState<string | null>(null);
   const [excluindo, setExcluindo] = useState(false);
@@ -744,6 +1070,22 @@ export default function SecretariasAdminPage() {
                       >
                         Editar
                       </button>
+                      <button
+                        type="button"
+                        className={ui.btnGhost}
+                        onClick={() => setUnidadesDe(s)}
+                        aria-label={`Gerenciar unidades de "${s.nome}"`}
+                      >
+                        Unidades
+                      </button>
+                      <button
+                        type="button"
+                        className={ui.btnGhost}
+                        onClick={() => setEventosDe(s)}
+                        aria-label={`Gerenciar eventos de "${s.nome}"`}
+                      >
+                        Eventos
+                      </button>
                       {confirmandoId === s.id ? (
                         <>
                           <button
@@ -822,6 +1164,12 @@ export default function SecretariasAdminPage() {
           carregar();
         }}
       />
+
+      {/* Modal de unidades do órgão */}
+      <ModalUnidades orgao={unidadesDe} onClose={() => setUnidadesDe(null)} />
+
+      {/* Modal de eventos da secretaria */}
+      <ModalEventos orgao={eventosDe} onClose={() => setEventosDe(null)} />
     </div>
   );
 }
