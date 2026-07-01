@@ -423,3 +423,45 @@ export async function getBusca(
     return empty;
   }
 }
+
+// ── Escola Cidadã (cursos + validação de certificado) — portado da câmara ──
+export async function getCursos(): Promise<import('./portal-types').CursoResumo[]> {
+  try {
+    const res = await fetch(tenantUrl('/api/cursos'), {
+      headers: tenantHeaders(),
+      next: { revalidate: REVALIDATE, tags: ['cursos'] },
+    });
+    if (!res.ok) return [];
+    return res.json();
+  } catch {
+    return [];
+  }
+}
+
+export async function getCurso(slug: string): Promise<import('./portal-types').CursoDetalhe | null> {
+  try {
+    const res = await fetch(tenantUrl(`/api/cursos/${encodeURIComponent(slug)}`), {
+      headers: tenantHeaders(),
+      next: { revalidate: REVALIDATE, tags: [`curso:${slug}`] },
+    });
+    if (!res.ok) return null;
+    return res.json();
+  } catch {
+    return null;
+  }
+}
+
+export async function validarCertificado(
+  codigo: string,
+): Promise<import('./portal-types').ValidacaoCertificado> {
+  try {
+    const res = await fetch(tenantUrl(`/api/validar/${encodeURIComponent(codigo)}`), {
+      headers: tenantHeaders(),
+      cache: 'no-store',
+    });
+    if (!res.ok) return { valido: false };
+    return res.json();
+  } catch {
+    return { valido: false };
+  }
+}
