@@ -13,6 +13,7 @@ import { StorageService } from '../storage/storage.service';
 import { NotificacoesModule } from '../notificacoes/notificacoes.module';
 import { ThemeModule } from '../theme/theme.module';
 import { BuscaModule } from '../busca/busca.module';
+import { CertificadoDigitalModule } from '../certificado-digital/certificado-digital.module';
 
 /**
  * Diário Oficial: composição em matérias, assinatura/carimbo, verificação de
@@ -24,6 +25,7 @@ import { BuscaModule } from '../busca/busca.module';
     NotificacoesModule, // EmailService + WhatsappService p/ os alertas
     ThemeModule, // ThemeService para logo no cabeçalho do PDF
     BuscaModule, // indexação das matérias no buscador unificado
+    CertificadoDigitalModule, // certificado digital do órgão p/ assinar a edição
   ],
   controllers: [DiarioController, DiarioAdminController, DiarioPdfController],
   providers: [

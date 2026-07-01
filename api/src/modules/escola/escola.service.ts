@@ -1,9 +1,11 @@
 import { BadRequestException, ForbiddenException, Injectable, Logger, NotFoundException } from '@nestjs/common';
-import { randomBytes } from 'node:crypto';
+import { createHash, randomBytes } from 'node:crypto';
 import { PrismaService } from '../../prisma/prisma.service';
 import { TenantContext } from '../../common/tenant/tenant.context';
 import { StorageService } from '../storage/storage.service';
 import { CertificadoPdfService } from './certificado-pdf.service';
+import { SignatureService } from '../diario/signature.service';
+import { CertificadoDigitalService } from '../certificado-digital/certificado-digital.service';
 import {
   AtualizarAulaDto,
   AtualizarCursoDto,
@@ -61,7 +63,33 @@ export class EscolaService {
     private readonly prisma: PrismaService,
     private readonly storage: StorageService,
     private readonly certificadoPdf: CertificadoPdfService,
+    private readonly signature: SignatureService,
+    private readonly certificado: CertificadoDigitalService,
   ) {}
+
+  /** Hash canônico (SHA-256) dos campos autoritativos do certificado de curso. */
+  private hashCertificado(c: {
+    codigo: string;
+    nomeAluno: string;
+    tituloCurso: string;
+    cargaHoraria: number | null;
+    dataConclusao: Date | null;
+    cpf: string | null;
+    emitidoEm: Date;
+  }): string {
+    const canonical = [
+      c.codigo,
+      c.nomeAluno,
+      c.tituloCurso,
+      c.cargaHoraria ?? '',
+      // date-only: data_conclusao é coluna @db.Date (trunca hora) — normaliza os dois
+      // lados (emissão e validação) para o mesmo string, senão o hash nunca confere.
+      c.dataConclusao ? c.dataConclusao.toISOString().slice(0, 10) : '',
+      c.cpf ?? '',
+      c.emitidoEm.toISOString(),
+    ].join('|');
+    return createHash('sha256').update(canonical).digest('hex');
+  }
 
   // ===================================================== Cursos (público)
   listarPublicos() {
@@ -101,12 +129,65 @@ export class EscolaService {
     const cert = await this.prisma.platform().cursoCertificado.findUnique({
       where: { codigo },
       select: {
-        codigo: true, nomeAluno: true, tituloCurso: true,
-        cargaHoraria: true, emitidoEm: true,
+        tenantId: true, codigo: true, nomeAluno: true, tituloCurso: true,
+        cargaHoraria: true, dataConclusao: true, cpf: true, emitidoEm: true,
+        hash: true, assinatura: true, algoritmo: true, carimboTempo: true, assinaturaSerie: true,
       },
     });
     if (!cert) return { valido: false };
-    return { valido: true, certificado: cert };
+
+    // Verificação criptográfica da assinatura (quando o certificado foi assinado).
+    type Situacao = 'nao_assinado' | 'confere' | 'nao_confere' | 'certificado_renovado' | 'sem_certificado_atual';
+    let assinatura = {
+      assinado: false,
+      confere: false,
+      situacao: 'nao_assinado' as Situacao,
+      algoritmo: null as string | null,
+      carimboTempo: null as Date | null,
+      titular: null as string | null,
+    };
+    if (cert.hash && cert.assinatura) {
+      const recalculado = this.hashCertificado({
+        codigo: cert.codigo, nomeAluno: cert.nomeAluno, tituloCurso: cert.tituloCurso,
+        cargaHoraria: cert.cargaHoraria, dataConclusao: cert.dataConclusao, cpf: cert.cpf,
+        emitidoEm: cert.emitidoEm,
+      });
+      const hashConfere = recalculado === cert.hash;
+      const cred = await this.certificado.credencialDe(cert.tenantId);
+      const serieAtual = cred?.cert?.serialNumber ?? null;
+      let situacao: Situacao;
+      let confere: boolean;
+      if (!cred) {
+        // Órgão não tem certificado ativo para reconfirmar (mas foi assinado).
+        situacao = 'sem_certificado_atual';
+        confere = false;
+      } else if (cert.assinaturaSerie && serieAtual && cert.assinaturaSerie !== serieAtual) {
+        // Certificado RENOVADO desde a emissão — não reconfirmável com o atual, mas NÃO é adulteração.
+        situacao = 'certificado_renovado';
+        confere = false;
+      } else {
+        confere = hashConfere && this.signature.conferir(cert.hash, cert.assinatura, cred);
+        situacao = confere ? 'confere' : 'nao_confere';
+      }
+      assinatura = {
+        assinado: true,
+        confere,
+        situacao,
+        algoritmo: cert.algoritmo,
+        carimboTempo: cert.carimboTempo,
+        titular: cred?.titular ?? null,
+      };
+    }
+
+    // Resposta pública — NÃO expõe CPF nem dados sensíveis.
+    return {
+      valido: true,
+      certificado: {
+        codigo: cert.codigo, nomeAluno: cert.nomeAluno, tituloCurso: cert.tituloCurso,
+        cargaHoraria: cert.cargaHoraria, emitidoEm: cert.emitidoEm,
+      },
+      assinatura,
+    };
   }
 
   // ===================================================== Cursos (professor/admin)
@@ -514,18 +595,46 @@ export class EscolaService {
     // data real de conclusão (a inscrição.concluidoEm ainda é null aqui; ela é
     // gravada logo abaixo). Prioriza a conclusão do aluno, cai p/ fim do curso.
     const agora = new Date();
+    const nomeAluno = user?.nome ?? 'Aluno';
+    const cargaHoraria = curso.cargaHoraria ?? null;
+    const dataConclusao = inscricao?.concluidoEm ?? curso.fimEm ?? agora;
+    const cpf = user?.cpf ?? null;
+
+    // Assinatura digital na EMISSÃO (imutável): assina o hash canônico com o
+    // certificado do órgão (ou env/stub como fallback). Se não houver assinatura
+    // configurada, emite sem assinatura (não bloqueia a emissão).
+    const hash = this.hashCertificado({
+      codigo, nomeAluno, tituloCurso: curso.titulo, cargaHoraria, dataConclusao, cpf, emitidoEm: agora,
+    });
+    let assinatura: string | null = null;
+    let algoritmo: string | null = null;
+    let carimboTempo: Date | null = null;
+    let assinaturaSerie: string | null = null;
+    try {
+      const cred = await this.certificado.credencial();
+      const s = this.signature.assinar(hash, cred);
+      assinatura = s.assinatura;
+      algoritmo = s.algoritmo;
+      carimboTempo = s.carimboTempo;
+      assinaturaSerie = s.serie;
+    } catch (e) {
+      this.logger.warn(`Certificado ${codigo} emitido sem assinatura digital: ${(e as Error).message}`);
+    }
+
     const cert = await this.prisma.db.cursoCertificado.create({
       data: {
         tenantId, cursoId, userId, inscricaoId: inscricao?.id ?? null,
         templateId: curso.templateId || null, codigo,
-        nomeAluno: user?.nome ?? 'Aluno', tituloCurso: curso.titulo,
-        cargaHoraria: curso.cargaHoraria ?? null,
+        nomeAluno, tituloCurso: curso.titulo,
+        cargaHoraria,
         // snapshots imutáveis na emissão (fonte: curso + inscrição + cidadão)
         dataInicio: curso.inicioEm ?? null,
-        dataConclusao: inscricao?.concluidoEm ?? curso.fimEm ?? agora,
+        dataConclusao,
         conteudoProgramatico: curso.conteudoProgramatico ?? null,
-        cpf: user?.cpf ?? null,
+        cpf,
         rg: user?.rg ?? null,
+        emitidoEm: agora,
+        hash, assinatura, algoritmo, carimboTempo, assinaturaSerie,
         // pdf_url/qr_url ficam null: geração assíncrona/on-demand (ver spec §4).
       },
     });

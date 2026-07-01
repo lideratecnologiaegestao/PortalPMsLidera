@@ -11,6 +11,7 @@ import { Queue } from 'bullmq';
 import { PrismaService } from '../../prisma/prisma.service';
 import { TenantContext } from '../../common/tenant/tenant.context';
 import { SignatureService } from './signature.service';
+import { CertificadoDigitalService } from '../certificado-digital/certificado-digital.service';
 import { StorageService } from '../storage/storage.service';
 import { JOB_DIARIO_ALERTAS, JOB_DIARIO_PDF, QUEUE_INTEGRACOES } from '../queue/queue.constants';
 import { BuscaSyncService } from '../busca/busca-sync.service';
@@ -75,6 +76,7 @@ export class DiarioService {
     private readonly storage: StorageService,
     @InjectQueue(QUEUE_INTEGRACOES) private readonly fila: Queue,
     private readonly buscaSync: BuscaSyncService,
+    private readonly certificado: CertificadoDigitalService,
   ) {}
 
   /** Busca o PDF de uma edição publicada para download (público). */
@@ -202,7 +204,8 @@ export class DiarioService {
 
     const materias = await this.materiasDe(id);
     const hash = this.calcHash(ed, materias);
-    const { assinatura, algoritmo, carimboTempo } = this.signature.assinar(hash);
+    const cred = await this.certificado.credencial(); // certificado do órgão (ou null → env/stub)
+    const { assinatura, algoritmo, carimboTempo, serie } = this.signature.assinar(hash, cred);
 
     const publicada = await this.prisma.db.diarioEdicao.update({
       where: { id },
@@ -212,6 +215,7 @@ export class DiarioService {
         assinatura,
         algoritmo,
         carimboTempo,
+        assinaturaSerie: serie,
         publicadoEm: new Date(),
       },
     });
@@ -269,7 +273,8 @@ export class DiarioService {
         secretaria: { select: { nome: true, slug: true } },
       },
     });
-    return { ...ed, materias, integridade: this.integridade(ed, materias as MateriaHash[]) };
+    const cred = await this.certificado.credencial();
+    return { ...ed, materias, integridade: this.integridade(ed, materias as MateriaHash[], cred) };
   }
 
   /** Verificação pública de autenticidade por hash. */
@@ -282,7 +287,8 @@ export class DiarioService {
       return { valido: false, motivo: 'Hash não corresponde a nenhuma edição publicada.' };
     }
     const materias = await this.materiasDe(ed.id);
-    const { hashConfere, assinaturaConfere } = this.integridade(ed, materias);
+    const cred = await this.certificado.credencial();
+    const { hashConfere, assinaturaConfere, certificadoRenovado } = this.integridade(ed, materias, cred);
     return {
       valido: hashConfere && assinaturaConfere,
       numero: ed.numero,
@@ -292,6 +298,7 @@ export class DiarioService {
       algoritmo: ed.algoritmo,
       hashConfere,
       assinaturaConfere,
+      certificadoRenovado,
     };
   }
 
@@ -435,14 +442,20 @@ export class DiarioService {
       conteudo: string;
       hash: string | null;
       assinatura: string | null;
+      assinaturaSerie?: string | null;
     },
     materias: MateriaHash[] = [],
+    cred?: import('../certificado-digital/certificado-digital.service').CredencialCertificado | null,
   ) {
     const recalculado = this.calcHash(ed, materias);
     const hashConfere = !!ed.hash && recalculado === ed.hash;
+    const serieAtual = cred?.cert?.serialNumber ?? null;
+    // Certificado renovado desde a assinatura → não reconfirmável com o atual, mas NÃO é adulteração.
+    const certificadoRenovado = !!ed.assinaturaSerie && !!serieAtual && ed.assinaturaSerie !== serieAtual;
     const assinaturaConfere =
-      !!ed.hash && !!ed.assinatura && this.signature.conferir(ed.hash, ed.assinatura);
-    return { hashConfere, assinaturaConfere };
+      !certificadoRenovado &&
+      !!ed.hash && !!ed.assinatura && this.signature.conferir(ed.hash, ed.assinatura, cred);
+    return { hashConfere, assinaturaConfere, certificadoRenovado };
   }
 
   // ============================================================ matérias (admin)

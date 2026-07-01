@@ -8,6 +8,8 @@ import {
 import { EscolaService } from './escola.service';
 import { CertificadoPdfService } from './certificado-pdf.service';
 import { StorageService } from '../storage/storage.service';
+import { SignatureService } from '../diario/signature.service';
+import { CertificadoDigitalModule } from '../certificado-digital/certificado-digital.module';
 
 /**
  * L4 Escola Legislativa — cursos (módulos → aulas EditorJS), provas (objetivas
@@ -17,13 +19,14 @@ import { StorageService } from '../storage/storage.service';
  * RLS automático via this.prisma.db. Ver specs/escola-legislativa.md.
  */
 @Module({
+  imports: [CertificadoDigitalModule], // certificado digital do órgão p/ assinar os certificados
   controllers: [
     EscolaPublicController,
     EscolaAlunoController,
     EscolaProfessorController,
     EscolaAdminController,
   ],
-  providers: [EscolaService, CertificadoPdfService, StorageService],
+  providers: [EscolaService, CertificadoPdfService, StorageService, SignatureService],
   exports: [EscolaService],
 })
 export class EscolaModule {}
