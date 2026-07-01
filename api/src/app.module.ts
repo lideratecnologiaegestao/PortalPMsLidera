@@ -25,6 +25,7 @@ import { ServicosModule } from './modules/servicos/servicos.module';
 import { UsersModule } from './modules/users/users.module';
 import { MediaModule } from './modules/media/media.module';
 import { EscolaModule } from './modules/escola/escola.module';
+import { AgendaModule } from './modules/agenda/agenda.module';
 import { PlatformModule } from './modules/platform/platform.module';
 import { PlatformSettingsModule } from './modules/platform-settings/platform-settings.module';
 import { BackupModule } from './modules/backup/backup.module';
@@ -101,6 +102,7 @@ import { CampanhasModule } from './modules/campanhas/campanhas.module';
     GruposModule, // grupos de acesso granular (permissões por tenant)
     MediaModule, // biblioteca de mídia (upload, galeria, rota pública mascarada)
     EscolaModule, // Escola Cidadã: cursos, provas, certificados (portado da câmara)
+    AgendaModule, // Agenda Administrativa — calendário unificado (feriados, reuniões, datas comemorativas…)
     PlatformModule, // gerenciador da plataforma (super_admin: CRUD de tenants)
     PlatformSettingsModule, // config global da plataforma (branding Lidera, SMTP global, backups)
     BackupModule, // backups automáticos (pg_dump + storage) → MinIO portal-backups

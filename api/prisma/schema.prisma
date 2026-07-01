@@ -2922,3 +2922,29 @@ model CursoRestricao {
   @@index([tenantId, cursoId])
   @@map("curso_restricoes")
 }
+
+// ── Agenda Administrativa — calendário unificado (migration 104) ──
+model AgendaItem {
+  id           String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId     String   @map("tenant_id") @db.Uuid
+  tipo         String   @default("evento")
+  titulo       String
+  descricao    String?
+  local        String?
+  link         String?
+  inicio       DateTime @db.Timestamptz(6)
+  fim          DateTime? @db.Timestamptz(6)
+  diaInteiro   Boolean  @default(false) @map("dia_inteiro")
+  timezone     String   @default("America/Cuiaba")
+  cor          String?
+  recorrencia  String   @default("nenhuma") // nenhuma | anual
+  destaque     Boolean  @default(false)
+  publico      Boolean  @default(true)
+  ativo        Boolean  @default(true)
+  ordem        Int      @default(0)
+  criadoEm     DateTime @default(now()) @map("criado_em") @db.Timestamptz(6)
+  atualizadoEm DateTime @default(now()) @updatedAt @map("atualizado_em") @db.Timestamptz(6)
+  @@index([tenantId, inicio])
+  @@index([tenantId, tipo])
+  @@map("agenda_itens")
+}
