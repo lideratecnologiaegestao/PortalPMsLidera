@@ -187,3 +187,49 @@ export interface BuscaResult {
   pageSize: number;
   resultados: BuscaResultado[];
 }
+
+// ── Escola Cidadã — tipos públicos (portado da câmara) ──
+export interface CursoResumo {
+  id: string;
+  titulo: string;
+  slug?: string | null;
+  resumo?: string | null;
+  capaUrl?: string | null;
+  cargaHoraria?: number | null;
+  inicioEm?: string | null;
+  fimEm?: string | null;
+  certificacao: boolean;
+}
+
+export interface CursoAulaResumo {
+  id: string;
+  titulo: string;
+  duracaoMin?: number | null;
+  ordem: number;
+}
+
+export interface CursoModuloResumo {
+  id: string;
+  titulo: string;
+  descricao?: string | null;
+  ordem: number;
+  aulas: CursoAulaResumo[];
+}
+
+export interface CursoDetalhe extends CursoResumo {
+  descricao?: string | null;
+  modulos: CursoModuloResumo[];
+}
+
+export interface CertificadoPublico {
+  codigo: string;
+  nomeAluno: string;
+  tituloCurso: string;
+  cargaHoraria?: number | null;
+  emitidoEm: string;
+}
+
+export type ValidacaoCertificado =
+  | { valido: true; certificado: CertificadoPublico }
+  | { valido: false };
+// ── L5 PSS (Processo Seletivo Simplificado) ─────────────────────────────────

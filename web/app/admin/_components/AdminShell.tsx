@@ -263,6 +263,7 @@ const MENU_GROUPS: MenuGroup[] = [
       { href: '/admin/galeria', label: 'Galeria', icon: <IconPhoto /> },
       { href: '/admin/icones', label: 'Ícones e Emojis', icon: <IconPalette /> },
       { href: '/admin/midia', label: 'Mídia', icon: <IconPhoto /> },
+      { href: '/admin/escola', label: 'Escola Cidadã', icon: <IconBook /> },
       { href: '/admin/paginas', label: 'Páginas', icon: <IconPages /> },
       { href: '/admin/diario', label: 'Diário Oficial', icon: <IconNewspaper /> },
       { href: '/admin/servicos', label: 'Serviços', icon: <IconList /> },

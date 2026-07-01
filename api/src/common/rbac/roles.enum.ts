@@ -7,5 +7,6 @@ export enum Role {
   ASSISTENTE_OUVIDORIA   = 'assistente_ouvidoria',   // auxiliar da ouvidoria — mesmas permissões de conteúdo que ouvidor
   SERVIDOR               = 'servidor',               // designado a manifestações específicas
   TI                     = 'ti',                     // TI do tenant — acesso técnico pleno EXCETO ouvidoria/e-SIC
+  PROFESSOR              = 'professor',              // instrutor da Escola Cidadã — cursos / provas / correção
   CIDADAO                = 'cidadao',                // portal/app do cidadão
 }
