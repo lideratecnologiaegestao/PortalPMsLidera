@@ -361,6 +361,12 @@ const MENU_GROUPS: MenuGroup[] = [
       { href: '/admin/sessoes', label: 'Sessões Ativas', icon: <IconMonitor /> },
       { href: '/admin/usuarios-relatorio', label: 'Relatório de Usuários', icon: <IconBarChart /> },
       { href: '/admin/email', label: 'E-mail (SMTP)', icon: <IconMail /> },
+      {
+        href: '/admin/certificado-digital',
+        label: 'Certificado Digital',
+        icon: <IconShield />,
+        apenasRoles: new Set(['admin_prefeitura', 'super_admin']),
+      },
       { href: '/admin/tema', label: 'Tema e Identidade', icon: <IconPalette /> },
       { href: '/admin/menus', label: 'Menus', icon: <IconMenus /> },
       {

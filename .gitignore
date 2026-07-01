@@ -70,3 +70,8 @@ api/storage-dev/
 *.tfstate
 *.tfstate.*
 crash.log
+
+# Certificados digitais (.pfx/.p12 + senha) — NUNCA versionar chave privada
+certificado/
+*.pfx
+*.p12

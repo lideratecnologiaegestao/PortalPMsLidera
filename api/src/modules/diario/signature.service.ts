@@ -2,11 +2,14 @@ import { Injectable, ServiceUnavailableException } from '@nestjs/common';
 import { createHmac, timingSafeEqual } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import * as forge from 'node-forge';
+import type { CredencialCertificado } from '../certificado-digital/certificado-digital.service';
 
 export interface Assinatura {
   assinatura: string;
   algoritmo: string;
   carimboTempo: Date;
+  /** Nº de série do certificado que assinou (p/ reverificar após renovação). null no stub HMAC. */
+  serie: string | null;
 }
 
 /**
@@ -50,15 +53,24 @@ export class SignatureService {
     return this.icpCache;
   }
 
-  assinar(hash: string): Assinatura {
-    if (this.icpConfigurado) {
-      const { key } = this.carregarIcp();
+  /**
+   * Assina o hash. Prioridade: (1) `cred` do tenant (certificado importado no
+   * painel); (2) `ICP_CERT_PATH` global do ambiente; (3) stub HMAC (só dev).
+   */
+  assinar(hash: string, cred?: CredencialCertificado | null): Assinatura {
+    const par = cred
+      ? { key: cred.key, cert: cred.cert, titular: cred.titular }
+      : this.icpConfigurado
+        ? { ...this.carregarIcp(), titular: null as string | null }
+        : null;
+    if (par) {
       const md = forge.md.sha256.create();
       md.update(hash, 'utf8');
       return {
-        assinatura: forge.util.encode64(key.sign(md)),
-        algoritmo: 'SHA256withRSA (ICP-Brasil A1)',
+        assinatura: forge.util.encode64(par.key.sign(md)),
+        algoritmo: `SHA256withRSA (ICP-Brasil A1${par.titular ? ` — ${par.titular}` : ''})`,
         carimboTempo: new Date(),
+        serie: par.cert.serialNumber ?? null,
       };
     }
     // STUB de desenvolvimento — sem validade jurídica.
@@ -67,14 +79,15 @@ export class SignatureService {
       assinatura,
       algoritmo: 'HMAC-SHA256 (DEV — sem validade jurídica)',
       carimboTempo: new Date(),
+      serie: null,
     };
   }
 
-  /** Confere a assinatura (RSA com ICP, ou HMAC timing-safe no stub). */
-  conferir(hash: string, assinatura: string): boolean {
+  /** Confere a assinatura (RSA com o cert do tenant/ICP, ou HMAC timing-safe no stub). */
+  conferir(hash: string, assinatura: string, cred?: CredencialCertificado | null): boolean {
     try {
-      if (this.icpConfigurado) {
-        const { cert } = this.carregarIcp();
+      const cert = cred?.cert ?? (this.icpConfigurado ? this.carregarIcp().cert : null);
+      if (cert) {
         const md = forge.md.sha256.create();
         md.update(hash, 'utf8');
         return (cert.publicKey as forge.pki.rsa.PublicKey).verify(
@@ -94,7 +107,8 @@ export class SignatureService {
   private chaveDev(): string {
     if (process.env.NODE_ENV === 'production') {
       throw new ServiceUnavailableException(
-        'Assinatura do Diário não configurada (ICP_CERT_PATH ausente). Não é possível publicar.',
+        'Assinatura não configurada: importe o certificado digital no painel (Certificado Digital) ' +
+          'ou configure o ICP_CERT_PATH global. Não é possível publicar.',
       );
     }
     const k = process.env.DIARIO_SIGNING_KEY;

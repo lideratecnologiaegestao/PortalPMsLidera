@@ -421,6 +421,25 @@ model TenantIaConfig {
   @@map("tenant_ia_config")
 }
 
+/// Certificado digital ICP-Brasil A1 por tenant (cofre) — migration 105.
+/// .pfx (base64) e senha CIFRADOS em repouso (secret-box). Assina Diário/certificados.
+model TenantCertificadoConfig {
+  id           String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId     String    @unique @map("tenant_id") @db.Uuid
+  pfxCifrado   String    @map("pfx_cifrado")
+  senhaCifrada String    @map("senha_cifrada")
+  titular      String?
+  emissor      String?
+  numeroSerie  String?   @map("numero_serie")
+  tipo         String?
+  validoDe     DateTime? @map("valido_de") @db.Timestamptz(6)
+  validoAte    DateTime? @map("valido_ate") @db.Timestamptz(6)
+  ativo        Boolean   @default(true)
+  criadoEm     DateTime  @default(now()) @map("criado_em") @db.Timestamptz(6)
+  atualizadoEm DateTime  @default(now()) @updatedAt @map("atualizado_em") @db.Timestamptz(6)
+  @@map("tenant_certificado_config")
+}
+
 /// Importação da carga contábil APLIC (TCE-MT), módulo CT — migration 057.
 model AplicCarga {
   id             String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
@@ -962,6 +981,7 @@ model DiarioEdicao {
   assinatura    String?
   algoritmo     String?
   carimboTempo  DateTime?    @map("carimbo_tempo")
+  assinaturaSerie String?    @map("assinatura_serie")
   publicadoEm   DateTime?    @map("publicado_em")
   criadoEm      DateTime     @default(now()) @map("criado_em")
   atualizadoEm  DateTime     @default(now()) @updatedAt @map("atualizado_em")
@@ -2745,6 +2765,12 @@ model CursoCertificado {
   pdfUrl        String?         @map("pdf_url")
   pdfStorageKey String?         @map("pdf_storage_key")
   qrUrl         String?         @map("qr_url")
+  // Assinatura digital (ICP-Brasil A1 por tenant) — migration 105.
+  hash          String?
+  assinatura    String?
+  algoritmo     String?
+  carimboTempo  DateTime?       @map("carimbo_tempo") @db.Timestamptz(6)
+  assinaturaSerie String?       @map("assinatura_serie")
   emitidoEm     DateTime        @default(now()) @map("emitido_em") @db.Timestamptz(6)
   criadoEm      DateTime        @default(now()) @map("criado_em") @db.Timestamptz(6)
   curso         Curso           @relation(fields: [cursoId], references: [id], onDelete: Cascade)
