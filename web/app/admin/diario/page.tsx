@@ -522,9 +522,9 @@ export default function DiarioAdminPage() {
       setAviso(`Edição Nº ${edicao.numero} publicada com sucesso.`);
       buscar();
     } catch (err) {
-      if (err instanceof AdminApiError && err.status === 403) {
+      if (err instanceof AdminApiError && err.status === 503) {
         setErro(
-          `Publicação não autorizada: ${err.message}. Verifique se sua conta gov.br possui confiabilidade PRATA ou superior e MFA habilitado.`,
+          `${err.message} — importe o certificado digital do órgão em Administração → Certificado Digital.`,
         );
       } else {
         setErro(err instanceof AdminApiError ? err.message : 'Erro ao publicar edição.');
@@ -613,8 +613,8 @@ export default function DiarioAdminPage() {
 
       {/* Nota sobre requisitos de publicação */}
       <p className="rounded border border-border bg-bg px-3 py-2 text-xs text-fg/60" role="note">
-        A publicação de edições exige conta gov.br com confiabilidade <strong>PRATA ou superior</strong> e{' '}
-        <strong>MFA habilitado</strong>. Erros 403 indicam requisito não atendido.
+        A publicação assina a edição com o <strong>certificado digital ICP-Brasil do órgão</strong>.
+        Importe-o em <strong>Administração → Certificado Digital</strong> antes de publicar.
       </p>
 
       {/* Tabela */}
