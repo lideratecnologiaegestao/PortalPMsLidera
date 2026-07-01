@@ -15,12 +15,6 @@ import {
 import { Roles } from '../../common/rbac/roles.decorator';
 import { Role } from '../../common/rbac/roles.enum';
 import { RolesGuard } from '../../common/rbac/roles.guard';
-import {
-  ConfiabilidadeGuard,
-  MinConfiabilidade,
-  Nivel,
-} from '../auth/confiabilidade';
-import { MfaGuard, RequireMfa } from '../auth/mfa.guard';
 import { PublicCacheInterceptor } from '../../common/http/public-cache.interceptor';
 import { CurrentUser } from '../auth/current-user.decorator';
 import { AuthUser } from '../auth/jwt-auth.guard';
@@ -47,13 +41,12 @@ export class DiarioController {
     return this.service.criarRascunho(dto);
   }
 
-  // Publicar é um ato oficial: além do RBAC, exige selo de confiabilidade
-  // gov.br PRATA+ E o 2º fator (MFA) verificado na sessão (docs/04-seguranca).
+  // Publicar é um ato oficial restrito por RBAC (gestor/admin). A validade
+  // jurídica vem da ASSINATURA com o certificado digital ICP-Brasil do órgão
+  // (importado no painel), não da identidade gov.br de quem publica.
   @Post(':id/publicar')
-  @UseGuards(RolesGuard, ConfiabilidadeGuard, MfaGuard)
+  @UseGuards(RolesGuard)
   @Roles(Role.GESTOR, Role.ADMIN_PREFEITURA)
-  @MinConfiabilidade(Nivel.PRATA)
-  @RequireMfa()
   publicar(@Param('id') id: string) {
     return this.service.publicar(id);
   }
