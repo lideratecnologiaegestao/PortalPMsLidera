@@ -274,6 +274,12 @@ const MENU_GROUPS: MenuGroup[] = [
       { href: '/admin/agenda', label: 'Agenda Administrativa', icon: <IconCalendar /> },
       { href: '/admin/paginas', label: 'Páginas', icon: <IconPages /> },
       { href: '/admin/diario', label: 'Diário Oficial', icon: <IconNewspaper /> },
+      {
+        href: '/admin/hinos-estaduais',
+        label: 'Hinos Estaduais',
+        icon: <IconNewspaper />,
+        apenasRoles: new Set(['admin_prefeitura', 'super_admin']),
+      },
       { href: '/admin/servicos', label: 'Serviços', icon: <IconList /> },
       { href: '/admin/formularios', label: 'Formulários', icon: <IconList /> },
     ],

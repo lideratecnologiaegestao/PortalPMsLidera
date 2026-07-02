@@ -230,8 +230,17 @@ export class DiarioPdfService {
     const total = range.count;
     for (let i = 0; i < total; i++) {
       doc.switchToPage(range.start + i);
+      // Zera as margens ao desenhar cabeçalho/rodapé em posição ABSOLUTA. Sem
+      // isso o pdfkit trata o texto abaixo da área útil como transbordo e ADICIONA
+      // páginas em branco no fim (uma por chamada de doc.text). Restaura depois.
+      const mb = doc.page.margins.bottom;
+      const mt = doc.page.margins.top;
+      doc.page.margins.bottom = 0;
+      doc.page.margins.top = 0;
       if (layout.cabecalhoAtivo && i > 0) this.cabecalho(doc, ed, entidade, brasaoBuffer, largura);
       this.rodape(doc, ed, entidade, layout, largura, i, total);
+      doc.page.margins.bottom = mb;
+      doc.page.margins.top = mt;
     }
 
     // Box de autenticidade + QR no fim da capa.
