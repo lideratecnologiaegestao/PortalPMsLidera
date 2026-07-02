@@ -580,6 +580,9 @@ export default function DiarioAdminPage() {
         title="Diário Oficial"
         description="Publique e gerencie as edições do Diário Oficial eletrônico do município."
       >
+        <a href="/admin/diario/config" className="rounded border border-border px-3 py-2 text-sm hover:bg-muted">
+          Layout do PDF
+        </a>
         <button onClick={abrirNova} className={ui.btn}>
           + Nova edição
         </button>

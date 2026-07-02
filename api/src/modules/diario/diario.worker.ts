@@ -6,6 +6,8 @@ import { TenantContext } from '../../common/tenant/tenant.context';
 import { StorageService } from '../storage/storage.service';
 import { JOB_DIARIO_ALERTAS, JOB_DIARIO_PDF, QUEUE_INTEGRACOES } from '../queue/queue.constants';
 import { DiarioPdfService } from './diario-pdf.service';
+import { DiarioConfigService } from './diario-config.service';
+import { HINO_BANDEIRA, HINO_NACIONAL } from './hinos-nacionais';
 import { DiarioAlertasService } from './diario-alertas.service';
 import { ThemeService } from '../theme/theme.service';
 import { carregarLogoRelatorio } from '../theme/logo-relatorio.util';
@@ -35,6 +37,7 @@ export class DiarioWorker extends WorkerHost {
     private readonly storage: StorageService,
     private readonly alertasSvc: DiarioAlertasService,
     private readonly theme: ThemeService,
+    private readonly diarioConfig: DiarioConfigService,
   ) {
     super();
   }
@@ -71,9 +74,18 @@ export class DiarioWorker extends WorkerHost {
         .tenant.findUnique({ where: { id: tenantId } });
       const verifyUrl = `https://${hostDoTenant(tenant)}/diario/verificar?hash=${ed.hash ?? ''}`;
 
-      // Carrega o logo do tenant para o cabeçalho do PDF (null = sem logo)
+      // Carrega o logo do tenant (serve de brasão no cabeçalho/hinos) — null = sem imagem.
       const { tokens } = await this.theme.getTokens();
       const logoBuffer = await carregarLogoRelatorio(tokens);
+
+      // Layout + dados institucionais e hinos (símbolos oficiais).
+      const layout = await this.diarioConfig.obter();
+      const hinoBrasao = await this.prisma.db.hinoBrasao.findFirst({ select: { hinoTexto: true } });
+      const hinoEstado = layout.incluirHinos ? await this.diarioConfig.hinoDoEstado(tenant?.uf) : null;
+      const hinoMunicipio =
+        layout.incluirHinos && hinoBrasao?.hinoTexto?.trim()
+          ? { titulo: `Hino do Município de ${tenant?.nome ?? ''}`.trim(), autores: '', letra: hinoBrasao.hinoTexto.trim() }
+          : null;
 
       const { buffer, paginas } = await this.pdf.gerar(
         {
@@ -95,7 +107,26 @@ export class DiarioWorker extends WorkerHost {
           conteudo: m.conteudo,
           orgao: m.secretaria?.nome ?? m.orgaoNome ?? null,
         })),
-        logoBuffer,
+        {
+          logoBuffer,
+          brasaoBuffer: logoBuffer, // p/ municípios, o logo é o brasão
+          entidade: {
+            nome: tenant?.nome ?? 'Entidade',
+            cnpj: tenant?.cnpj ?? null,
+            endereco: layout.endereco,
+            horario: layout.horarioAtendimento,
+            telefone: layout.telefone,
+          },
+          layout: {
+            colunas: layout.colunas,
+            cabecalhoAtivo: layout.cabecalhoAtivo,
+            rodapeAtivo: layout.rodapeAtivo,
+            incluirHinos: layout.incluirHinos,
+          },
+          hinos: layout.incluirHinos
+            ? { municipio: hinoMunicipio, estado: hinoEstado, bandeira: HINO_BANDEIRA, nacional: HINO_NACIONAL }
+            : null,
+        },
       );
 
       const key = await this.storage.put(`diario/${tenantId}`, buffer, 'application/pdf');
