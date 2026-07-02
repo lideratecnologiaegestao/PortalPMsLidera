@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import PDFDocument from 'pdfkit';
 import * as QRCode from 'qrcode';
 import { DIARIO_TIPOS } from './diario.service';
+import type { HinoTexto } from './hinos-nacionais';
 
 const TIPO_LABEL: Record<string, string> = Object.fromEntries(
   DIARIO_TIPOS.map((t) => [t.slug, t.nome]),
@@ -28,6 +29,39 @@ export interface EdicaoPdf {
   verifyUrl: string; // URL pública de verificação (entra no QR)
 }
 
+/** Dados institucionais para cabeçalho/rodapé. */
+export interface EntidadePdf {
+  nome: string;
+  cnpj?: string | null;
+  endereco?: string | null;
+  horario?: string | null;
+  telefone?: string | null;
+}
+
+/** Layout configurável do PDF. */
+export interface LayoutPdf {
+  colunas: number; // 1 | 2
+  cabecalhoAtivo: boolean;
+  rodapeAtivo: boolean;
+  incluirHinos: boolean;
+}
+
+/** Hinos das páginas finais (município + estado + bandeira + nacional). */
+export interface HinosPdf {
+  municipio?: HinoTexto | null;
+  estado?: HinoTexto | null;
+  bandeira: HinoTexto;
+  nacional: HinoTexto;
+}
+
+export interface OpcoesPdf {
+  logoBuffer?: Buffer | null;
+  brasaoBuffer?: Buffer | null;
+  entidade: EntidadePdf;
+  layout: LayoutPdf;
+  hinos?: HinosPdf | null;
+}
+
 /** Converte HTML simples em texto com quebras de parágrafo preservadas. */
 function htmlParaTexto(html: string): string {
   return (html || '')
@@ -51,23 +85,29 @@ function dataBR(d: Date): string {
   return `${String(dt.getUTCDate()).padStart(2, '0')}/${String(dt.getUTCMonth() + 1).padStart(2, '0')}/${dt.getUTCFullYear()}`;
 }
 
+const CINZA = '#555555';
+
 @Injectable()
 export class DiarioPdfService {
   /** Gera o PDF da edição. Retorna o buffer e o total de páginas. */
   async gerar(
     ed: EdicaoPdf,
     materias: MateriaPdf[],
-    logoBuffer?: Buffer | null,
+    opts: OpcoesPdf,
   ): Promise<{ buffer: Buffer; paginas: number }> {
+    const { logoBuffer, brasaoBuffer, entidade, layout, hinos } = opts;
     const qrDataUrl = await QRCode.toBuffer(ed.verifyUrl, { margin: 1, width: 220 });
 
+    // Margens: reserva espaço no topo p/ o cabeçalho corrido e embaixo p/ o rodapé.
+    const top = layout.cabecalhoAtivo ? 96 : 64;
+    const bottom = layout.rodapeAtivo ? 74 : 56;
     const doc = new PDFDocument({
       size: 'A4',
-      margins: { top: 64, bottom: 64, left: 56, right: 56 },
+      margins: { top, bottom, left: 56, right: 56 },
       bufferPages: true,
       info: {
         Title: ed.titulo,
-        Author: ed.municipio ?? 'Município',
+        Author: entidade.nome || ed.municipio || 'Entidade',
         Subject: `Diário Oficial — Edição nº ${ed.numero}`,
       },
     });
@@ -77,9 +117,8 @@ export class DiarioPdfService {
     const fim = new Promise<void>((resolve) => doc.on('end', () => resolve()));
 
     const largura = doc.page.width - doc.page.margins.left - doc.page.margins.right;
-    const cinza = '#555555';
-    const tipoEdicaoLabel = ed.tipoEdicao && ed.tipoEdicao !== 'ordinaria'
-      ? ` (Edição ${ed.tipoEdicao})` : '';
+    const tipoEdicaoLabel =
+      ed.tipoEdicao && ed.tipoEdicao !== 'ordinaria' ? ` (Edição ${ed.tipoEdicao})` : '';
 
     // ---- Capa ----
     if (logoBuffer) {
@@ -88,14 +127,14 @@ export class DiarioPdfService {
         doc.image(logoBuffer, logoX, doc.y, { width: 90 });
         doc.moveDown(0.5);
       } catch {
-        // logo corrompido ou formato inesperado — continua sem imagem
+        /* logo corrompido — segue sem imagem */
       }
     }
     doc.font('Helvetica-Bold').fontSize(11).fillColor('#000')
-      .text((ed.municipio ?? 'MUNICÍPIO').toUpperCase() + (ed.uf ? ` — ${ed.uf}` : ''), { align: 'center' });
+      .text((entidade.nome || ed.municipio || 'ENTIDADE').toUpperCase() + (ed.uf ? ` — ${ed.uf}` : ''), { align: 'center' });
     doc.moveDown(0.2);
     doc.font('Helvetica-Bold').fontSize(20).text('DIÁRIO OFICIAL ELETRÔNICO', { align: 'center' });
-    doc.font('Helvetica').fontSize(12).fillColor(cinza)
+    doc.font('Helvetica').fontSize(12).fillColor(CINZA)
       .text(`Edição nº ${ed.numero}${tipoEdicaoLabel} · ${dataBR(ed.dataEdicao)}`, { align: 'center' });
     doc.moveDown(0.6);
     doc.moveTo(doc.page.margins.left, doc.y).lineTo(doc.page.width - doc.page.margins.right, doc.y)
@@ -129,15 +168,16 @@ export class DiarioPdfService {
         doc.moveDown(0.2);
       }
     } else {
-      doc.font('Helvetica-Oblique').fontSize(10).fillColor(cinza)
+      doc.font('Helvetica-Oblique').fontSize(10).fillColor(CINZA)
         .text('Edição sem matérias estruturadas.');
     }
 
-    // ---- Matérias ----
+    // ---- Matérias (corpo em 1 ou 2 colunas) ----
+    const colunas = layout.colunas === 1 ? 1 : 2;
     for (const m of materias) {
       doc.addPage();
       const lbl = TIPO_LABEL[m.tipo] ?? m.tipo;
-      doc.font('Helvetica').fontSize(8).fillColor(cinza)
+      doc.font('Helvetica').fontSize(8).fillColor(CINZA)
         .text(`${m.orgao || 'Atos Diversos'} · ${lbl}`.toUpperCase());
       doc.moveDown(0.2);
       doc.font('Helvetica-Bold').fontSize(13).fillColor('#000')
@@ -149,21 +189,49 @@ export class DiarioPdfService {
       doc.moveDown(0.4);
       const texto = htmlParaTexto(m.conteudo);
       if (texto) {
-        doc.font('Helvetica').fontSize(10.5).fillColor('#000').text(texto, { align: 'justify', lineGap: 1.5 });
+        doc.font('Helvetica').fontSize(10.5).fillColor('#000').text(texto, {
+          align: 'justify',
+          lineGap: 1.5,
+          columns: colunas,
+          columnGap: 18,
+          width: largura,
+        });
       }
     }
 
-    // ---- Rodapé (numeração) + box de autenticidade na capa (página 0) ----
+    // ---- Páginas finais: hinos e brasão ----
+    if (layout.incluirHinos && hinos) {
+      doc.addPage();
+      doc.font('Helvetica-Bold').fontSize(15).fillColor('#000').text('SÍMBOLOS OFICIAIS', { align: 'center' });
+      doc.moveDown(0.4);
+
+      // Hino do Município (+ brasão)
+      if (hinos.municipio) {
+        if (brasaoBuffer) {
+          try {
+            const bw = 72;
+            const y0 = doc.y;
+            // fit limita LARGURA e ALTURA a bw → o avanço de doc.y nunca sobrepõe o texto
+            doc.image(brasaoBuffer, doc.page.margins.left + (largura - bw) / 2, y0, { fit: [bw, bw], align: 'center' });
+            doc.y = y0 + bw + 8;
+          } catch {
+            /* brasão inválido — segue sem imagem */
+          }
+        }
+        this.hino(doc, hinos.municipio);
+      }
+      if (hinos.estado) this.hino(doc, hinos.estado);
+      this.hino(doc, hinos.bandeira);
+      this.hino(doc, hinos.nacional);
+    }
+
+    // ---- Cabeçalho e rodapé corridos + box de autenticidade ----
     const range = doc.bufferedPageRange();
     const total = range.count;
     for (let i = 0; i < total; i++) {
       doc.switchToPage(range.start + i);
-      const y = doc.page.height - 46;
-      doc.font('Helvetica').fontSize(7.5).fillColor(cinza);
-      doc.text(`Edição nº ${ed.numero} · ${dataBR(ed.dataEdicao)}`, doc.page.margins.left, y,
-        { width: largura, align: 'left', lineBreak: false });
-      doc.text(`Página ${i + 1} de ${total}`, doc.page.margins.left, y,
-        { width: largura, align: 'right', lineBreak: false });
+      if (layout.cabecalhoAtivo && i > 0) this.cabecalho(doc, ed, entidade, brasaoBuffer, largura);
+      this.rodape(doc, ed, entidade, layout, largura, i, total);
     }
 
     // Box de autenticidade + QR no fim da capa.
@@ -186,5 +254,72 @@ export class DiarioPdfService {
     doc.end();
     await fim;
     return { buffer: Buffer.concat(chunks), paginas: total };
+  }
+
+  /** Renderiza um hino (título + autores + letra centralizada). */
+  private hino(doc: PDFKit.PDFDocument, h: HinoTexto): void {
+    doc.moveDown(0.6);
+    doc.font('Helvetica-Bold').fontSize(12).fillColor('#000').text(h.titulo, { align: 'center' });
+    if (h.autores) {
+      doc.font('Helvetica-Oblique').fontSize(8).fillColor('#666').text(h.autores, { align: 'center' });
+    }
+    doc.moveDown(0.3);
+    doc.font('Helvetica').fontSize(9.5).fillColor('#000').text(h.letra, { align: 'center', lineGap: 1 });
+  }
+
+  /** Cabeçalho corrido: brasão + nome da entidade + identificação da edição. */
+  private cabecalho(
+    doc: PDFKit.PDFDocument,
+    ed: EdicaoPdf,
+    entidade: EntidadePdf,
+    brasao: Buffer | null | undefined,
+    largura: number,
+  ): void {
+    const x = doc.page.margins.left;
+    let textoX = x;
+    if (brasao) {
+      try {
+        doc.image(brasao, x, 30, { height: 34 });
+        textoX = x + 42;
+      } catch {
+        /* brasão inválido */
+      }
+    }
+    doc.font('Helvetica-Bold').fontSize(9.5).fillColor('#000')
+      .text(entidade.nome + (ed.uf ? ` — ${ed.uf}` : ''), textoX, 32, { width: largura - (textoX - x), lineBreak: false });
+    doc.font('Helvetica').fontSize(7.5).fillColor(CINZA)
+      .text(`Diário Oficial Eletrônico · Edição nº ${ed.numero} · ${dataBR(ed.dataEdicao)}`, textoX, 46,
+        { width: largura - (textoX - x), lineBreak: false });
+    doc.moveTo(x, 68).lineTo(doc.page.width - doc.page.margins.right, 68).strokeColor('#dddddd').stroke();
+  }
+
+  /** Rodapé corrido: dados institucionais (se ativo) + numeração de páginas. */
+  private rodape(
+    doc: PDFKit.PDFDocument,
+    ed: EdicaoPdf,
+    entidade: EntidadePdf,
+    layout: LayoutPdf,
+    largura: number,
+    i: number,
+    total: number,
+  ): void {
+    const x = doc.page.margins.left;
+    if (layout.rodapeAtivo) {
+      const linha1 = [entidade.nome, entidade.cnpj ? `CNPJ ${entidade.cnpj}` : null]
+        .filter(Boolean).join(' · ');
+      const linha2 = [entidade.endereco, entidade.telefone, entidade.horario]
+        .filter(Boolean).join(' · ');
+      const y1 = doc.page.height - 58;
+      doc.font('Helvetica').fontSize(6.8).fillColor(CINZA);
+      if (linha1) doc.text(linha1, x, y1, { width: largura, align: 'center', lineBreak: false });
+      if (linha2) doc.text(linha2, x, y1 + 10, { width: largura, align: 'center', lineBreak: false });
+      doc.text(`Edição nº ${ed.numero} · ${dataBR(ed.dataEdicao)}`, x, y1 + 22, { width: largura, align: 'left', lineBreak: false });
+      doc.text(`Página ${i + 1} de ${total}`, x, y1 + 22, { width: largura, align: 'right', lineBreak: false });
+    } else {
+      const y = doc.page.height - 46;
+      doc.font('Helvetica').fontSize(7.5).fillColor(CINZA);
+      doc.text(`Edição nº ${ed.numero} · ${dataBR(ed.dataEdicao)}`, x, y, { width: largura, align: 'left', lineBreak: false });
+      doc.text(`Página ${i + 1} de ${total}`, x, y, { width: largura, align: 'right', lineBreak: false });
+    }
   }
 }

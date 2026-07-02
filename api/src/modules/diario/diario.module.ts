@@ -4,7 +4,9 @@ import { QUEUE_INTEGRACOES } from '../queue/queue.constants';
 import { DiarioController } from './diario.controller';
 import { DiarioAdminController } from './diario-admin.controller';
 import { DiarioPdfController } from './diario-pdf.controller';
+import { DiarioConfigController } from './diario-config.controller';
 import { DiarioService } from './diario.service';
+import { DiarioConfigService } from './diario-config.service';
 import { SignatureService } from './signature.service';
 import { DiarioPdfService } from './diario-pdf.service';
 import { DiarioAlertasService } from './diario-alertas.service';
@@ -27,9 +29,10 @@ import { CertificadoDigitalModule } from '../certificado-digital/certificado-dig
     BuscaModule, // indexação das matérias no buscador unificado
     CertificadoDigitalModule, // certificado digital do órgão p/ assinar a edição
   ],
-  controllers: [DiarioController, DiarioAdminController, DiarioPdfController],
+  controllers: [DiarioController, DiarioAdminController, DiarioPdfController, DiarioConfigController],
   providers: [
     DiarioService,
+    DiarioConfigService,
     SignatureService,
     DiarioPdfService,
     DiarioAlertasService,

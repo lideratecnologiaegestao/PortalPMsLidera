@@ -993,6 +993,33 @@ model DiarioEdicao {
   @@map("diario_edicoes")
 }
 
+/// Layout do PDF do Diário por tenant (colunas, cabeçalho/rodapé, hinos) — migration 106.
+model DiarioConfig {
+  tenantId           String   @id @map("tenant_id") @db.Uuid
+  colunas            Int      @default(2)
+  cabecalhoAtivo     Boolean  @default(true) @map("cabecalho_ativo")
+  rodapeAtivo        Boolean  @default(true) @map("rodape_ativo")
+  incluirHinos       Boolean  @default(true) @map("incluir_hinos")
+  endereco           String?
+  horarioAtendimento String?  @map("horario_atendimento")
+  telefone           String?
+  atualizadoEm       DateTime @default(now()) @updatedAt @map("atualizado_em") @db.Timestamptz(6)
+  @@map("diario_config")
+}
+
+/// Base global de hinos estaduais (símbolos oficiais) — migration 106/107.
+model HinoEstadual {
+  uf           String   @id @db.Char(2)
+  estado       String
+  titulo       String
+  letra        String?
+  autores      String?
+  fonte        String?
+  oficial      Boolean  @default(true)
+  atualizadoEm DateTime @default(now()) @map("atualizado_em") @db.Timestamptz(6)
+  @@map("hinos_estaduais")
+}
+
 model Enquete {
   id        String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   tenantId  String         @map("tenant_id") @db.Uuid
